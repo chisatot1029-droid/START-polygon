@@ -115,7 +115,9 @@
   const FACES = {
     hero: 'assets/face_hero.png', heroSleepy: 'assets/face_hero_sleepy.png',
     captive: 'assets/face_captive.png', monster: 'assets/face_monster.png',
+    police: 'assets/face_police.png', heroAlt: 'assets/face_hero_alt.png',     // 警察・家の中の 変身した 主人公
   };
+  const SPEAKER_FACE = { 'バケモノ': 'monster', '警察': 'police' };   // 表情が 変わらない 人は 名前で きまる
 
   window.flags = {};
   let mode = 'title';
@@ -164,7 +166,9 @@
   const say = (speaker, text, opt = {}) => new Promise(resolve => {
     openDialog(speaker, opt);
     ui.dialog.classList.remove('choosing');
-    if (opt.face && FACES[opt.face]) { ui.face.src = FACES[opt.face]; ui.face.classList.remove('hidden'); }
+    let face = opt.face || SPEAKER_FACE[speaker];
+    if (face === 'hero' && outfit) face = 'heroAlt';   // 家の中では 変身した 姿の 顔
+    if (face && FACES[face]) { ui.face.src = FACES[face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
     const pages = paginate(text);
@@ -615,6 +619,12 @@
         const leg = new THREE.Group(); leg.position.set(s * .16, .26, 0);
         const shoe = new THREE.Mesh(new THREE.DodecahedronGeometry(.17, 0), red); shoe.scale.set(1.15, .6, 1.5); shoe.position.set(0, -.18, -.07); leg.add(shoe);
         alt.add(leg); altLegs.push(leg);
+      }
+      // 犬の ような たれ耳（頭の 上の 横から、外がわへ たれる）
+      for (const s of [-1, 1]) {
+        const ear = new THREE.Group(); ear.position.set(s * .36, 1.72, .02); ear.rotation.z = -s * 2.35;
+        const e = new THREE.Mesh(new THREE.SphereGeometry(.15, 8, 6), wm); e.scale.set(.55, 1.9, .9); e.position.y = .24; ear.add(e);
+        alt.add(ear);
       }
       const band = new THREE.Mesh(new THREE.TorusGeometry(.33, .035, 4, 10, Math.PI), black); band.rotation.set(Math.PI / 2, 0, 0); band.position.set(0, 1.1, -.04); alt.add(band);   // うしろの えりの ヘッドホンの バンド
       const bag = new THREE.Mesh(new THREE.BoxGeometry(.36, .38, .1), black); bag.position.set(-.08, .74, .43); bag.rotation.z = .04; alt.add(bag);
