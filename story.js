@@ -112,7 +112,7 @@ const STORY = {
         await say('バケモノ', '…。', { face: 'monster' });
         await wait(800);                                                    // 主人公を じっと 見つめ
         const away = monsterWalk(-1300, 5200);                              // ゆっくり 歩き、
-        await wait(520);                                                    // （大きいので すぐ かべに とどく）
+        await wait(850);                                                    // かべに とどいたら
         breakWall();                                                        // 壁を 壊して
         await away;                                                         // 去る
         monster('none');

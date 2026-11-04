@@ -268,15 +268,15 @@
   };
   const arriveHouse = async () => {
     running = true;
-    houseHero.x = -.3; houseHero.z = 15.5; houseKaitou.x = 1.2; houseKaitou.z = 15.0;   // 手前から 道を 走って くる
-    await Promise.all([walkHouse(houseHero, -.4, 6.6, 2300), walkHouse(houseKaitou, 1.8, 5.8, 2300)]);
+    houseHero.x = -1.6; houseHero.z = 22.6; houseKaitou.x = 3.6; houseKaitou.z = 22.6;  // カメラの 横を 走りぬけて くる
+    await Promise.all([walkHouse(houseHero, -.6, 14.6, 2400), walkHouse(houseKaitou, 2.7, 12.2, 2400)]);
     running = false;
   };
   const place = name => {
     area = name;
     if (name === 'house') {
-      houseHero = { x: -.4, z: 6.6, t: 0, moving: false };
-      houseKaitou = { x: 1.8, z: 5.8, t: 0, moving: false, visible: true, goIn: false };
+      houseHero = { x: -.6, z: 14.6, t: 0, moving: false };
+      houseKaitou = { x: 2.7, z: 12.2, t: 0, moving: false, visible: true, goIn: false };
       doorOpen = 0; moon = 0;
     }
   };
@@ -288,14 +288,14 @@
   const enterHouse = async step => {
     if (step === 'open') {
       houseKaitou.goIn = true;
-      await walkHouse(houseKaitou, .5, 2.0, 2000);                          // ドアの 前へ
+      await walkHouse(houseKaitou, .5, 2.0, 4200);                          // ドアの 前へ（遠くの 建物まで 歩く）
       await tween(1200, p => { doorOpen = ease(p); });                      // ゆっくり 開ける
       houseKaitou.goIn = false;                                             // ふりかえって「さぁ入って。」
     } else {
       houseKaitou.goIn = true;
       await walkHouse(houseKaitou, .5, -1.2, 1100);                         // 先に 入る（頭も ドアを 通る）
       houseKaitou.visible = false;
-      await walkHouse(houseHero, -.2, 2.0, 2000);                           // 後を 追って
+      await walkHouse(houseHero, -.2, 2.0, 4200);                           // 後を 追って
       await walkHouse(houseHero, -.2, -1.0, 1000);
     }
   };
@@ -503,27 +503,39 @@
     return g;
   }
 
-  // バケモノ（Figma「claude用素材」2：深い みどりの かたまりに アヒルの ような 頭。くちばしは -x がわ）
+  // バケモノ（田野さんの デザイン画：頭巾を かぶった ような 幽霊の 形。すそと 背中は ぎざぎざ、
+  //   横から 見ると 波うつ 唇が つき出し、前は 目が 2つと すぼめた 口、うしろに ひび）。顔は -x がわ
   function makeMonster() {
     const g = new THREE.Group(), body = new THREE.Group();
-    const skin = flat('#2c3a1c'), dark = flat('#1c2612');
+    const skin = flat('#2c3a1c', { side: THREE.DoubleSide }), dark = flat('#141a0c'), black = flat('#0b0b0b');
     g.add(body);
-    const blob = new THREE.Mesh(new THREE.SphereGeometry(.6, 8, 5), skin); blob.scale.set(1.45, .62, 1.05); blob.position.y = .3; body.add(blob);
-    // もこもこした ふち（触手のように 広がる）
-    for (let i = 0; i < 7; i++) {
-      const a = i / 7 * Math.PI * 2 + .3;
-      const t = new THREE.Mesh(new THREE.ConeGeometry(.16, .7, 5), skin);
-      t.rotation.z = Math.PI / 2; t.rotation.y = -a; t.position.set(Math.cos(a) * .9, .1, Math.sin(a) * .6); body.add(t);
+    // からだ：上が 丸く、下へ 広がる（回転体で つくる）
+    const prof = [[0, 3.05], [.24, 3.0], [.4, 2.86], [.48, 2.62], [.48, 2.3], [.55, 2.0], [.74, 1.6], [.98, 1.1], [1.18, .6], [1.3, .28], [1.3, .22]]
+      .map(([r, y]) => new THREE.Vector2(r, y));
+    const bell = new THREE.Mesh(new THREE.LatheGeometry(prof, 10), skin); body.add(bell);
+    // すその ぎざぎざ
+    for (let i = 0; i < 18; i++) {
+      const a = i / 18 * Math.PI * 2;
+      const c = new THREE.Mesh(new THREE.ConeGeometry(.13, .34, 4), skin); c.rotation.x = Math.PI;
+      c.position.set(Math.cos(a) * 1.24, .1, Math.sin(a) * 1.24); body.add(c);
     }
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(.22, .32, .5, 7), skin); neck.position.set(-.15, .75, 0); body.add(neck);
-    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(.36, 1), skin); head.scale.set(1.1, .95, .95); head.position.set(-.25, 1.1, 0); body.add(head);
-    const beak = new THREE.Mesh(new THREE.ConeGeometry(.16, .42, 5), dark); beak.rotation.z = Math.PI / 2; beak.scale.set(1, 1, .6); beak.position.set(-.68, 1.06, 0); body.add(beak);
-    const beakLo = new THREE.Mesh(new THREE.ConeGeometry(.11, .32, 5), dark); beakLo.rotation.z = Math.PI / 2 + .25; beakLo.scale.set(1, 1, .6); beakLo.position.set(-.62, .96, 0); body.add(beakLo);
-    for (const zs of [-1, 1]) {   // 目（白目に 黒目）
-      const ew = new THREE.Mesh(new THREE.IcosahedronGeometry(.1, 0), flat('#f4f4ee')); ew.position.set(-.38, 1.2, zs * .3); body.add(ew);
-      const pu = new THREE.Mesh(new THREE.IcosahedronGeometry(.05, 0), flat('#0c0c0c')); pu.position.set(-.43, 1.2, zs * .37); body.add(pu);
+    // 背中（+x がわ）の とげとげ
+    for (let i = 0; i < 6; i++) {
+      const y = 1.9 - i * .26, r = .62 + i * .12;
+      const c = new THREE.Mesh(new THREE.ConeGeometry(.1, .32, 4), skin); c.rotation.z = -Math.PI / 2; c.position.set(r + .08, y, 0); body.add(c);
     }
-    const tuft = new THREE.Mesh(new THREE.ConeGeometry(.04, .3, 4), dark); tuft.position.set(-.1, 1.5, 0); tuft.rotation.z = -.4; body.add(tuft);
+    // うしろの ひび（ぎざぎざの 線）
+    [[1.45, .1, .5], [1.28, -.08, -.5], [1.1, .06, .5]].forEach(([y, z, rot]) => {
+      const k = new THREE.Mesh(new THREE.BoxGeometry(.03, .24, .03), black); k.position.set(.7 + (1.6 - y) * .45, y, z); k.rotation.x = rot; body.add(k);
+    });
+    // 顔：目 2つ、つき出した 波うつ 唇、頭の てっぺんからの 線
+    for (const zs of [-1, 1]) {
+      const e = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 4), black); e.scale.set(.6, 1.2, 1); e.position.set(-.42, 2.55, zs * .2); body.add(e);
+    }
+    [2.36, 2.22, 2.08].forEach((y, i) => {
+      const lip = new THREE.Mesh(new THREE.SphereGeometry(.12, 7, 4), dark); lip.scale.set(1.5, .55, 1.1); lip.position.set(-.55 - (i === 1 ? .04 : 0), y, 0); body.add(lip);
+    });
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(.025, .45, .025), black); seam.position.set(-.33, 2.85, .06); seam.rotation.z = .55; body.add(seam);
     g.userData.body = body;
     shadowAll(g);
     return g;
@@ -603,7 +615,7 @@
   const heroM = makeHero(), monsterM = makeMonster(), captiveM = makeKaitou(), watchM = makeWatch(), exclaimM = makeExclaim();
   const thrownM = new THREE.Mesh(new THREE.IcosahedronGeometry(.16, 0), flat('#111')); thrownM.scale.set(.8, 1.1, .8); thrownM.castShadow = true;
   const policeM = makePolice(), kaitouM = makeKaitou();
-  monsterM.scale.setScalar(1.7);   // 怪盗と 同じくらいの 大きさ（飲みこむと 体が かくれる）
+  monsterM.scale.setScalar(1.05);   // 怪盗と 同じくらいの 高さ   // 怪盗と 同じくらいの 大きさ（飲みこむと 体が かくれる）
   scene.add(heroM, monsterM, captiveM, watchM, exclaimM, thrownM, policeM, kaitouM);
 
   const shards = new THREE.Group();
@@ -705,7 +717,7 @@
   const moonM = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: '#fff4cc', fog: false }));
   moonM.position.set(-26, 30, -45); houseG.add(moonM);
   const moonSpot = new THREE.SpotLight('#fff3c4', 0, 40, .25, .6, 0); scene.add(moonSpot, moonSpot.target);
-  const houseLamp = new THREE.PointLight('#fff6e6', 0, 12, 0); houseLamp.position.set(60, 2.2, 2.5); scene.add(houseLamp);
+  const houseLamp = new THREE.PointLight('#fff6e6', 0, 14, 0); houseLamp.position.set(60, 2.2, 3); scene.add(houseLamp);
 
   // ============================================================
   // 更新と 描画
@@ -754,7 +766,7 @@
       const body = monsterM.userData.body;
       monsterM.position.set(X(MON[monsterState] + monsterDX), walking ? Math.abs(Math.sin(monsterDX / 40)) * .12 : 0, Z(625));
       monsterM.rotation.y = walking && monsterDX > 0 ? Math.PI : 0;      // くちばしは すすむ ほうへ
-      if (monsterState === 'down') { body.rotation.z = 1.25; body.position.set(.2, .35, 0); }       // ひっくり かえる
+      if (monsterState === 'down') { body.rotation.z = -1.35; body.position.set(-1.35, 1.25, 0); }  // あおむけに ひっくり かえる（かべに めりこまない 位置）
       else { body.rotation.z = 0; body.position.set(0, 0, 0); }
       if (monsterState === 'eat') { body.rotation.x = Math.sin(t * 18) * .06; body.scale.set(1, 1 + Math.max(0, Math.sin((now - eatStart) / 850 * Math.PI)) * .12, 1); }
       else { body.rotation.x = 0; body.scale.set(1, 1, 1); }
@@ -762,13 +774,13 @@
     captiveM.visible = ['full', 'eat', 'apart', 'down', 'captive'].includes(monsterState);
     if (captiveM.visible) {
       // つかまっている 時は くちばしの 先、2周目は バケモノの 左に 立つ
-      let s = 1, lift = 0, x = (monsterState === 'full' || monsterState === 'eat' ? 410 : 470) + captiveDX, z = Z(621);
-      if (monsterState === 'full') { lift = .35 + Math.sin(t * 9) * .05; captiveM.rotation.z = -.35; z += .15; }
+      let s = 1, lift = 0, x = (monsterState === 'full' || monsterState === 'eat' ? 455 : 470) + captiveDX, z = Z(621);
+      if (monsterState === 'full') { lift = .55 + Math.sin(t * 9) * .05; captiveM.rotation.z = -.45; z += .1; }
       else if (monsterState === 'eat') {
         // 口から 体の 中へ すいこまれて、だんだん 見えなくなる
         const p = Math.min(1, (now - eatStart) / 850), e = p * p;
-        x = 410 + e * 185; lift = .35 + Math.sin(p * Math.PI) * .6 - e * .5; s = 1 - e * .65;
-        captiveM.rotation.z = -.35 - e * 1.2; z += .15;
+        x = 455 + e * 145; lift = .55 + Math.sin(p * Math.PI) * .6 - e * .55; s = 1 - e * .65;
+        captiveM.rotation.z = -.45 - e * 1.1; z += .1;
         if (p >= 1) captiveM.visible = false;
       } else captiveM.rotation.z = Math.sin(t * 2) * .05;
       captiveM.scale.setScalar(Math.max(.001, s));
@@ -851,14 +863,14 @@
 
     if (area === 'house') {
       // 夜：星空の 下の 家を 前から 見る
-      cam.position.set(HOUSE.x, 7.2, HOUSE.z + 20);    // 主人公の うしろ 上から 道の 先の 建物を 見上げる（4 の 左の 絵）
-      camL.set(HOUSE.x, 3.4, HOUSE.z - 1);
+      cam.position.set(HOUSE.x + 1.6, 2.3, HOUSE.z + 20.4);   // 主人公の ななめ うしろ から、遠くの 大きな 建物を 見る
+      camL.set(HOUSE.x - .1, 2.4, HOUSE.z - 2);
       cam.lookAt(camL);
       scene.background.set('#0b1020'); scene.fog.color.set('#0b1020'); scene.fog.near = 30; scene.fog.far = 90;
       hemi.color.set('#9fb3ff'); hemi.groundColor.set('#1a2416'); hemi.intensity = .45;
       sun.color.set('#c9d6ff'); sun.intensity = .9;
-      sun.position.set(HOUSE.x - 6, 12, HOUSE.z + 14); sun.target.position.set(HOUSE.x, 0, HOUSE.z + 7);
-      moonSpot.position.set(HOUSE.x - 6, 14, HOUSE.z + 16); moonSpot.target.position.copy(kaitouM.position);
+      sun.position.set(HOUSE.x - 6, 12, HOUSE.z + 20); sun.target.position.set(HOUSE.x, 0, HOUSE.z + 13);
+      moonSpot.position.set(HOUSE.x - 6, 14, HOUSE.z + 22); moonSpot.target.position.copy(kaitouM.position);
       moonSpot.intensity = moon * 6;
       houseLamp.intensity = .8 + doorOpen * 1.6;
     } else {
