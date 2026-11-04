@@ -14,7 +14,7 @@
 //   moonlight()                  … 月の光が 怪盗を てらす
 //   await enterHouse()           … 怪盗が ドアを 開けて 家に入り、主人公も つづく
 //   await arriveHouse()          … 怪盗と 主人公が 走って 家の前に 着く
-//   breakWall() / repairWall()   … 左の かべを こわす ／ もとに もどす（時が もどった 時）
+//   breakWall('left' / 'right') / repairWall() … 左（右）の かべを こわす ／ もとに もどす（時が もどった 時）
 //   （プレイヤーが 自由に 歩ける 間は、進む 方向に 矢印が 出ます）
 //   主人公M（心の声）は （ ） で かこむ
 // ============================================================
@@ -177,7 +177,10 @@ const STORY = {
         await wait(900);
         monster('apart');
         await wait(500);
-        await monsterWalk(600, 1500);
+        const away2 = monsterWalk(900, 3000);                               // 右へ 歩いて、
+        await wait(420);
+        breakWall('right');                                                 // 壁を 壊して 去る
+        await away2;
         monster('captive');
         await say('???', '少年！ありがとう！', { face: 'captive' });
         await say('???', '助けてもらったところ申し訳ないが、\n急いでるんだ！', { face: 'captive' });
