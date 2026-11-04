@@ -1111,14 +1111,15 @@
   const heroKnife = new THREE.Mesh(new THREE.BoxGeometry(.04, .3, .015), flat('#dfe5ea')); heroKnife.visible = false; scene.add(heroKnife);
 
   // ---------- 場面2の 登場人物の 位置（m） ----------
-  const actor = (x, z) => ({ x, z, rot: 0, moving: false, visible: false, sit: false, t: 0 });
+  const actor = (x, z) => ({ seq: 0, x, z, rot: 0, moving: false, visible: false, sit: false, t: 0 });
   const A = actor(12.2, -12.4), B = actor(.7, -8.4), KH = actor(.6, -2.6);
   let heroSleep = 0;
   const walkActor = (a, x, z, ms) => {
-    const fx = a.x, fz = a.z; a.moving = true; a.rot = Math.atan2(x - fx, z - fz);
-    return tween(ms, p => { a.x = fx + (x - fx) * p; a.z = fz + (z - fz) * p; a.t += .016; }).then(() => { a.moving = false; });
+    const fx = a.x, fz = a.z, id = a.seq; a.moving = true; a.rot = Math.atan2(x - fx, z - fz);
+    // sitActor で 置きなおされたら、とちゅうでも 歩くのを やめる
+    return tween(ms, p => { if (a.seq !== id) return; a.x = fx + (x - fx) * p; a.z = fz + (z - fz) * p; a.t += .016; }).then(() => { if (a.seq === id) a.moving = false; });
   };
-  const walkPath = async (a, pts, speed = 1.6) => { for (const [x, z] of pts) await walkActor(a, x, z, Math.max(200, Math.hypot(x - a.x, z - a.z) / speed * 1000)); };
+  const walkPath = async (a, pts, speed = 1.6) => { const id = a.seq; for (const [x, z] of pts) if (a.seq === id) await walkActor(a, x, z, Math.max(200, Math.hypot(x - a.x, z - a.z) / speed * 1000)); };
   const heroX = () => (player.x - 600) / 100, heroZ = () => player.y / 100;
   const setHero = (x, z) => { player.x = 600 + x * 100; player.y = z * 100; };
   const heroFace = (x, z) => { player.face = Math.atan2(x - heroX(), -(z - heroZ())); };
@@ -1205,7 +1206,7 @@
   let camK = 1;
   const look = (x, z, k = 1) => { focus2 = x === undefined || x === null ? null : [x, z]; camK = k; };
   const sitHero = (x, z, fx, fz) => { heroSit = x !== undefined && x !== null; if (heroSit) { setHero(x, z); heroFace(fx, fz); } };
-  const sitActor = (a, x, z, rot, lift = 0) => { a.x = x; a.z = z; a.rot = rot; a.lift = lift; a.visible = true; };
+  const sitActor = (a, x, z, rot, lift = 0) => { a.seq++; a.moving = false; a.x = x; a.z = z; a.rot = rot; a.lift = lift; a.visible = true; };
   const prop = (name, on) => {
     const u = kidAM.userData;
     ({ tears: () => { u.tears.visible = on; }, kidKnife: () => { u.knife.visible = on; }, kidPlates: () => { u.plates.visible = on; },
@@ -1248,7 +1249,7 @@
   // プレイヤーが 決まった 所まで 歩くのを 待つ（矢印が 道を 案内する）
   let goalResolve = null;
   const freeWalk = name => new Promise(resolve => {
-    setGoal(name); mode = 'play'; heroSit = false;
+    setGoal(name); mode = 'play'; heroSit = false; focus2 = null; camK = 1;
     goalResolve = () => { goalResolve = null; goal = []; mode = 'event'; player.moving = false; resolve(); };
   });
   function reset2() {

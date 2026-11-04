@@ -385,9 +385,9 @@ const STORY = {
     // 子供A（青い子）が やってくる
     sitActor(kidA, 4.2, -8.7, Math.PI / 2);
     look(9, -10.5);
-    await walkPath(kidA, [[11.4, -8.9], [12.0, -11.9]], 3.2);
+    await walkPath(kidA, [[11.4, -8.9], [11.6, -13.4]], 3.2);
     lookAt(kidA, heroX(), heroZ());
-    look(null);
+    look(12.4, -13.0, .8);
     await KA('あ！お兄さんケーキ切ってくれるの？');
     heroFace(kidA.x, kidA.z);
     await H('？');
@@ -490,7 +490,7 @@ const STORY = {
 
     // ---------- ○屋根裏部屋 ----------
     sitActor(kidB, .68, -9.3, 0);
-    look(2.6, -9.5);
+    look(1.4, -8.2);
     await Promise.all([walkPath(kidA, [[5.4, -12.9], [-.6, -8.6]], 2.4), (async () => { await wait(500); await walkHeroPath([[7.6, -12.9], [5.4, -12.9], [2.6, -8.9]], 2.4); })()]);
     lookAt(kidB, heroX(), heroZ()); heroFace(kidB.x, kidB.z); lookAt(kidA, kidB.x, kidB.z);
     await KB('こんにちは！');
