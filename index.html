@@ -224,7 +224,7 @@
   const captiveWalk = (dx, dy, ms) => { const fx = captiveDX, fy = captiveDY; return tween(ms, p => { captiveDX = fx + dx * p; captiveDY = fy + dy * p; }); };
   const throwItem = async (ms = 600) => {
     const x0 = player.x + 20, y0 = player.y - 10, x1 = 760, y1 = 640;
-    await tween(ms, p => { thrown = { x: x0 + (x1 - x0) * p, y: y0 + (y1 - y0) * p, h: 1.1 + Math.sin(p * Math.PI) * 1.6, spin: p * 12 }; });
+    await tween(ms, p => { thrown = { x: x0 + (x1 - x0) * p, y: y0 + (y1 - y0) * p, h: (1.1 + Math.sin(p * Math.PI) * 1.6) * CHAR, spin: p * 12 }; });
     thrown = null;
   };
   // カメラ：y は ほんものの ゲームと 同じ「画面の いちばん上の マップの 位置」
@@ -469,6 +469,10 @@
   MAP.walls.forEach(w => addWall(w.x1, w.x2, w.y1, w.y2));
 
   // 主人公（Figma「claude用素材」：白い 四角い 頭・ヘッドホン・黒い リュック・大きな 赤い くつ）
+  // 登場人物ぜんたいの 大きさ（まわりの 部屋・建物に くらべて）
+  const CHAR = .6;
+  const KAITOU = 1.35 * CHAR;      // 怪盗：主人公の 頭が 胸元に くる 大きさ
+
   function makeHero() {
     const g = new THREE.Group();
     const white = flat('#f6f6f1'), black = flat('#1b1b1b'), red = flat('#c42a22');
@@ -500,6 +504,7 @@
     }
     g.userData = { legs, arms };
     shadowAll(g);
+    g.scale.setScalar(CHAR);
     return g;
   }
 
@@ -558,7 +563,7 @@
       const foot = new THREE.Mesh(new THREE.BoxGeometry(.18, .07, .38), white); foot.position.set(s * .2, .035, .1); foot.rotation.y = -s * .35; g.add(foot);
     }
     shadowAll(g);
-    g.scale.setScalar(1.35);       // 主人公（約1.85）の 頭が 怪盗の 胸元に くる 大きさ
+    g.scale.setScalar(KAITOU);
     return g;
   }
 
@@ -591,7 +596,7 @@
       const h = new THREE.Mesh(new THREE.IcosahedronGeometry(.07, 0), navy); h.position.z = .6; gunArm.add(h); }
     g.userData = { akimboR: akimbo[-1], gunArm };
     shadowAll(g);
-    g.scale.setScalar(1.35);       // 変装した 怪盗なので 同じくらいの 大きさ
+    g.scale.setScalar(KAITOU);     // 変装した 怪盗なので 同じくらいの 大きさ
     return g;
   }
 
@@ -613,9 +618,10 @@
   }
 
   const heroM = makeHero(), monsterM = makeMonster(), captiveM = makeKaitou(), watchM = makeWatch(), exclaimM = makeExclaim();
-  const thrownM = new THREE.Mesh(new THREE.IcosahedronGeometry(.16, 0), flat('#111')); thrownM.scale.set(.8, 1.1, .8); thrownM.castShadow = true;
+  const thrownM = new THREE.Mesh(new THREE.IcosahedronGeometry(.16, 0), flat('#111')); thrownM.scale.set(.8 * CHAR, 1.1 * CHAR, .8 * CHAR); thrownM.castShadow = true;
   const policeM = makePolice(), kaitouM = makeKaitou();
-  monsterM.scale.setScalar(1.05);   // 怪盗と 同じくらいの 高さ   // 怪盗と 同じくらいの 大きさ（飲みこむと 体が かくれる）
+  monsterM.scale.setScalar(1.05 * CHAR);   // 怪盗と 同じくらいの 高さ（飲みこむと 体が かくれる）
+  watchM.scale.setScalar(CHAR); exclaimM.scale.setScalar(CHAR);
   scene.add(heroM, monsterM, captiveM, watchM, exclaimM, thrownM, policeM, kaitouM);
 
   const shards = new THREE.Group();
@@ -648,8 +654,8 @@
     c.rotation.x = -Math.PI / 2; c.scale.set(1, 1, .12); c.position.z = -i * .65;
     arrowG.add(c);
   }
-  scene.add(arrowG);
-  scene.add(flowersM); flowersM.scale.setScalar(1.35);
+  arrowG.scale.setScalar(.7); scene.add(arrowG);
+  scene.add(flowersM); flowersM.scale.setScalar(KAITOU);
 
   // ---------- 怪盗の家の前（ろうかから はなれた 場所に つくる） ----------
   //   建物と 地面：Figma「claude用素材」4 の 参考資料（灰色の 段々の 大きな 建物・灰色の 道・まだらの 野原）
@@ -750,7 +756,7 @@
   function draw(now, dt) {
     const t = now / 1000;
     // 主人公
-    const runK = running ? 16 : 11, runH = running ? .22 : (flags.run ? .12 : .06);     // 走る 時は 大きく はずむ
+    const runK = running ? 16 : 11, runH = (running ? .22 : (flags.run ? .12 : .06)) * CHAR;     // 走る 時は 大きく はずむ
     const heroPhase = running ? t * runK : player.t * runK;
     heroM.position.set(X(player.x), player.moving ? Math.abs(Math.sin(heroPhase)) * runH : 0, Z(player.y));
     heroM.rotation.y = -player.face;
@@ -764,7 +770,7 @@
     monsterM.visible = monsterState in MON;
     if (monsterM.visible) {
       const body = monsterM.userData.body;
-      monsterM.position.set(X(MON[monsterState] + monsterDX), walking ? Math.abs(Math.sin(monsterDX / 40)) * .12 : 0, Z(625));
+      monsterM.position.set(X(MON[monsterState] + monsterDX), walking ? Math.abs(Math.sin(monsterDX / 40)) * .12 * CHAR : 0, Z(625));
       monsterM.rotation.y = walking && monsterDX > 0 ? Math.PI : 0;      // くちばしは すすむ ほうへ
       if (monsterState === 'down') { body.rotation.z = -1.35; body.position.set(-1.35, 1.25, 0); }  // あおむけに ひっくり かえる（かべに めりこまない 位置）
       else { body.rotation.z = 0; body.position.set(0, 0, 0); }
@@ -774,25 +780,26 @@
     captiveM.visible = ['full', 'eat', 'apart', 'down', 'captive'].includes(monsterState);
     if (captiveM.visible) {
       // つかまっている 時は くちばしの 先、2周目は バケモノの 左に 立つ
-      let s = 1, lift = 0, x = (monsterState === 'full' || monsterState === 'eat' ? 455 : 470) + captiveDX, z = Z(621);
-      if (monsterState === 'full') { lift = .55 + Math.sin(t * 9) * .05; captiveM.rotation.z = -.45; z += .1; }
+      const lipX = 600 - 145 * CHAR;   // バケモノの 唇の 先
+      let s = 1, lift = 0, x = (monsterState === 'full' || monsterState === 'eat' ? lipX : 470) + captiveDX, z = Z(621);
+      if (monsterState === 'full') { lift = (.55 + Math.sin(t * 9) * .05) * CHAR; captiveM.rotation.z = -.45; z += .1 * CHAR; }
       else if (monsterState === 'eat') {
         // 口から 体の 中へ すいこまれて、だんだん 見えなくなる
         const p = Math.min(1, (now - eatStart) / 850), e = p * p;
-        x = 455 + e * 145; lift = .55 + Math.sin(p * Math.PI) * .6 - e * .55; s = 1 - e * .65;
+        x = lipX + e * 145 * CHAR; lift = (.55 + Math.sin(p * Math.PI) * .6 - e * .55) * CHAR; s = 1 - e * .65;
         captiveM.rotation.z = -.45 - e * 1.1; z += .1;
         if (p >= 1) captiveM.visible = false;
       } else captiveM.rotation.z = Math.sin(t * 2) * .05;
-      captiveM.scale.setScalar(Math.max(.001, s));
+      captiveM.scale.setScalar(KAITOU * Math.max(.001, s));
       const cm = captiveDX || captiveDY;
-      captiveM.position.set(X(x), lift + (cm ? Math.abs(Math.sin((captiveDX + captiveDY) / 30)) * .08 : 0), z + captiveDY / 100);
+      captiveM.position.set(X(x), lift + (cm ? Math.abs(Math.sin((captiveDX + captiveDY) / 30)) * .08 * CHAR : 0), z + captiveDY / 100);
       captiveM.rotation.y = cm ? Math.atan2(captiveDX, captiveDY) : 0;
     }
     policeM.visible = policeState === 'police';
     kaitouM.visible = policeState === 'kaitou';
     for (const m of [policeM, kaitouM]) {
       const walkingP = policeDY > 0 && policeDY < 700;
-      const bobP = running ? Math.abs(Math.sin(t * 16 + 1.3)) * .24 : walkingP ? Math.abs(Math.sin(policeDY / 30)) * .08 : 0;
+      const bobP = (running ? Math.abs(Math.sin(t * 16 + 1.3)) * .24 : walkingP ? Math.abs(Math.sin(policeDY / 30)) * .08 : 0) * CHAR;
       m.position.set(X(606 + policeDX), bobP, Z(-26 + policeDY));
       m.rotation.y = policeSpin + (running ? Math.PI : 0);
     }
@@ -803,18 +810,18 @@
     flowersM.visible = !!shown.flowers;
     if (shown.flowers) {
       gunM.getWorldPosition(tmpV);
-      flowersM.position.set(tmpV.x, tmpV.y + .05 + Math.abs(Math.sin(t * 3)) * .03, tmpV.z + .45);
+      flowersM.position.set(tmpV.x, tmpV.y + (.05 + Math.abs(Math.sin(t * 3)) * .03) * CHAR, tmpV.z + .45 * CHAR);
     }
 
     // 怪盗の家の前
     if (area === 'house') {
-      const hk = running ? 16 : 11, hh = running ? .22 : .06;
+      const hk = running ? 16 : 11, hh = (running ? .22 : .06) * CHAR;
       heroM.position.set(HOUSE.x + houseHero.x, houseHero.moving ? Math.abs(Math.sin(t * hk)) * hh : 0, HOUSE.z + houseHero.z);
       heroM.rotation.y = 0;
       heroM.userData.legs.forEach((l, i) => { l.rotation.x = houseHero.moving ? Math.sin(t * hk + i * Math.PI) * (running ? .8 : .5) : 0; });
       heroM.userData.arms.forEach((a, i) => { a.rotation.x = houseHero.moving ? -Math.sin(t * hk + i * Math.PI) * (running ? .9 : .4) : 0; });
       kaitouM.visible = houseKaitou.visible; policeM.visible = false;
-      kaitouM.position.set(HOUSE.x + houseKaitou.x, houseKaitou.moving ? Math.abs(Math.sin(t * hk + 1.3)) * (running ? .24 : .08) : 0, HOUSE.z + houseKaitou.z);
+      kaitouM.position.set(HOUSE.x + houseKaitou.x, houseKaitou.moving ? Math.abs(Math.sin(t * hk + 1.3)) * (running ? .24 : .08) * CHAR : 0, HOUSE.z + houseKaitou.z);
       kaitouM.rotation.y = running || houseKaitou.goIn ? Math.PI : 0;
       monsterM.visible = captiveM.visible = false;
       arrowG.visible = false;
@@ -834,7 +841,7 @@
     if (freeMove) {
       const dx = X(606) - X(player.x) * 1, dz = -4;
       const len = Math.hypot(dx, dz), ux = dx / len, uz = dz / len;
-      arrowG.position.set(X(player.x) + ux * 1.7, .06, Z(player.y) + uz * 1.7);
+      arrowG.position.set(X(player.x) + ux * 1.2, .06, Z(player.y) + uz * 1.2);
       arrowG.rotation.y = Math.atan2(-ux, -uz);
       arrowMat.forEach((m, i) => { m.opacity = .25 + .75 * Math.max(0, Math.sin(t * 5 - i * .9)); });
     }
@@ -851,10 +858,10 @@
     // 時計・！マーク・投げた 荷物
     const ring = shown.ring && (t % 1) < .45;
     watchM.visible = !!shown.watch;
-    watchM.position.set(heroM.position.x + .6, 2.05 + (ring ? Math.abs(Math.sin(t * 28)) * .14 : 0), heroM.position.z);
+    watchM.position.set(heroM.position.x + .6 * CHAR, (2.05 + (ring ? Math.abs(Math.sin(t * 28)) * .14 : 0)) * CHAR, heroM.position.z);
     watchM.rotation.set(0, -.3, ring ? Math.sin(t * 28) * .22 : 0);
     exclaimM.visible = !!shown.exclaim;
-    exclaimM.position.set(heroM.position.x + .45, 2.0 + Math.abs(Math.sin(t * 6)) * .05, heroM.position.z);
+    exclaimM.position.set(heroM.position.x + .45 * CHAR, (2.0 + Math.abs(Math.sin(t * 6)) * .05) * CHAR, heroM.position.z);
     exclaimM.quaternion.copy(cam.quaternion);
     thrownM.visible = !!thrown;
     if (thrown) { thrownM.position.set(X(thrown.x), thrown.h, Z(thrown.y)); thrownM.rotation.set(thrown.spin, thrown.spin * .7, 0); }
@@ -996,7 +1003,7 @@
   // 画面の 上での 主人公の 位置（3D → 画面の px）
   const tmpV = new THREE.Vector3();
   function heroOnScreen() {
-    tmpV.set(heroM.position.x, 1.1, heroM.position.z).project(cam);
+    tmpV.set(heroM.position.x, 1.1 * CHAR, heroM.position.z).project(cam);
     return { x: (tmpV.x + 1) / 2 * W, y: (1 - tmpV.y) / 2 * H };
   }
   async function autoWalk() {
