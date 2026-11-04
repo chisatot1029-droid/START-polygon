@@ -269,14 +269,14 @@
   const arriveHouse = async () => {
     running = true;
     houseHero.x = -1.6; houseHero.z = 22.6; houseKaitou.x = 3.6; houseKaitou.z = 22.6;  // カメラの 横を 走りぬけて くる
-    await Promise.all([walkHouse(houseHero, -.6, 14.6, 2400), walkHouse(houseKaitou, 2.7, 12.2, 2400)]);
+    await Promise.all([walkHouse(houseHero, -.45, 13.2, 2400), walkHouse(houseKaitou, 1.55, 11.3, 2400)]);
     running = false;
   };
   const place = name => {
     area = name;
     if (name === 'house') {
-      houseHero = { x: -.6, z: 14.6, t: 0, moving: false };
-      houseKaitou = { x: 2.7, z: 12.2, t: 0, moving: false, visible: true, goIn: false };
+      houseHero = { x: -.45, z: 13.2, t: 0, moving: false };     // 赤丸の 位置（田野さんの 指定）
+      houseKaitou = { x: 1.55, z: 11.3, t: 0, moving: false, visible: true, goIn: false };
       doorOpen = 0; moon = 0;
     }
   };
@@ -822,7 +822,8 @@
       heroM.userData.arms.forEach((a, i) => { a.rotation.x = houseHero.moving ? -Math.sin(t * hk + i * Math.PI) * (running ? .9 : .4) : 0; });
       kaitouM.visible = houseKaitou.visible; policeM.visible = false;
       kaitouM.position.set(HOUSE.x + houseKaitou.x, houseKaitou.moving ? Math.abs(Math.sin(t * hk + 1.3)) * (running ? .24 : .08) * CHAR : 0, HOUSE.z + houseKaitou.z);
-      kaitouM.rotation.y = running || houseKaitou.goIn ? Math.PI : 0;
+      // 走る・ドアへ 向かう 時は 奥を、立ち止まって いる 時は 主人公の ほうを むく
+      kaitouM.rotation.y = running || houseKaitou.goIn ? Math.PI : Math.atan2(houseHero.x - houseKaitou.x, houseHero.z - houseKaitou.z);
       monsterM.visible = captiveM.visible = false;
       arrowG.visible = false;
     }
