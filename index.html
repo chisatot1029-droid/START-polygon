@@ -589,7 +589,38 @@
       const hand = new THREE.Mesh(new THREE.IcosahedronGeometry(.045, 0), white); hand.position.y = -.52; arm.add(hand);
       g.add(arm); arms.push(arm);
     }
-    g.userData = { legs, arms, bodyMat, hood };
+    // ふだんの 姿を まとめる
+    const normal = new THREE.Group(); [...g.children].forEach(c => normal.add(c)); g.add(normal);
+    // 家の中の 変身した 姿（田野さんの デザイン画）：白い たまごの ような 頭と 体、首に ヘッドホン、
+    //   羽の ような うで（先が ふさふさ）、うしろに 黒い かばん、大きな 赤い くつ
+    const alt = new THREE.Group(); alt.visible = false; g.add(alt);
+    const altLegs = [], altArms = [];
+    { const wm = flat('#f7f5ec');
+      const body = new THREE.Mesh(new THREE.SphereGeometry(.44, 12, 9), wm); body.scale.set(1, 1.05, .92); body.position.y = .66; alt.add(body);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(.27, .36, .4, 12), wm); neck.position.y = 1.02; alt.add(neck);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(.5, 12, 9), wm); head.scale.set(1.05, .82, .95); head.position.y = 1.42; alt.add(head);
+      // 目：太い まゆと 黒い 目（前は -z）
+      for (const s of [-1, 1]) {
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(.17, .045, .03), black); brow.position.set(s * .15, 1.66, -.42); brow.rotation.z = s * .08; alt.add(brow);
+        const eye = new THREE.Mesh(new THREE.BoxGeometry(.1, .15, .03), black); eye.position.set(s * .13, 1.53, -.44); alt.add(eye);
+        const shine = new THREE.Mesh(new THREE.BoxGeometry(.04, .025, .02), wm); shine.position.set(s * .13 + .02, 1.5, -.46); alt.add(shine);
+        // 首の ヘッドホン
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .13, 10), black); cup.rotation.z = Math.PI / 2; cup.position.set(s * .35, 1.04, -.08); alt.add(cup);
+        // 羽の ような うで（肩から 下がる。先が ふさふさ）
+        const arm = new THREE.Group(); arm.position.set(s * .4, .98, 0); arm.rotation.z = s * .32;
+        const w = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), wm); w.scale.set(.7, 2.5, 1.2); w.position.y = -.3; arm.add(w);
+        for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.06, .2, 4), wm); f.position.set(s * (.02 + i * .04), -.62 + i * .03, (i - 1.5) * .07); f.rotation.z = Math.PI + s * (.2 + i * .3); arm.add(f); }
+        alt.add(arm); altArms.push(arm);
+        // 大きな 赤い くつ
+        const leg = new THREE.Group(); leg.position.set(s * .16, .26, 0);
+        const shoe = new THREE.Mesh(new THREE.DodecahedronGeometry(.17, 0), red); shoe.scale.set(1.15, .6, 1.5); shoe.position.set(0, -.18, -.07); leg.add(shoe);
+        alt.add(leg); altLegs.push(leg);
+      }
+      const band = new THREE.Mesh(new THREE.TorusGeometry(.33, .035, 4, 10, Math.PI), black); band.rotation.set(Math.PI / 2, 0, 0); band.position.set(0, 1.1, -.04); alt.add(band);   // うしろの えりの ヘッドホンの バンド
+      const bag = new THREE.Mesh(new THREE.BoxGeometry(.36, .38, .1), black); bag.position.set(-.08, .74, .43); bag.rotation.z = .04; alt.add(bag);
+      const strap = new THREE.Mesh(new THREE.BoxGeometry(.035, .9, .03), black); strap.scale.y = .62; strap.position.set(.04, .9, -.41); strap.rotation.z = -.55; alt.add(strap);   // かたから かけた かばんの ひも
+      const strapB = new THREE.Mesh(new THREE.BoxGeometry(.035, .5, .03), black); strapB.position.set(.15, .98, .42); strapB.rotation.z = .7; alt.add(strapB); }
+    g.userData = { legs, arms, bodyMat, hood, normal, alt, legsN: legs, armsN: arms, legsA: altLegs, armsA: altArms };
     shadowAll(g);
     g.scale.setScalar(CHAR);
     return g;
@@ -1063,7 +1094,16 @@
     // しっぽ（ねこの ような 細い しっぽ）
     [[0, .45, -.38, .4], [.12, .7, -.55, .9], [.18, 1.0, -.6, 1.4]].forEach(([x, y, z, r]) => { const t = new THREE.Mesh(new THREE.CylinderGeometry(.05, .06, .36, 6), navy); t.position.set(x, y, z); t.rotation.x = -r * .6; t.rotation.z = -.3; g.add(t); });
     // 首元に かくした 星の ネックレス（わたす 時に 見える）
-    const necklace = new THREE.Mesh(new THREE.OctahedronGeometry(.08, 0), gold); necklace.position.set(0, .98, .4); necklace.visible = false; g.add(necklace);
+    // ポケットに 入れていた 星（取り出して 見せる）
+    const necklace = new THREE.Group(); necklace.visible = false; g.add(necklace);
+    { const st = new THREE.Shape();
+      for (let i = 0; i < 10; i++) { const r = i % 2 ? .07 : .17, a = i / 10 * Math.PI * 2; st[i ? 'lineTo' : 'moveTo'](Math.sin(a) * r, Math.cos(a) * r); }
+      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(st, { depth: .06, bevelEnabled: true, bevelSize: .02, bevelThickness: .02, bevelSegments: 1 }),
+        new THREE.MeshStandardMaterial({ color: '#ffd84a', emissive: '#c79a10', emissiveIntensity: .9, flatShading: true }));
+      m.position.z = -.03; necklace.add(m);
+      const glowS = new THREE.Mesh(new THREE.CircleGeometry(.36, 16), new THREE.MeshBasicMaterial({ color: '#fff3b0', transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false }));
+      glowS.position.z = -.05; necklace.add(glowS); necklace.userData.glow = glowS; }
+    necklace.position.set(.22, .5, .4);
     // なみだ・ナイフ（場面で 使う）
     const tears = new THREE.Group(); tears.visible = false; g.add(tears);
     for (const s of [-1, 1]) { const tr = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#8fd3ff', { emissive: '#2a6a9a' })); tr.position.set(s * .12, 1.1, .5); tears.add(tr); }
@@ -1122,7 +1162,8 @@
   plateMeshes[0].position.set(LOWTABLE.x - 1.1, .38 * FUR + .07, LOWTABLE.z);
   plateMeshes[1].position.set(LOWTABLE.x, .38 * FUR + .07, LOWTABLE.z - .5);
   plateMeshes[2].position.set(LOWTABLE.x + 1.1, .38 * FUR + .07, LOWTABLE.z);
-  const heroStar = new THREE.Mesh(new THREE.OctahedronGeometry(.12, 0), flat('#f2c94c', { emissive: '#7a5a10' })); heroStar.visible = false; scene.add(heroStar);
+  const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
+  { const c = kidAM.userData.necklace.children[0].clone(); c.scale.setScalar(KID * 1.3); heroStar.add(c); }
   const heroKnife = new THREE.Mesh(new THREE.BoxGeometry(.04, .3, .015), flat('#dfe5ea')); heroKnife.visible = false; scene.add(heroKnife);
 
   // ---------- 場面2の 登場人物の 位置（m） ----------
@@ -1155,6 +1196,7 @@
     back: [[13.2, -13.4]],
     table: [[11.6, -8.7], [1.9, -8.7], [1.9, -12.9]],
     stairs: [[1.9, -12.0], [1.9, -8.8], [6.3, -8.8], [6.3, -12.6]],
+    exit: [[3.3, -3.7], [-5.3, -3.7], [-6.2, -1.6], [-7.7, -1.6]],   // 屋根裏の 片隅の 扉から 屋上へ
   };
   const setGoal = name => { goal = (GOALS[name] || []).map(p => p.slice()); };
 
@@ -1162,6 +1204,11 @@
   const HOME_WALK = [[-2.75, -19.85, 2.75, -.25], [2.0, -9.8, 15.3, -7.7], [9.6, -16.55, 15.3, -7.7], [4.95, -13.2, 7.75, -9.0]];   // さいごは 2階への 階段
   const HOME_BLOCK = [[-3.2, -7.65, -.4, -5.8], [.4, -7.65, 3.2, -5.8], [TABLE.x1 - .25, TABLE.z1 - .25, TABLE.x2 + .25, TABLE.z2 + .25],
     [9.38, -16.9, 14.0, -14.67], [13.56, -16.9, 15.6, -12.24], [13.4, -9.4, 15.6, -7.4], [1.6, -5.9, 2.6, -4.9]];
+  // 屋根裏で 歩ける ところ（地図の 単位）：部屋と、片隅の 扉の 外
+  const ATTIC_WALK = [[-6.3, -12.5, 6.3, -.45], [-8.4, -2.3, -6.0, -.9]];
+  const ATTIC_BLOCK = [[-1.75, -7.65, 3.1, -4.85]];
+  const atticBlocked = (x, z) => !ATTIC_WALK.some(([a, b, c, d]) => x > a && x < c && z > b && z < d) || ATTIC_BLOCK.some(([a, b, c, d]) => x > a && x < c && z > b && z < d);
+  const blocked2 = (x, z) => area === 'attic' ? atticBlocked(x, z) : homeBlocked(x, z);
   const homeBlocked = (x, z) => !HOME_WALK.some(([a, b, c, d]) => x > a && x < c && z > b && z < d) || HOME_BLOCK.some(([a, b, c, d]) => x > a && x < c && z > b && z < d);
 
   // ---------- ケーキを 8こに 切る ミニゲーム ----------
@@ -1219,13 +1266,18 @@
   const doors = { back: 0, attic: 0, exit: 0 };
   let heroSitK = 0, heroSitDrop = -.15, heroCarry = false, focus2 = null, guideAt = null, starFly = null;
   const openDoor = (name, ms = 900) => tween(ms, p => { doors[name] = ease(p); });
-  const setOutfit = on => { heroM.userData.hood.visible = on; heroM.userData.bodyMat.color.set(on ? '#9cc7a4' : '#f6f6f1'); };
+  let outfit = false;
+  const setOutfit = on => {                          // 家の中では 変身した 姿
+    const u = heroM.userData; outfit = on;
+    u.normal.visible = !on; u.alt.visible = on;
+    u.legs = on ? u.legsA : u.legsN; u.arms = on ? u.armsA : u.armsN;
+  };
   let camK = 1;
   const look = (x, z, k = 1, snap = false) => { focus2 = x === undefined || x === null ? null : [x, z]; camK = k; if (snap) first = true; };
   // すわる（drop：いすは -.15、ゆかは -.45）。x が null なら 立ち上がる
   const sitHero = (x, z, fx, fz, drop = -.15, ms = 0) => {
     if (x === undefined || x === null) { const k0 = heroSitK; return tween(ms || 0, p => { heroSitK = k0 * (1 - p); }); }
-    setHero(x, z); heroFace(fx, fz); heroSitDrop = drop;
+    setHero(x, z); heroFace(fx, fz); heroSitDrop = outfit ? (drop > -.3 ? .17 : -.06) : drop;   // 変身した 姿は 足が みじかい
     return tween(ms, p => { heroSitK = ease(p); });
   };
   // 子供たちが すわる・立つ（少し かがんでから）
@@ -1244,11 +1296,17 @@
   const cakeSliced = () => { cakeCut = true; slicesLeft = 8; badCut.visible = false; showSlices(8); };
   const eatSlices = async (n, ms = 700) => { for (let i = 0; i < n && slicesLeft > 0; i++) { await wait(ms); slicesLeft--; showSlices(slicesLeft); } };
   const atticPlates = (n, withCake = true) => plateMeshes.forEach((p, i) => { p.visible = i < n; p.userData.slice.forEach(m => { m.visible = withCake; }); });
+  const takePlate = i => { plateMeshes[i].visible = false; };
   const eatPlates = ms => tween(ms, p => { plateMeshes.forEach(pl => pl.userData.slice[0].scale.setScalar(Math.max(.001, 1 - p))); }).then(() => atticPlates(3, false));
   const kidChop = ms => tween(ms, p => { kidChopK = p; }).then(() => { kidChopK = 0; });
   let kidChopK = 0;
   const sleep = (ms, on = true) => tween(ms, p => { heroSleep = on ? ease(p) : 1 - ease(p); });
   // 子供Aの 首元の 星が 主人公の 手に わたる
+  // 子供Aが ポケットから 星を 取り出して、高く かかげる
+  const showStar = () => {
+    const n = kidAM.userData.necklace; n.visible = true;
+    return tween(1300, p => { const e = ease(p); n.position.set(.22 - e * .1, .5 + e * .75 + Math.sin(p * Math.PI) * .15, .4 + e * .2); n.scale.setScalar(.5 + e * .9); n.userData.spin = (1 - e) * 6; });
+  };
   const giveStar = async () => {
     const from = new THREE.Vector3(), to = new THREE.Vector3();
     kidAM.userData.necklace.getWorldPosition(from); kidAM.userData.necklace.visible = false;
@@ -1272,6 +1330,7 @@
     kidHand: () => tmpV2.set(kidAM.position.x + Math.sin(A.rot) * .25, .55 * KID, kidAM.position.z + Math.cos(A.rot) * .25),
   };
   const tmpV2 = new THREE.Vector3();
+  const tmpQ = new THREE.Quaternion(), tmpQ2 = new THREE.Quaternion(), Y_AXIS = new THREE.Vector3(0, 1, 0);
   // プレイヤーが 決まった 所まで 歩くのを 待つ（矢印が 道を 案内する）
   let goalResolve = null;
   const freeWalk = name => new Promise(resolve => {
@@ -1286,7 +1345,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
+  Object.assign(window, { takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };
@@ -1301,7 +1360,7 @@
     const walkB = player.moving ? Math.abs(Math.sin(player.t * 11)) * .06 * CHAR : 0;
     heroM.position.set(base.x + heroX() * S, (heroSitK ? heroSitDrop * heroSitK : walkB) + stairY(heroX(), heroZ()), base.z + heroZ() * S);
     heroM.rotation.y = -player.face; heroM.rotation.x = -heroSleep * .6;
-    heroM.userData.legs.forEach((l, i) => { l.rotation.x = heroSitK ? 1.45 * heroSitK : player.moving ? Math.sin(player.t * 11 + i * Math.PI) * .5 : 0; });
+    heroM.userData.legs.forEach((l, i) => { l.rotation.x = heroSitK ? (outfit ? .9 : 1.45) * heroSitK : player.moving ? Math.sin(player.t * 11 + i * Math.PI) * .5 : 0; });
     heroM.userData.arms.forEach((a, i) => { a.rotation.x = heroCarry ? 1.25 : player.moving ? -Math.sin(player.t * 11 + i * Math.PI) * .4 : 0; });
     const fx = Math.sin(player.face), fz = -Math.cos(player.face);
     // 怪盗・子供たち
@@ -1316,6 +1375,12 @@
     const kn = kidAM.userData.knife;
     kn.rotation.x = kidChopK ? (kidChopK < .5 ? -kidChopK * 3 : -1.5 + (kidChopK - .5) * 6) : 0;
     kn.position.y = .95 + (kidChopK && kidChopK < .5 ? kidChopK * .8 : 0);
+    { const n = kidAM.userData.necklace;
+      if (n.visible) {                               // 星は いつも カメラの ほうを むく（くるっと 回りながら 出てくる）
+        n.userData.glow.material.opacity = .35 + Math.sin(t * 4) * .15;
+        kidAM.updateMatrixWorld(); kidAM.getWorldQuaternion(tmpQ).invert();
+        n.quaternion.copy(tmpQ).multiply(cam.quaternion).multiply(tmpQ2.setFromAxisAngle(Y_AXIS, n.userData.spin || 0));
+      } }
     kidAM.userData.tears.children.forEach((d, i) => { d.position.y = 1.1 - ((t * .8 + i * .5) % 1) * .25; });
     // ケーキ
     if (cakeState === 'carry') cakeG.position.set(heroM.position.x + fx * .4, .58, heroM.position.z + fz * .4);
@@ -1325,6 +1390,7 @@
     // 主人公の ナイフ（右手）
     if (heroKnife.visible) heroKnife.position.set(heroM.position.x + Math.cos(player.face) * .2 + fx * .12, .5, heroM.position.z + Math.sin(player.face) * .2 + fz * .12);
     if (starFly) { heroStar.position.set(heroM.position.x + fx * .2, .75 * CHAR + Math.sin(t * 3) * .03, heroM.position.z + fz * .2); heroStar.rotation.y += dt * 2; }
+    if (heroStar.visible) heroStar.quaternion.copy(cam.quaternion);
     // とびら
     backDoor.rotation.y = doors.back * 1.4;
     atticDoor.rotation.y = -Math.PI / 2 - doors.attic * 1.3;
@@ -1334,7 +1400,7 @@
     arrowG.visible = !!freeMove;
     if (freeMove) {
       const [gx, gz] = goal[0], dx = gx - heroX(), dz = gz - heroZ(), len = Math.hypot(dx, dz) || 1, ux = dx / len, uz = dz / len;
-      arrowG.position.set(base.x + heroX() + ux * 1.0, .06, base.z + heroZ() + uz * 1.0);
+      arrowG.position.set(base.x + heroX() * S + ux * .9 * S, .06, base.z + heroZ() * S + uz * .9 * S); arrowG.scale.setScalar(.7 * Math.max(S, .6));
       arrowG.rotation.y = Math.atan2(-ux, -uz);
       arrowMat.forEach((m, i) => { m.opacity = .25 + .75 * Math.max(0, Math.sin(t * 5 - i * .9)); });
     }
@@ -1360,9 +1426,11 @@
     if (!goal.length) return;
     // 次の 点まで まっすぐ 行ける（かべや 家具に ぶつからない）なら、その 手前の 点は とばす
     const clear = ([x, z]) => { const n = Math.ceil(Math.hypot(x - heroX(), z - heroZ()) / .15);
-      for (let i = 1; i <= n; i++) { const k = i / n; if (homeBlocked(heroX() + (x - heroX()) * k, heroZ() + (z - heroZ()) * k)) return false; } return true; };
-    while (goal.length > 1 && (Math.hypot(goal[0][0] - heroX(), goal[0][1] - heroZ()) < .6 || clear(goal[1]))) goal.shift();
-    if (goal.length === 1 && Math.hypot(goal[0][0] - heroX(), goal[0][1] - heroZ()) < .45 && goalResolve) goalResolve();
+      for (let i = 1; i <= n; i++) { const k = i / n; if (blocked2(heroX() + (x - heroX()) * k, heroZ() + (z - heroZ()) * k)) return false; } return true; };
+    for (let i = goal.length - 1; i >= 1; i--) if (clear(goal[i])) { goal.splice(0, i); break; }   // いちばん 先の 見とおせる 点へ
+    while (goal.length > 1 && Math.hypot(goal[0][0] - heroX(), goal[0][1] - heroZ()) < .6) goal.shift();
+    const last = goal[goal.length - 1];
+    if (Math.hypot(last[0] - heroX(), last[1] - heroZ()) < .45 && goalResolve) goalResolve();
   }
 
   // ============================================================
@@ -1380,9 +1448,9 @@
       if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
       if (!vx && !vy && touch) { vx = touch.vx; vy = touch.vy; }
       if (!vx && !vy && autoMove) { vx = autoMove.vx; vy = autoMove.vy; }
-      const inHome = area === 'home';
+      const inHome = area === 'home' || area === 'attic';
       const sp = (flags.run && !inHome ? STORY.runSpeed || STORY.walkSpeed : STORY.walkSpeed) * dt * timeScale;
-      const blk = inHome ? (x, y) => homeBlocked((x - 600) / 100, y / 100) : blocked;
+      const blk = inHome ? (x, y) => blocked2((x - 600) / 100, y / 100) : blocked;
       // 速い 時も かべを すりぬけないよう、少しずつ すすめる
       const steps = Math.max(1, Math.ceil(sp / 8)), st = sp / steps;
       for (let i = 0; i < steps; i++) {
@@ -1492,7 +1560,7 @@
     if (freeMove) {
       const dx = X(606) - X(player.x) * 1, dz = -4;
       const len = Math.hypot(dx, dz), ux = dx / len, uz = dz / len;
-      arrowG.position.set(X(player.x) + ux * 1.2, .06, Z(player.y) + uz * 1.2);
+      arrowG.position.set(X(player.x) + ux * 1.2, .06, Z(player.y) + uz * 1.2); arrowG.scale.setScalar(.7);
       arrowG.rotation.y = Math.atan2(-ux, -uz);
       arrowMat.forEach((m, i) => { m.opacity = .25 + .75 * Math.max(0, Math.sin(t * 5 - i * .9)); });
     }
@@ -1674,7 +1742,7 @@
     const t0 = performance.now();
     while (auto && mode === 'play') {
       let vx = Math.max(-1, Math.min(1, (AUTO_DOOR_X - player.x) / 80)) * 0.6, vy = -1;
-      if (area === 'home' && goal.length) { vx = goal[0][0] - heroX(); vy = goal[0][1] - heroZ(); }   // 家の中は 矢印の 道すじを たどる
+      if ((area === 'home' || area === 'attic') && goal.length) { vx = goal[0][0] - heroX(); vy = goal[0][1] - heroZ(); }   // 家の中は 矢印の 道すじを たどる
       const n = Math.hypot(vx, vy); vx /= n; vy /= n;
       autoMove = { vx, vy };
       a = anchor();

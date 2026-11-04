@@ -535,8 +535,12 @@ const STORY = {
     await H('この世界から出るための鍵を探しているんだ。怪盗さんからはその鍵は「星」だって聞いた。');
     await KA('カイトウ？');
     await H('お、オーナーさん！');
-    prop('necklace', true);
-    await KA('おいら、オーナーさんからもらった星を持ってるよ！お兄さんが探してるのってこれ？');
+    // 子供Aが ポケットから 星を 取り出して 見せる
+    lookAt(kidA, heroX(), heroZ());
+    look(-1.0, -6.4, .7);
+    await KA('おいら、オーナーさんからもらった星を持ってるよ！');
+    await showStar();
+    await KA('お兄さんが探してるのってこれ？');
     await H('星だ。');
     await KA('お兄さんになら、おいらこれあげてもいいよ！');
     await H('本当か？');
@@ -545,6 +549,7 @@ const STORY = {
     await H('ありがとう。');
     await giveStar();
     note('星を 1つ 手に いれた！');
+    look(.7, -6.6);
     await KA('また会えたらいいね。');
     await KB('でも、お兄さんにはお兄さんの世界があるんでしょ。会えないかもしれない。');
     await KA('そっかぁ。残念だな。じゃあ、お兄さんのこと一生忘れないようにする！');
@@ -563,8 +568,14 @@ const STORY = {
     await KB('え？');
     // 子供Aが 立ち上がって、3枚の お皿を ゆっくり 集める
     await sitDown(kidA, 0, 500);
-    await walkActor(kidA, -.6, -7.6, 900); lookAt(kidA, .68, -6.25);
-    await bendPut(kidA, () => { atticPlates(0); prop('kidPlates', true); }, 1400);
+    //   テーブルを まわりこんで、手前から 1枚ずつ（机を 通りぬけない）
+    await walkPath(kidA, [[-2.0, -4.75], [-.42, -4.75]], 1.2); lookAt(kidA, -.42, -6.25);
+    await bendPut(kidA, () => { takePlate(0); prop('kidPlates', true); }, 1100);
+    await walkActor(kidA, .68, -4.75, 700); lookAt(kidA, .68, -6.75);
+    await bendPut(kidA, () => takePlate(1), 1100);
+    await walkActor(kidA, 1.78, -4.75, 700); lookAt(kidA, 1.78, -6.25);
+    await bendPut(kidA, () => takePlate(2), 1100);
+    lookAt(kidA, heroX(), heroZ());
     await wait(500);
     await KA('ほら！持てた！洗い物をしちゃうぞー！へへっ。');
     await KA('Bはここら辺のことたくさん知ってるじゃん！僕よりもBの方が安心して案内できるよ！');
@@ -574,14 +585,14 @@ const STORY = {
     heroFace(kidA.x, kidA.z); lookAt(kidA, heroX(), heroZ());
     await KA('お兄さん！じゃあね！おいらのこと、忘れないでね！');
     await H('うん。バイバイ。');
-    // 子供Aに 見送られて、部屋の 片隅の ドアから 出る
+    // 子供Aに 見送られて、部屋の 片隅の ドアから 屋上へ（子供Bが 先に 扉を 開けて 出る。主人公は プレイヤーが 歩く）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidB, 0, 400)]);
-    look(-3.5, -4);
-    walkPath(kidB, [[-2.4, -7.9], [-5.4, -4.6], [-6.0, -1.6]], 2.0);
-    await walkHeroPath([[3.3, -4.4], [-5.0, -4.2], [-5.6, -2.3]], 2.0);
-    lookAt(kidA, heroX(), heroZ());
-    await openDoor('exit', 700);
-    await Promise.all([walkActor(kidB, -7.6, -1.6, 700), walkHeroPath([[-6.2, -1.6], [-7.6, -1.6]], 2.0)]);
+    (async () => {
+      await walkPath(kidB, [[-2.4, -7.9], [-5.4, -4.6], [-6.0, -1.6]], 1.6);
+      await openDoor('exit', 700);
+      await walkActor(kidB, -7.7, -1.6, 700); kidB.visible = false;
+    })();
+    await freeWalk('exit');
     await fadeOut('black', 900);
     end('場面2 おわり\n\n（つぎは 場面3「夜空に近い屋上」）');
 
