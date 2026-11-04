@@ -111,8 +111,8 @@ const STORY = {
         await wait(500);
         await say('バケモノ', '…。', { face: 'monster' });
         await wait(800);                                                    // 主人公を じっと 見つめ
-        const away = monsterWalk(-1300, 4400);                              // ゆっくり 歩き、
-        await wait(1150);
+        const away = monsterWalk(-1300, 5200);                              // ゆっくり 歩き、
+        await wait(520);                                                    // （大きいので すぐ かべに とどく）
         breakWall();                                                        // 壁を 壊して
         await away;                                                         // 去る
         monster('none');
@@ -171,7 +171,7 @@ const STORY = {
         await say('???', '助けてもらったところ申し訳ないが、\n急いでるんだ！', { face: 'captive' });
         await say('???', 'またいつか会えたら\n必ずお礼をするよ！', { face: 'captive' });
         await say('???', 'ほんとありがとうー！', { face: 'captive' });
-        await captiveWalk(53, -750, 2000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る
+        await captiveWalk(136, -750, 2000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る
         monster('none');
         await say('主人公', 'あぁ…。', { face: 'hero' });
         await say('主人公', '（というか、どうなっているんだ？\n同じことが2回も起きている…。）', { face: 'hero' });
