@@ -223,7 +223,7 @@
   const monsterWalk = (dx, ms) => { const from = monsterDX; return tween(ms, p => { monsterDX = from + dx * p; }); };
   const captiveWalk = (dx, dy, ms) => { const fx = captiveDX, fy = captiveDY; return tween(ms, p => { captiveDX = fx + dx * p; captiveDY = fy + dy * p; }); };
   const throwItem = async (ms = 600) => {
-    const x0 = player.x + 20, y0 = player.y - 10, x1 = 760, y1 = 640;
+    const x0 = player.x + 20, y0 = player.y - 10, x1 = 760, y1 = MON_Y + 15;
     await tween(ms, p => { thrown = { x: x0 + (x1 - x0) * p, y: y0 + (y1 - y0) * p, h: (1.1 + Math.sin(p * Math.PI) * 1.6) * CHAR, spin: p * 12 }; });
     thrown = null;
   };
@@ -263,20 +263,21 @@
   // 二人とも 走る（上下に はずむ）
   const runWithKaitou = async () => {
     running = true;
-    await Promise.all([policeWalk(0, -700, 2300), walkTo(player.y - 700, 2300)]);
+    const pyNow = MON_Y - 651 + policeDY;
+    await Promise.all([policeWalk(0, SM.corridorTop - 40 - pyNow, 2600), walkTo(SM.corridorTop + 60, 2600)]);
     running = false;
   };
   const arriveHouse = async () => {
     running = true;
-    houseHero.x = -1.6; houseHero.z = 22.6; houseKaitou.x = 3.6; houseKaitou.z = 22.6;  // カメラの 横を 走りぬけて くる
-    await Promise.all([walkHouse(houseHero, -.45, 13.2, 2400), walkHouse(houseKaitou, 1.55, 11.3, 2400)]);
+    houseHero.x = -.9; houseHero.z = 12.6; houseKaitou.x = 1.7; houseKaitou.z = 12.2;  // 階段を 走って 上って くる
+    await Promise.all([walkHouse(houseHero, -.5, 5.7, 2400), walkHouse(houseKaitou, 1.5, 3.8, 2400)]);
     running = false;
   };
   const place = name => {
     area = name;
     if (name === 'house') {
-      houseHero = { x: -.45, z: 13.2, t: 0, moving: false };     // 赤丸の 位置（田野さんの 指定）
-      houseKaitou = { x: 1.55, z: 11.3, t: 0, moving: false, visible: true, goIn: false };
+      houseHero = { x: -.5, z: 5.7, t: 0, moving: false };      // 主人公は 階段を 上りきった 所、怪盗は その 右前（前回 指定の 立ち位置の 関係）
+      houseKaitou = { x: 1.5, z: 3.8, t: 0, moving: false, visible: true, goIn: false };
       doorOpen = 0; moon = 0;
     }
   };
@@ -288,14 +289,14 @@
   const enterHouse = async step => {
     if (step === 'open') {
       houseKaitou.goIn = true;
-      await walkHouse(houseKaitou, .5, 2.0, 4200);                          // ドアの 前へ（遠くの 建物まで 歩く）
+      await walkHouse(houseKaitou, .5, 1.3, 1600);                          // ドアの 前へ
       await tween(1200, p => { doorOpen = ease(p); });                      // ゆっくり 開ける
       houseKaitou.goIn = false;                                             // ふりかえって「さぁ入って。」
     } else {
       houseKaitou.goIn = true;
       await walkHouse(houseKaitou, .5, -1.2, 1100);                         // 先に 入る（頭も ドアを 通る）
       houseKaitou.visible = false;
-      await walkHouse(houseHero, -.2, 2.0, 4200);                           // 後を 追って
+      await walkHouse(houseHero, -.2, 1.3, 2400);                           // 後を 追って
       await walkHouse(houseHero, -.2, -1.0, 1000);
     }
   };
@@ -381,8 +382,14 @@
   // ============================================================
   // 低ポリゴンの 世界（マップの 座標は ゲームと 同じ。100px = 1）
   // ============================================================
-  const MAP = { left: STORY.map.floorLeft, right: STORY.map.floorRight, bottom: STORY.map.floorBottom, top: 30, walls: STORY.map.walls };
+  const SM = STORY.map;
+  const MAP = { left: SM.floorLeft, right: SM.floorRight, bottom: SM.floorBottom, top: SM.corridorTop, walls: SM.walls,
+    walkL: SM.walkLeft, walkR: SM.walkRight };
+  const MON_Y = SM.monsterY;                       // バケモノの 場面（足もとの y）
   const X = px => (px - 600) / 100, Z = py => py / 100;
+  // 地面の 高さ：通路は 0、階段で 上がって、家の前の 広場は stairsRise
+  const groundY = py => py >= SM.corridorTop ? 0 : py <= SM.stairsTop ? SM.stairsRise
+    : SM.stairsRise * (SM.corridorTop - py) / (SM.corridorTop - SM.stairsTop);
   const focusZ = py => Z(py) - 2.6;
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -427,7 +434,7 @@
   }
   const floor = new THREE.Mesh(lowPolyPlane((MAP.right - MAP.left) / 100, (MAP.bottom - MAP.top) / 100, 9, 40, '#eaf2d7'),
     new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
-  floor.position.set(X((MAP.left + MAP.right) / 2), 0, Z((MAP.top + MAP.bottom) / 2));
+  floor.position.set(X((MAP.left + MAP.right) / 2), 0, Z((MAP.top + MAP.bottom) / 2));   // 通路と 目を覚ます 部屋
   floor.receiveShadow = true;
   scene.add(floor);
 
@@ -450,23 +457,48 @@
     scene.add(m);
     return m;
   }
-  // 左の かべ：バケモノが こわす 所（y 520〜740）だけ 別の かたまり
-  addWall(MAP.left - 40, MAP.left, MAP.top - 40, 520);
-  const breakableWall = addWall(MAP.left - 40, MAP.left, 520, 740);
-  addWall(MAP.left - 40, MAP.left, 740, MAP.bottom + 40);
+  // 左の かべ：バケモノが こわす 所だけ 別の かたまり
+  addWall(MAP.left - 40, MAP.left, MAP.top, MON_Y - 105);
+  const breakableWall = addWall(MAP.left - 40, MAP.left, MON_Y - 105, MON_Y + 115);
+  addWall(MAP.left - 40, MAP.left, MON_Y + 115, MAP.bottom + 40);
   const rubbleG = new THREE.Group(); rubbleG.visible = false; scene.add(rubbleG);
   for (let i = 0; i < 14; i++) {
     const r = new THREE.Mesh(new THREE.DodecahedronGeometry(.08 + Math.random() * .12, 0), flat('#3d4a33'));
     r.castShadow = true;
-    r.userData.from = new THREE.Vector3(X(MAP.left - 20), .3 + Math.random() * .7, Z(540 + Math.random() * 180));
+    r.userData.from = new THREE.Vector3(X(MAP.left - 20), .3 + Math.random() * .7, Z(MON_Y - 85 + Math.random() * 180));
     r.userData.v = new THREE.Vector3(-(.5 + Math.random() * 1.5) * (i % 3 ? 1 : -.6), 1.5 + Math.random() * 2, (Math.random() - .5) * 1.5);
     r.userData.t = 0;
     rubbleG.add(r);
   }
-  addWall(MAP.right, MAP.right + 40, MAP.top - 40, MAP.bottom + 40);
+  addWall(MAP.right, MAP.right + 40, MAP.top, MAP.bottom + 40);
   addWall(MAP.left - 40, MAP.right + 40, MAP.bottom, MAP.bottom + 40, .25);
-  addWall(MAP.left - 40, MAP.right + 40, MAP.top - 40, MAP.top);
-  MAP.walls.forEach(w => addWall(w.x1, w.x2, w.y1, w.y2));
+  MAP.walls.forEach(w => addWall(w.x1, w.x2, w.y1, w.y2));     // 目を覚ます 部屋の 仕切り
+
+  // 階段（通路の 上の はしから 家の前の 広場まで）
+  { const n = 12, len = (SM.corridorTop - SM.stairsTop) / n, rise = SM.stairsRise / n;
+    for (let i = 0; i < n; i++) {
+      const y1 = SM.corridorTop - (i + 1) * len, h = (i + 1) * rise;
+      const st = rockBox((MAP.right - MAP.left) / 100, h, len / 100, i % 2 ? '#cfccb8' : '#c4c1ad');
+      st.position.set(X((MAP.left + MAP.right) / 2), h / 2, Z(y1 + len / 2)); scene.add(st);
+      for (const [a, b] of [[MAP.left - 40, MAP.left], [MAP.right, MAP.right + 40]]) {   // 階段の 両わきの かべ
+        const w = rockBox(.4, h + 1.1, len / 100, '#3d4a33'); w.position.set(X((a + b) / 2), (h + 1.1) / 2, Z(y1 + len / 2)); scene.add(w);
+      }
+    } }
+
+  // 通路の 両わきの 植木（地図「移動の道」：右の 画像の ように サイドに 植木を 生やす）
+  { const leaf = ['#4f7a3a', '#5e8a44', '#3f6b33', '#6b9450'];
+    for (let y = 4640, i = 0; y > SM.corridorTop + 60; y -= 210 + (i % 3) * 40, i++) {
+      for (const [x, side] of [[MAP.left + 26, -1], [MAP.right - 26, 1]]) {
+        const g = new THREE.Group(); g.position.set(X(x), 0, Z(y + (side > 0 ? 90 : 0)));
+        const k = .7 + ((i * 7 + (side > 0 ? 3 : 0)) % 5) * .12;
+        for (let j = 0; j < 3; j++) {
+          const b = new THREE.Mesh(new THREE.DodecahedronGeometry(.32 * k, 0), flat(leaf[(i + j) % 4]));
+          b.position.set((j - 1) * .12 * side, .25 + j * .22 * k, (j - 1) * .18); b.scale.y = 1.25; g.add(b);
+        }
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(.16 * k, .6 * k, 5), flat(leaf[(i + 1) % 4])); tip.position.y = .95 * k + .2; g.add(tip);
+        shadowAll(g); scene.add(g);
+      }
+    } }
 
   // 主人公（Figma「claude用素材」：白い 四角い 頭・ヘッドホン・黒い リュック・大きな 赤い くつ）
   // 登場人物ぜんたいの 大きさ（まわりの 部屋・建物に くらべて）
@@ -627,7 +659,7 @@
   const shards = new THREE.Group();
   for (let i = 0; i < 60; i++) {
     const m = new THREE.Mesh(new THREE.TetrahedronGeometry(.06 + Math.random() * .08, 0), flat(i % 3 ? '#cfd9b8' : '#8fa36d', { emissive: '#222a18' }));
-    m.position.set((Math.random() - .5) * 12, 2.5 + Math.random() * 3, Math.random() * 34);
+    m.position.set((Math.random() - .5) * 12, 2.5 + Math.random() * 3, Z(SM.corridorTop + 200) + Math.random() * (Z(MAP.bottom) - Z(SM.corridorTop + 200)));   // 通路の 上だけ
     m.rotation.set(Math.random() * 6, Math.random() * 6, 0);
     shards.add(m);
   }
@@ -657,11 +689,13 @@
   arrowG.scale.setScalar(.7); scene.add(arrowG);
   scene.add(flowersM); flowersM.scale.setScalar(KAITOU);
 
-  // ---------- 怪盗の家の前（ろうかから はなれた 場所に つくる） ----------
-  //   建物と 地面：Figma「claude用素材」4 の 参考資料（灰色の 段々の 大きな 建物・灰色の 道・まだらの 野原）
-  //   煙突の 煙・木・星・カメラの 角度：同じく 4 の 左の 絵
-  const HOUSE = new THREE.Vector3(60, 0, 0);
+  // ---------- 怪盗の家の前（階段を 上った 先。地図「スターとマップ」の 家・道・草木） ----------
+  //   建物と 地面：Figma「claude用素材」4 の 参考資料、煙突の 煙・木・星：同じく 4 の 左の 絵
+  //   houseG の 原点は ドアの まんなかの 前（家の 前の 面）。+z が 階段の ほう
+  const HOUSE = new THREE.Vector3(X(600), SM.stairsRise, Z(SM.houseFront));
   const houseG = new THREE.Group(); houseG.position.copy(HOUSE); scene.add(houseG);
+  const LZ = py => (py - SM.houseFront) / 100;        // 地図の y → houseG の z
+  const PLAZA = { x1: X(SM.plazaLeft), x2: X(SM.plazaRight), z1: LZ(SM.plazaTop), z2: LZ(SM.stairsTop) };
   function mottledPlane(w, d, segW, segD, palette) {
     const g = lowPolyPlane(w, d, segW, segD, '#ffffff');
     const col = g.attributes.color, c = new THREE.Color();
@@ -673,43 +707,87 @@
     return g;
   }
   const vcol = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 });
-  { const g = new THREE.Mesh(mottledPlane(80, 80, 34, 34, ['#3b5a3a', '#4a6b45', '#556b3e', '#5b4a6e', '#3d4f6b', '#6b6a8a', '#46634f']), vcol);
-    g.receiveShadow = true; houseG.add(g); }
-  // 灰色の 広い 道（入口 から 手前へ）
-  { const path = new THREE.Mesh(lowPolyPlane(5.6, 24, 5, 16, '#a19f97'), vcol); path.position.set(0, .05, 12); path.receiveShadow = true; houseG.add(path); }
-  // 建物：灰色の 段々（怪盗が 通れる 大きな 入口）
+  // 野原（広場と その まわり。階段より 手前には 出さない）
+  { const d = 46 + PLAZA.z2, g = new THREE.Mesh(mottledPlane(80, d, 34, 20, ['#3b5a3a', '#4a6b45', '#556b3e', '#5b4a6e', '#3d4f6b', '#6b6a8a', '#46634f']), vcol);
+    g.position.set(0, 0, PLAZA.z2 - d / 2); g.receiveShadow = true; houseG.add(g);
+    // 広場を ささえる 土台（階段の 横から 見えても おかしくないように）
+    const base = rockBox(PLAZA.x2 - PLAZA.x1, SM.stairsRise, 1, '#3d4a33'); base.position.set((PLAZA.x1 + PLAZA.x2) / 2, -SM.stairsRise / 2, PLAZA.z2 + .5); houseG.add(base); }
+  // 灰色の 道：階段の はばから、家の ドアへ 向かって すこし せまくなる（地図の 台形）
+  { const wBot = (MAP.right - MAP.left) / 100, wTop = 4.6, zt = .2, zb = PLAZA.z2;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([
+      -wBot / 2 + .03, .04, zb,  wBot / 2 + .03, .04, zb,  wTop / 2, .04, zt,
+      -wBot / 2 + .03, .04, zb,  wTop / 2, .04, zt,  -wTop / 2, .04, zt], 3));
+    g.computeVertexNormals();
+    const path = new THREE.Mesh(g, flat('#a9a69b')); path.receiveShadow = true; houseG.add(path); }
+  // 柵（広場の まわり。道と 家の ところは あける）
+  const fenceMat = flat('#8a7a5c');
+  function fence(x1, z1, x2, z2) {
+    const len = Math.hypot(x2 - x1, z2 - z1), n = Math.max(1, Math.round(len / .45));
+    for (let i = 0; i <= n; i++) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(.07, .8, .07), fenceMat); p.position.set(x1 + (x2 - x1) * i / n, .4, z1 + (z2 - z1) * i / n); houseG.add(p);
+    }
+    for (const h of [.32, .72]) {
+      const r = new THREE.Mesh(new THREE.BoxGeometry(len, .06, .06), fenceMat); r.position.set((x1 + x2) / 2, h, (z1 + z2) / 2);
+      r.rotation.y = -Math.atan2(z2 - z1, x2 - x1); houseG.add(r);
+    }
+  }
+  const pathL = -(MAP.right - MAP.left) / 200, pathR = -pathL;
+  fence(PLAZA.x1, PLAZA.z2, pathL - .05, PLAZA.z2);  fence(pathR + .05, PLAZA.z2, PLAZA.x2, PLAZA.z2);   // 手前
+  fence(PLAZA.x1, PLAZA.z1, X(2) - .1, PLAZA.z1);   fence(X(894) + .1, PLAZA.z1, PLAZA.x2, PLAZA.z1);    // 奥（家の 左右）
+  fence(PLAZA.x1, PLAZA.z1, PLAZA.x1, PLAZA.z2);    fence(PLAZA.x2, PLAZA.z1, PLAZA.x2, PLAZA.z2);        // 左右の はし
+  // 草木（道の 両がわの 柵の 中）
+  { const leaf = ['#3f6b33', '#4f7a3a', '#2f5a2c', '#5e8a44'], petals = ['#e6a8d8', '#f2e27a', '#ffffff', '#b8a4f0'];
+    for (let i = 0; i < 70; i++) {
+      const side = i % 2 ? 1 : -1, xa = side < 0 ? PLAZA.x1 + .4 : pathR + .6, xb = side < 0 ? pathL - .6 : PLAZA.x2 - .4;
+      const x = xa + Math.random() * (xb - xa), z = PLAZA.z1 + .4 + Math.random() * (PLAZA.z2 - PLAZA.z1 - .8);
+      if (z < .3 && x > X(2) - .3 && x < X(894) + .3) continue;
+      if (i % 5 === 0) {
+        const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.07, 0), flat(petals[i % 4])); f.position.set(x, .12, z); houseG.add(f);
+      } else {
+        const b = new THREE.Mesh(new THREE.DodecahedronGeometry(.22 + Math.random() * .25, 0), flat(leaf[i % 4])); b.scale.y = .8; b.position.set(x, .15, z); houseG.add(b);
+      }
+    } }
+  // 家：灰色の 段々（地図の「家」の 大きさ。ドアは アーチ）
   const stone = '#8d8c87', stoneDark = '#6c6b67';
+  const hx1 = X(2), hx2 = X(894), hcx = (hx1 + hx2) / 2, hw = hx2 - hx1, hd = 7.5;
   const block = (w, h, d, x, y, z, c = stone) => { const m = rockBox(w, h, d, c); m.position.set(x, y, z); houseG.add(m); return m; };
-  block(12, 5.2, 6, 0, 2.6, -3);                     // 本体（前の 面は z 0）
-  block(2.6, 4.2, 5.6, -7.0, 2.1, -3, stoneDark).rotation.z = .3;   // 左右の ななめの かべ
-  block(2.6, 4.2, 5.6, 7.0, 2.1, -3, stoneDark).rotation.z = -.3;
-  block(7, 1.8, 5, -.4, 6.1, -3.3);                  // 上の 段
-  block(5, .7, 4, -.4, 7.35, -3.3, stoneDark);       // ふた
-  block(3.4, .5, 3, -.4, 7.95, -3.3);
-  block(1.9, 10, 1.9, 4.4, 5, -4.2);                 // 右の 塔
-  block(1.0, 2.4, 1.0, -3.0, 8.2, -3.6, stoneDark);  // 煙突
-  const entrance = new THREE.Mesh(new THREE.BoxGeometry(3.6, 4.4, .3), flat('#121212')); entrance.position.set(0, 2.2, .1); houseG.add(entrance);
+  block(hw, 5.4, hd, hcx, 2.7, -hd / 2);              // 本体（前の 面は z 0）
+  block(5.6, 1.8, 5.6, hcx - .3, 6.3, -hd / 2 - .3);  // 上の 段
+  block(4.2, .7, 4.4, hcx - .3, 7.55, -hd / 2 - .3, stoneDark);
+  block(2.8, .5, 3.2, hcx - .3, 8.15, -hd / 2 - .3);
+  block(1.7, 10.5, 1.7, hx2 - 1.3, 5.25, -hd + 1.4);  // 右の 塔
+  block(.9, 2.4, .9, hcx - 2.4, 8.4, -hd / 2 - 1.2, stoneDark);   // 煙突
+  // 入口（アーチ）
+  const archMat = flat('#121212');
+  const entrance = new THREE.Mesh(new THREE.BoxGeometry(4.0, 3.6, .3), archMat); entrance.position.set(0, 1.8, .1); houseG.add(entrance);
+  const archTop = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, .3, 14, 1, false, -Math.PI / 2, Math.PI), archMat);
+  archTop.rotation.x = Math.PI / 2; archTop.position.set(0, 3.6, .1); houseG.add(archTop);
   // 入口の 光（ドアが 開くと 見える）
   const glowMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .35, blending: THREE.AdditiveBlending, depthWrite: false });
-  const glow = new THREE.Mesh(new THREE.CircleGeometry(2.1, 20), glowMat); glow.position.set(0, 2.1, .3); houseG.add(glow);
-  // 両開きの ドア（内がわへ 開く）。高さ 4m：大きな 怪盗も 頭を ぶつけずに 通れる
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(2.2, 20), glowMat); glow.position.set(0, 2.4, .3); houseG.add(glow);
+  // 両開きの ドア（内がわへ 開く）。高さ 4m 以上：大きな 怪盗も 頭を ぶつけずに 通れる
   const doorMat = flat('#3a1f17');
-  const doorL = new THREE.Group(); doorL.position.set(-1.7, 0, .32); houseG.add(doorL);
-  const doorR = new THREE.Group(); doorR.position.set(1.7, 0, .32); houseG.add(doorR);
-  { const d = new THREE.Mesh(new THREE.BoxGeometry(1.7, 4.1, .12), doorMat); d.position.set(.85, 2.05, 0); doorL.add(d);
-    const e = new THREE.Mesh(new THREE.BoxGeometry(1.7, 4.1, .12), doorMat); e.position.set(-.85, 2.05, 0); doorR.add(e); }
-  // 道の 両がわの 木
-  for (let i = 0; i < 30; i++) {
-    const side = i % 2 ? 1 : -1, x = side * (6.5 + Math.random() * 12), z = -6 + Math.random() * 26, k = 1.6 + Math.random() * 1.6;
-    if (Math.abs(x) < 9 && z < 1) continue;          // 建物の ところには 置かない
+  const doorL = new THREE.Group(); doorL.position.set(-1.95, 0, .32); houseG.add(doorL);
+  const doorR = new THREE.Group(); doorR.position.set(1.95, 0, .32); houseG.add(doorR);
+  { const d = new THREE.Mesh(new THREE.BoxGeometry(1.95, 4.3, .12), doorMat); d.position.set(.975, 2.15, 0); doorL.add(d);
+    const e = new THREE.Mesh(new THREE.BoxGeometry(1.95, 4.3, .12), doorMat); e.position.set(-.975, 2.15, 0); doorR.add(e); }
+  // 柵の 外の 木
+  for (let i = 0; i < 46; i++) {
+    let x, z;
+    if (i % 3 === 0) { x = -30 + Math.random() * 60; z = PLAZA.z1 - 3 - Math.random() * 18; }           // 家の うしろ
+    else { const side = i % 3 === 1 ? -1 : 1; x = side < 0 ? PLAZA.x1 - 1.5 - Math.random() * 12 : PLAZA.x2 + 1.5 + Math.random() * 12; z = PLAZA.z1 - 6 + Math.random() * (PLAZA.z2 - PLAZA.z1 + 5); }
+    if (Math.abs(x - hcx) < hw / 2 + 2 && z > -hd - 2) continue;
+    const k = 1.4 + Math.random() * 1.6;
     const tr = new THREE.Group(); tr.position.set(x, 0, z);
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, .8, 5), flat('#4a3324')); trunk.position.y = .4; tr.add(trunk);
-    const top = new THREE.Mesh(new THREE.ConeGeometry(.75 * k, 2.2 * k, 6), flat(i % 3 ? '#1f3a26' : '#24452c')); top.position.y = .8 + 1.1 * k; tr.add(top);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(.75 * k, 2.2 * k, 6), flat(i % 2 ? '#1f3a26' : '#24452c')); top.position.y = .8 + 1.1 * k; tr.add(top);
     houseG.add(tr);
   }
   houseG.traverse(m => { if (m.isMesh && m !== glow) { m.castShadow = true; m.receiveShadow = true; } });
   // 煙突の 煙（ゆっくり うずを まいて のぼる）
   const smokeG = new THREE.Group(); houseG.add(smokeG);
+  const SMOKE = new THREE.Vector3(hcx - 2.4, 9.8, -hd / 2 - 1.2);
   for (let i = 0; i < 9; i++) {
     const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.45, 0), new THREE.MeshBasicMaterial({ color: '#e9ecef', transparent: true, opacity: .7, depthWrite: false }));
     m.userData.phase = i / 9; smokeG.add(m);
@@ -723,15 +801,15 @@
   const moonM = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: '#fff4cc', fog: false }));
   moonM.position.set(-26, 30, -45); houseG.add(moonM);
   const moonSpot = new THREE.SpotLight('#fff3c4', 0, 40, .25, .6, 0); scene.add(moonSpot, moonSpot.target);
-  const houseLamp = new THREE.PointLight('#fff6e6', 0, 14, 0); houseLamp.position.set(60, 2.2, 3); scene.add(houseLamp);
+  const houseLamp = new THREE.PointLight('#fff6e6', 0, 14, 0); houseLamp.position.set(HOUSE.x, HOUSE.y + 2.2, HOUSE.z + 2.5); scene.add(houseLamp);
 
   // ============================================================
   // 更新と 描画
   // ============================================================
   const HALF_W = 34;
   function blocked(x, y) {
-    if (x - HALF_W < MAP.left || x + HALF_W > MAP.right) return true;
-    if (y > MAP.bottom || y < MAP.top + 20) return true;
+    if (x - HALF_W * CHAR < MAP.walkL || x + HALF_W * CHAR > MAP.walkR) return true;
+    if (y > MAP.bottom - 20 || y < MAP.top + 60) return true;
     return MAP.walls.some(w => x + HALF_W > w.x1 && x - HALF_W < w.x2 && y > w.y1 && y - 20 < w.y2);
   }
   function update(dt) {
@@ -758,7 +836,7 @@
     // 主人公
     const runK = running ? 16 : 11, runH = (running ? .22 : (flags.run ? .12 : .06)) * CHAR;     // 走る 時は 大きく はずむ
     const heroPhase = running ? t * runK : player.t * runK;
-    heroM.position.set(X(player.x), player.moving ? Math.abs(Math.sin(heroPhase)) * runH : 0, Z(player.y));
+    heroM.position.set(X(player.x), (player.moving ? Math.abs(Math.sin(heroPhase)) * runH : 0) + groundY(player.y), Z(player.y));
     heroM.rotation.y = -player.face;
     heroM.userData.legs.forEach((l, i) => { l.rotation.x = player.moving ? Math.sin(heroPhase + i * Math.PI) * (running ? .8 : .5) : 0; });
     heroM.userData.arms.forEach((a, i) => { a.rotation.x = player.moving ? -Math.sin(heroPhase + i * Math.PI) * (running ? .9 : .4) : 0; });
@@ -770,7 +848,7 @@
     monsterM.visible = monsterState in MON;
     if (monsterM.visible) {
       const body = monsterM.userData.body;
-      monsterM.position.set(X(MON[monsterState] + monsterDX), walking ? Math.abs(Math.sin(monsterDX / 40)) * .12 * CHAR : 0, Z(625));
+      monsterM.position.set(X(MON[monsterState] + monsterDX), walking ? Math.abs(Math.sin(monsterDX / 40)) * .12 * CHAR : 0, Z(MON_Y));
       monsterM.rotation.y = walking && monsterDX > 0 ? Math.PI : 0;      // くちばしは すすむ ほうへ
       if (monsterState === 'down') { body.rotation.z = -1.35; body.position.set(-1.35, 1.25, 0); }  // あおむけに ひっくり かえる（かべに めりこまない 位置）
       else { body.rotation.z = 0; body.position.set(0, 0, 0); }
@@ -781,7 +859,7 @@
     if (captiveM.visible) {
       // つかまっている 時は くちばしの 先、2周目は バケモノの 左に 立つ
       const lipX = 600 - 145 * CHAR;   // バケモノの 唇の 先
-      let s = 1, lift = 0, x = (monsterState === 'full' || monsterState === 'eat' ? lipX : 470) + captiveDX, z = Z(621);
+      let s = 1, lift = 0, x = (monsterState === 'full' || monsterState === 'eat' ? lipX : 470) + captiveDX, z = Z(MON_Y - 4);
       if (monsterState === 'full') { lift = (.55 + Math.sin(t * 9) * .05) * CHAR; captiveM.rotation.z = -.45; z += .1 * CHAR; }
       else if (monsterState === 'eat') {
         // 口から 体の 中へ すいこまれて、だんだん 見えなくなる
@@ -800,7 +878,8 @@
     for (const m of [policeM, kaitouM]) {
       const walkingP = policeDY > 0 && policeDY < 700;
       const bobP = (running ? Math.abs(Math.sin(t * 16 + 1.3)) * .24 : walkingP ? Math.abs(Math.sin(policeDY / 30)) * .08 : 0) * CHAR;
-      m.position.set(X(606 + policeDX), bobP, Z(-26 + policeDY));
+      const py = MON_Y - 651 + policeDY;     // さいしょは 画面の 上の 外
+      m.position.set(X(606 + policeDX), bobP + groundY(py), Z(py));
       m.rotation.y = policeSpin + (running ? Math.PI : 0);
     }
     // 拳銃を かまえる 時は 右うでを 前に のばす
@@ -816,12 +895,12 @@
     // 怪盗の家の前
     if (area === 'house') {
       const hk = running ? 16 : 11, hh = (running ? .22 : .06) * CHAR;
-      heroM.position.set(HOUSE.x + houseHero.x, houseHero.moving ? Math.abs(Math.sin(t * hk)) * hh : 0, HOUSE.z + houseHero.z);
+      heroM.position.set(HOUSE.x + houseHero.x, (houseHero.moving ? Math.abs(Math.sin(t * hk)) * hh : 0) + groundY(SM.houseFront + houseHero.z * 100), HOUSE.z + houseHero.z);
       heroM.rotation.y = 0;
       heroM.userData.legs.forEach((l, i) => { l.rotation.x = houseHero.moving ? Math.sin(t * hk + i * Math.PI) * (running ? .8 : .5) : 0; });
       heroM.userData.arms.forEach((a, i) => { a.rotation.x = houseHero.moving ? -Math.sin(t * hk + i * Math.PI) * (running ? .9 : .4) : 0; });
       kaitouM.visible = houseKaitou.visible; policeM.visible = false;
-      kaitouM.position.set(HOUSE.x + houseKaitou.x, houseKaitou.moving ? Math.abs(Math.sin(t * hk + 1.3)) * (running ? .24 : .08) * CHAR : 0, HOUSE.z + houseKaitou.z);
+      kaitouM.position.set(HOUSE.x + houseKaitou.x, (houseKaitou.moving ? Math.abs(Math.sin(t * hk + 1.3)) * (running ? .24 : .08) * CHAR : 0) + groundY(SM.houseFront + houseKaitou.z * 100), HOUSE.z + houseKaitou.z);
       // 走る・ドアへ 向かう 時は 奥を、立ち止まって いる 時は 主人公の ほうを むく
       kaitouM.rotation.y = running || houseKaitou.goIn ? Math.PI : Math.atan2(houseHero.x - houseKaitou.x, houseHero.z - houseKaitou.z);
       monsterM.visible = captiveM.visible = false;
@@ -831,7 +910,7 @@
     glowMat.opacity = .15 + doorOpen * .55 + Math.sin(t * 2) * .04;
     if (area === 'house') smokeG.children.forEach(m => {
       const k = (t * .12 + m.userData.phase) % 1;
-      m.position.set(-3.0 + Math.sin(k * 7 + m.userData.phase * 9) * (.3 + k * 1.4), 9.6 + k * 7, -3.6 + Math.cos(k * 7) * .5);
+      m.position.set(SMOKE.x + Math.sin(k * 7 + m.userData.phase * 9) * (.3 + k * 1.4), SMOKE.y + k * 7, SMOKE.z + Math.cos(k * 7) * .5);
       m.scale.setScalar(.6 + k * 2.2);
       m.material.opacity = .7 * (1 - k);
     });
@@ -871,14 +950,14 @@
 
     if (area === 'house') {
       // 夜：星空の 下の 家を 前から 見る
-      cam.position.set(HOUSE.x + 1.6, 2.3, HOUSE.z + 20.4);   // 主人公の ななめ うしろ から、遠くの 大きな 建物を 見る
-      camL.set(HOUSE.x - .1, 2.4, HOUSE.z - 2);
+      cam.position.set(HOUSE.x + 1.6, HOUSE.y + 2.6, HOUSE.z + 13.4);   // 主人公の ななめ うしろ（階段の 途中）から 家を 見る
+      camL.set(HOUSE.x - .3, HOUSE.y + 2.9, HOUSE.z - 3);
       cam.lookAt(camL);
       scene.background.set('#0b1020'); scene.fog.color.set('#0b1020'); scene.fog.near = 30; scene.fog.far = 90;
       hemi.color.set('#9fb3ff'); hemi.groundColor.set('#1a2416'); hemi.intensity = .45;
       sun.color.set('#c9d6ff'); sun.intensity = .9;
-      sun.position.set(HOUSE.x - 6, 12, HOUSE.z + 20); sun.target.position.set(HOUSE.x, 0, HOUSE.z + 13);
-      moonSpot.position.set(HOUSE.x - 6, 14, HOUSE.z + 22); moonSpot.target.position.copy(kaitouM.position);
+      sun.position.set(HOUSE.x - 6, HOUSE.y + 12, HOUSE.z + 12); sun.target.position.set(HOUSE.x, HOUSE.y, HOUSE.z + 4);
+      moonSpot.position.set(HOUSE.x - 6, HOUSE.y + 14, HOUSE.z + 14); moonSpot.target.position.copy(kaitouM.position);
       moonSpot.intensity = moon * 6;
       houseLamp.intensity = .8 + doorOpen * 1.6;
     } else {

@@ -20,20 +20,24 @@
 // ============================================================
 
 const STORY = {
+  // 場面1 の 地図（田野さんの「スターとマップ」より。100px = 1m、y は 上へ いくほど 小さい）
+  //   下から：目を覚ます 部屋 → 仕切り（まんなかに 出入口）→ 植木の ある 長い 通路（バケモノの 場面）
+  //          → 階段（3m 上る）→ 柵に かこまれた 家の前の 広場 → 家（アーチの ドア）
   map: {
-    width: 1194,
-    height: 3336,
-    floorLeft: 255,
-    floorRight: 948,
-    floorBottom: 3214,
-    walls: [
-      { x1: 255, x2: 545, y1: 1238, y2: 1424 },
-      { x1: 667, x2: 948, y1: 1238, y2: 1424 },
-      { x1: 255, x2: 545, y1: 30, y2: 245 },
-      { x1: 667, x2: 948, y1: 30, y2: 245 },
+    floorLeft: 255, floorRight: 948,     // 通路の かべの 内がわ
+    walkLeft: 300, walkRight: 905,       // 両わきに 植木が あるので 歩けるのは 少し 内がわ
+    floorBottom: 5990,                   // 目を覚ます 部屋の 下の かべ
+    corridorTop: 1435,                   // ここから 上は 階段
+    stairsTop: -80, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
+    plazaTop: -1034, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
+    houseFront: -723,                    // 家の 前の 面（ドアの まんなかは x 600 あたり）
+    monsterY: 2555,                      // バケモノの 場面
+    walls: [                             // 目を覚ます 部屋の 仕切り（まんなかに 出入口）
+      { x1: 255, x2: 533, y1: 4713, y2: 5025 },
+      { x1: 670, x2: 948, y1: 4713, y2: 5025 },
     ],
   },
-  playerStart: { x: 603, y: 3192 },
+  playerStart: { x: 603, y: 5792 },
   walkSpeed: 330,
   runSpeed: 520,                      // 2周目は 走る
 
@@ -69,11 +73,18 @@ const STORY = {
         show('exclaim');
         await say('???', 'おい！誰かいるのか？\n助けてくれー！');
         hide('exclaim');
-        // 助けに行くか 迷う：「この場に残る」なら「…。」で また えらぶ
+        // 助けに行くか 迷う
+        //   ②この場に残る：人物A「助けてってばー！」と 何度も 聞こえる。
+        //   2回 つづけて ② を えらぶと、①助けに行く だけが 出る
+        let stay = 0;
         while (true) {
           await say('主人公', '…。', { face: 'hero' });
-          const c = await choose(['助けに行く', 'この場に残る']);
+          const c = await choose(stay >= 2 ? ['助けに行く'] : ['助けに行く', 'この場に残る']);
           if (c === '助けに行く') break;
+          stay++;
+          show('exclaim');
+          await say('???', '助けてってばー！');
+          hide('exclaim');
         }
         flags.heard = true;
         // ①：再び 自由に 動ける
@@ -81,14 +92,14 @@ const STORY = {
     },
     {
       id: 'watch',
-      y: 3080,
+      y: 5680,
       if: () => flags.loop === 1 && flags.heard,
       run: async () => {
         show('watch');
         show('ring');
         await say('時計', 'ピピピピピピッ…。');
         await say('主人公', 'なんだ？\n時計なんて持っていたか？', { face: 'hero' });
-        await walkTo(2960, 1400);                                           // ゆっくり 歩き出すと
+        await walkTo(5560, 1400);                                           // ゆっくり 歩き出すと
         hide('ring');                                                       // アラームが 鳴り、止まる
         await say('時計', 'ピッ…。');
         await say('主人公', '勝手に止まった。\n一体何だったんだ。', { face: 'hero' });
@@ -98,12 +109,13 @@ const STORY = {
     {
       // ---------- ○広い部屋 ----------
       id: 'encounter1',
-      y: 1080,
+      y: 3010,                       // バケモノ（y 2555）の 少し 手前
       if: () => flags.loop === 1,
       run: async () => {
-        await camera(140, 900);
+        await camera(2070, 900);
         await say('???', 'やっと助けが来たのか！', { face: 'captive' });     // 笑顔で 言う
         await say('主人公', '（な、なんだこのバケモノは…！）', { face: 'hero' });
+        await say('???', 'うっ。', { face: 'captive' });
         await wait(800);                                                    // 立ち尽くす
         monster('eat');                                                     // あっという間に 食べられる
         await wait(900);
@@ -116,7 +128,7 @@ const STORY = {
         breakWall();                                                        // 壁を 壊して
         await away;                                                         // 去る
         monster('none');
-        await walkTo(900, 700);
+        await walkTo(2830, 700);
         await say('主人公', 'え…。死んだ？\n何が起きたんだ？', { face: 'hero' });
         await wait(1200);                                                   // 呆然と する 主人公
 
@@ -124,7 +136,7 @@ const STORY = {
         show('watch');
         show('ring');
         await say('時計', 'ピピピピッ。');
-        await say('主人公', 'こんな時にまたかよ。', { face: 'hero' });
+        await say('主人公', 'こんな時にまた？', { face: 'hero' });
         await stopAlarm();                                                  // 止めるように さそう エフェクト
         hide('ring');
         await wait(300);
@@ -149,11 +161,11 @@ const STORY = {
     },
     {
       id: 'encounter2',
-      y: 1080,
+      y: 3010,                       // バケモノ（y 2555）の 少し 手前
       if: () => flags.loop === 2,
       run: async () => {
         flags.run = false;
-        await camera(140, 900);
+        await camera(2070, 900);
         await say('主人公', '（やっぱり同じ人だ。\nさっきより早く着けたのか？）', { face: 'hero' });
         await say('主人公', '（まだ食われていないような…。）', { face: 'hero' });
         await say('???', 'こいつをやっつけてくれ！', { face: 'captive' });
@@ -188,15 +200,15 @@ const STORY = {
         await say('主人公', '（ここを出なくては\nいけないんだ…。）', { face: 'hero' });
         await say('主人公', '（今面倒なことに\n巻き込まれたくはない。）', { face: 'hero' });
         await say('主人公', '事件…。知らないです。', { face: 'hero' });     // 目を 合わせずに
-        await say('警察', 'そうか。最近物騒になってきたから\n気をつけろよ。');
-        await say('警察', '…君、お家は？');
-        await say('主人公', '（僕の家は…。）', { face: 'hero' });
-        await say('主人公', '（まずい、すぐ答えなかったら\n不審がられる。）', { face: 'hero' });
-        await say('主人公', 'えーと。', { face: 'hero' });
 
-        // 家を 答える 選択肢（③巻き戻す を えらぶと ここに もどる）
+        // 警察に 家を 聞かれる 場面（③巻き戻す を えらぶと ここに もどる）
         let act;
         while (true) {
+          await say('警察', 'そうか。最近物騒になってきたから\n気をつけろよ。');
+          await say('警察', '…君、お家は？');
+          await say('主人公', '（僕の家は…。）', { face: 'hero' });
+          await say('主人公', '（まずい、すぐ答えなかったら\n不審がられる。）', { face: 'hero' });
+          await say('主人公', 'えーと。', { face: 'hero' });
           const answer = await choose(['すぐそこです。', '3つ隣の街で…。', '…。']);
           await say('主人公', answer, { face: 'hero' });
           if (answer === 'すぐそこです。') await say('警察', 'ここら辺に登録されてる\n住宅地はないぞ。');
@@ -206,7 +218,7 @@ const STORY = {
           await say('主人公', 'このままだとまずい！', { face: 'hero' });
           act = await choose(['戦う', '逃げる', '巻き戻す']);
           if (act !== '巻き戻す') break;
-          // ③：家を 答える 選択肢の 場面に 巻き戻される
+          // ③：警察に 家を 聞かれる 場面に 巻き戻される
           show('watch');
           await wait(300);
           await fadeOut('white', 300);
@@ -215,10 +227,10 @@ const STORY = {
         }
         if (act === '戦う') {
           await say('主人公', 'いっそ戦うか…！', { face: 'hero' });
-          await walkTo(900, 500);                                           // 警察に むかって 一歩
+          await walkTo(2830, 500);                                          // 警察に むかって 一歩
         } else {
           await say('主人公', '逃げろっ！', { face: 'hero' });
-          await walkTo(1120, 500);                                          // 逃げようと する
+          await walkTo(3050, 500);                                          // 逃げようと する
         }
         show('gun');                                                        // 警察が 拳銃を 突きつける
         await wait(1000);                                                   // 主人公が 身構える
