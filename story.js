@@ -49,6 +49,8 @@ const STORY = {
     'すぐそこです。', '逃げる',
     '行く',
     '出たいと伝えない',
+    '嘘をつく', '代わりに切る',        // 場面2：子供Aが 切りそこねて、代わりに 切る
+    '分からない',
   ],
 
   // ---------- ○何もない部屋 ----------
@@ -324,8 +326,328 @@ const STORY = {
         await say('怪盗', 'さぁ入って。');
         await enterHouse('in');                                             // 怪盗が 先に 入り、主人公も 後を 追う
         await fadeOut('black', 800);
-        end('場面1 おわり\n\n（つぎは 場面2「緑が多い暖かな家の中」）');
+        await STORY.scene2();
       },
     },
   ],
+
+  // ============================================================
+  // 場面2：緑が多い暖かな家の中 → 屋根裏
+  //   地図（スターとマップ）の 1階と 屋根裏。単位は m（1階の 原点は 玄関の まんなか、奥が -z）
+  //   場面2の 命令は 下の 方の コメントを 見てください
+  // ============================================================
+  scene2: async () => {
+    const H = (text, opt) => say('主人公', text, { face: 'hero', ...opt });
+    const KA = text => say('子供A', text), KB = text => say('子供B', text), O = text => say('怪盗', text);
+
+    // ---------- ○緑が多い暖かな家の中 ----------
+    place('home');
+    setHero(0, -1.2); heroFace(0, -5);
+    sitActor(owner, 1.0, -3.0, 0); lookAt(owner, 0, -1.2);
+    await fadeIn(900);
+    // 家に入ると 主人公の 姿が 変わる
+    await wait(400);
+    await fadeOut('white', 250); setOutfit(true); await fadeIn(500);
+    await H('あったかい…。');
+    await O('外は寒かったからね。星を集めるのも大変かもしれない。少しゆっくりしていくといい。');
+    await H('うん。…あれ？こんな服着ていたか？');
+    await O('あぁそれ。この家の中では、本当の姿を隠して過ごしているんだ。');
+    await O('この家にいる子たちはみんなワケありだからね。見た目じゃなく、心で接せられるように。');
+    await O('君も知らない世界に突然やってきたワケありさんだろう？');
+    await H('ワケありさんか。へぇ。');
+    await O('っと。早速で悪いが、僕はやることがあるから失礼するね！');
+    await O('あぁ、あとそこのケーキは切って食べていいから！星は青い子が持っていたはず！');
+    await O('子供達は僕のことをオーナーさんって呼んでるから、オーナーって言えばわかると思うよ！じゃ！');
+    // 怪盗は 奥の 裏口から 去る
+    look(0, -8);
+    await walkPath(owner, [[0, -6.7], [-2.1, -9.5], [-2.1, -18.8], [0, -19.6]], 4.2);
+    await openDoor('back', 300);
+    await walkActor(owner, 0, -20.6, 300); owner.visible = false;
+    look(null);
+    await H('忙しい人だな…。');
+    await H('でも、確かにワケありかも。他に行くあてもなかったし、帰る方法すら知らなかったし。');
+    await H('これから頑張って脱出するんだ。');
+
+    // ---------- ケーキの 前へ（プレイヤーが 歩く） ----------
+    await freeWalk('cake');
+    heroFace(14.72, -13.57);
+    await H('ケーキってこれか。');
+    await say('お腹', 'ぐるるるるぅぅぅ。');
+    await H('…。食べてから星を探そうかな。ナイフを探そう。');
+    // キッチンの はしの ナイフを とって、ケーキの 前に もどる
+    await freeWalk('knife');
+    heroFace(12.9, -17);
+    await tapAt(TAP.knife, 'タップして とる');
+    prop('rackKnife', false); prop('heroKnife', true);
+    await freeWalk('back');
+    heroFace(14.72, -13.57);
+
+    // 子供A（青い子）が やってくる
+    sitActor(kidA, 4.2, -8.7, Math.PI / 2);
+    look(9, -10.5);
+    await walkPath(kidA, [[11.4, -8.9], [12.0, -11.9]], 3.2);
+    lookAt(kidA, heroX(), heroZ());
+    look(null);
+    await KA('あ！お兄さんケーキ切ってくれるの？');
+    heroFace(kidA.x, kidA.z);
+    await H('？');
+    await KA('違うの…？');
+    await H('（青い子だ…。）');
+
+    const first = await choose(['切ってあげる', '嘘をつく']);
+    let kind = true;                                   // ①❶❷ … やさしく 切った
+    if (first === '切ってあげる') {
+      await H('そうだよ。切ろうとしてたところ。');
+      await KA('やったー！私たち、7人いるからお兄さんの分含めて8個分ね！');
+      await H('8等分か。やってみよう。');
+      heroFace(14.72, -13.57);
+      await cutTheCake();
+    } else {
+      await H('違う。美味しそうだなって見てただけだよ。');
+      await KA('でもナイフ…。あ…、もしかしてお客さん！？じゃあおいらが切ってあげるよ！');
+      // 子供Aが 切って 失敗する（3を えらぶと、時が もどって ここから やりなおす）
+      let rewound = false;
+      while (true) {
+        if (!rewound) await kidTries();
+        rewound = false;
+        const c = await choose(['切り方を教える', '代わりに切る', '…。']);
+        if (c === '切り方を教える') {
+          await H('振り被らず、もっとゆっくりやれば綺麗に切れるよ。');
+          await KA('おいら、実は初めてナイフを持ったんだ。ちょっとだけ怖いから、一緒に切って欲しい！');
+          prop('tears', false); prop('kidKnife', false); prop('heroKnife', true);
+          await walkActor(kidA, 13.0, -12.3, 400); lookAt(kidA, 14.72, -13.57);
+          await walkHero(12.4, -13.3, 500); heroFace(14.72, -13.57);
+        } else if (c === '代わりに切る') {
+          await H('代わりに切るよ。');
+          prop('tears', false); prop('kidKnife', false); prop('heroKnife', true);
+          await KA('わっ！お兄さんありがとう！');
+          await walkActor(kidA, 12.0, -12.0, 500); lookAt(kidA, 14.72, -13.57);
+          await walkHero(13.2, -13.4, 500); heroFace(14.72, -13.57);
+        } else {
+          await H('…。');
+          await KA('あ…、ごめんなさい…！');
+          prop('kidKnife', false);
+          await walkPath(kidA, [[11.4, -8.9], [4.0, -8.7]], 4.0); kidA.visible = false; prop('tears', false);
+          prop('heroKnife', true);
+          await walkHero(13.2, -13.4, 500); heroFace(14.72, -13.57);
+          kind = false;
+        }
+        await H('椅子は6つか。7等分は難しいから、一度8個に切って残りは怪盗さんにあげよう。');
+        await cutTheCake();
+        if (kind) break;
+        // ❸：一人で 食べて、眠って しまう → アラームで 時が もどる
+        await alone();                                  // 時が もどって、子供Aが 切りそこねた 所から
+        kind = true; rewound = true;
+      }
+    }
+
+    // ---------- 机に 運ぶ ----------
+    await H('できた。机に運ぼう。');
+    prop('heroKnife', false); prop('carry', true); cake('carry');
+    if (kidA.visible) walkPath(kidA, [[11.4, -8.9], [-1.9, -8.9], [-2.2, -13.0]], 2.4);
+    await freeWalk('table');
+    heroFace(0, -15.5);
+    await tapAt(TAP.table, 'タップして おく');
+    prop('carry', false); cake('table');
+
+    // ---------- ①❶❷：ダイニングで ----------
+    sitActor(kidA, -1.41, -14.45, Math.PI / 2, .18);
+    await KA('お兄さんありがとう！すごく綺麗に切ってある！');
+    await H('うん。一緒に食べようか。');
+    sitHero(1.32, -14.45, 0, -14.45);
+    look(0, -14.5);
+    await wait(400);
+    await KA('あ、あのね。おいら2つ欲しいんだ。');
+    await H('2つ？一人で2つ食べるのか？');
+    await KA('そ、それは……。');
+    await H('椅子は6つだから、君の他にあと5人いるんだろう？あと、かいとう…じゃなくオーナーさんにもあげようと8個に切ったんだ。');
+    await H('一人で2つ食べちゃったら、食べれない子が出てくる。それに、他の子も2つ食べたくなっちゃうんじゃないかな？');
+    await KA('お、おいらは2個食べないよう！');
+    await H('じゃあなんで2個って…。');
+    await KA('…オーナーさんとおいらしか知らない秘密なんだけど、屋根裏においらと同じような子がもう一人いるんだ。');
+    await KA('その子にもケーキをあげたい…。');
+    await H('！');
+    await H('そうだったのか…！じゃあ、今から渡しに行って、一緒に食べよう。');
+    await KA('うん！ありがとう！');
+    // 階段へ
+    sitHero(null); kidA.lift = 0; look(null);
+    await Promise.all([walkHeroPath([[1.9, -12.0], [1.9, -8.8], [6.3, -8.8], [6.3, -10.6]], 2.4),
+      walkPath(kidA, [[-1.9, -12.0], [0.5, -8.4], [5.6, -8.6], [5.6, -10.6]], 2.6)]);
+    await fadeOut('black', 700);
+
+    // ---------- ○登った 先の 部屋の 扉の 前 ----------
+    place('attic');
+    cake('hidden'); prop('kidPlates', true);
+    setHero(10.6, -11.6); heroFace(6.7, -12.9);
+    sitActor(kidA, 7.8, -12.9, -Math.PI / 2);
+    look(8.6, -11.8);
+    await fadeIn(700);
+    await KA('おーい！おやつ持ってきたよ！');
+    await KB('やった！ありがとう。');
+    await KA('一緒に食べよう！ケーキを切ってくれたお兄さんも一緒にいるんだけど、入っていいかな？');
+    await KB('いいよー！');
+    await openDoor('attic', 900);
+
+    // ---------- ○屋根裏部屋 ----------
+    sitActor(kidB, .68, -9.3, 0);
+    look(2.6, -9.5);
+    await Promise.all([walkPath(kidA, [[5.4, -12.9], [-.6, -8.6]], 2.4), (async () => { await wait(500); await walkHeroPath([[7.6, -12.9], [5.4, -12.9], [2.6, -8.9]], 2.4); })()]);
+    lookAt(kidB, heroX(), heroZ()); heroFace(kidB.x, kidB.z); lookAt(kidA, kidB.x, kidB.z);
+    await KB('こんにちは！');
+    await H('こんにちは。');
+    prop('kidPlates', false); atticPlates(3);
+    await KA('これ、お兄さんが切ってくれたの');
+    await KB('へぇー！すごく綺麗に切れてる！');
+    await KA('おいらも切ろうとしたんだけど、またうまく切れなくて…。お兄さんが助けてくれたんだ！');
+    await KB('前まで切ろうともしなかったじゃないか！一歩前進だよ！');
+    await KA('へへっ。');
+    await H('なんの話をしているんだ？');
+    await KA('あっ。おいら、自分の力のコントロールができないんだ。');
+    await H('力のコントロール？');
+    await KA('例えば、さっきのナイフとか何かを持つときに、正しい力の加減がわからないんだ。');
+    await KA('でも、今日は僕の誕生日だから、何か力に変化が起きているかもしれないって思って、挑戦しちゃった。');
+    await H('力加減がわからない…。');
+    await KA('だから、お兄さんが助けてくれて良かった！');
+    await H('ううん。怪我がなくて良かったよ。一緒に食べてお誕生日のお祝いをしよう。');
+    await say('子供A・B', 'うん！');
+    // 3人で 談笑しながら 食べる
+    sitActor(kidA, -1.9, -6.25, Math.PI / 2); sitActor(kidB, .68, -7.9, 0);
+    setHero(3.3, -6.25); heroFace(0, -6.25);
+    look(.7, -6.6);
+    await eatPlates(2600);
+    await wait(500);
+    // 食べ終わりの 頃
+    await KA('えー！お兄さんずっとここにいるわけじゃないの？');
+    await H('うん。この世界から出なきゃ行けないんだ。');
+    await KA('この世界？別の世界があるの？');
+    await KB('…。');
+    await KA('おいらたちもいつか新しい景色を見れたらいいね！');
+    await KB('うん…。');
+    await H('この世界から出るための鍵を探しているんだ。怪盗さんからはその鍵は「星」だって聞いた。');
+    await KA('カイトウ？');
+    await H('お、オーナーさん！');
+    prop('necklace', true);
+    await KA('おいら、オーナーさんからもらった星を持ってるよ！お兄さんが探してるのってこれ？');
+    await H('星だ。');
+    await KA('お兄さんになら、おいらこれあげてもいいよ！');
+    await H('本当か？');
+    await KA('うん！お兄さん、ケーキ切る時も優しくしてくれたし、おいらがケーキ2つ持って行こうとしたら、怒るんじゃなくて話を聞いてくれたし。');
+    await KA('今日会ったのが信じられないくらい、お兄さんといると落ち着くんだ！お兄さんのこと大好きだから、あげる！');
+    await H('ありがとう。');
+    await giveStar();
+    note('星を 1つ 手に いれた！');
+    await KA('また会えたらいいね。');
+    await KB('でも、お兄さんにはお兄さんの世界があるんでしょ。会えないかもしれない。');
+    await KA('そっかぁ。残念だな。じゃあ、お兄さんのこと一生忘れないようにする！');
+    await KB('うん。');
+    await H('ありがとう。');
+    hideStar();
+    await KB('次はどこに行くの？');
+    const next = await choose(['分からない', '教えて欲しい']);
+    if (next === '分からない') await H('分からない…。');
+    else await H('次に行く所を、教えて欲しい。');
+    await KB('お兄さんは星を集めているんだよね。そしたら、海辺に行くといいよ。');
+    await H('海辺？');
+    await KB('この部屋のドアから屋上に出て、降りた先の花道を辿れば、海辺に着くよ。');
+    await H('そうか。行ってみるよ。');
+    await KA('僕は片付けしておくから、Bが途中まで案内してあげなよ！今日の僕はなんだかできる気がする！');
+    await KB('え？');
+    // 子供Aが 3枚の お皿を ゆっくり 集める
+    await walkActor(kidA, -.6, -7.0, 900);
+    atticPlates(0); prop('kidPlates', true);
+    await wait(500);
+    await KA('ほら！持てた！洗い物をしちゃうぞー！へへっ。');
+    await KA('Bはここら辺のことたくさん知ってるじゃん！僕よりもBの方が安心して案内できるよ！');
+    await KA('あと、お兄さんともう会えないかもしれないなら、今のうちにたくさん話さなくちゃ。');
+    await KB('あぁ…。じゃあ、途中までだけど、私が案内するよ。');
+    await H('ありがとう。');
+    heroFace(kidA.x, kidA.z); lookAt(kidA, heroX(), heroZ());
+    await KA('お兄さん！じゃあね！おいらのこと、忘れないでね！');
+    await H('うん。バイバイ。');
+    // 子供Aに 見送られて、部屋の 片隅の ドアから 出る
+    look(-3.5, -4);
+    walkPath(kidB, [[-2.4, -7.9], [-5.4, -4.6], [-6.0, -1.6]], 2.0);
+    await walkHeroPath([[3.3, -4.4], [-5.0, -4.2], [-5.6, -2.3]], 2.0);
+    lookAt(kidA, heroX(), heroZ());
+    await openDoor('exit', 700);
+    await Promise.all([walkActor(kidB, -7.6, -1.6, 700), walkHeroPath([[-6.2, -1.6], [-7.6, -1.6]], 2.0)]);
+    await fadeOut('black', 900);
+    end('場面2 おわり\n\n（つぎは 場面3「夜空に近い屋上」）');
+
+    // ---------- 場面2で くりかえし 使う できごと ----------
+    // ケーキを 8こに 切る（ミニゲーム）
+    async function cutTheCake() {
+      prop('badCut', false);
+      note('ケーキを 8こに 切ろう');
+      await cakeGame();
+      cakeSliced();
+    }
+    // 子供Aが ナイフを 受けとって 切る が、うまく いかない
+    async function kidTries() {
+      prop('heroKnife', false); prop('kidKnife', true); prop('tears', false);
+      cakeReset();
+      await walkHero(12.0, -12.2, 500);
+      await walkActor(kidA, 13.2, -13.3, 500); lookAt(kidA, 14.72, -13.57);
+      heroFace(kidA.x, kidA.z);
+      await KA('は、初めてのケーキ切りだ！真ん中を切ればいいんだよね？そ、それっ！');
+      await kidChop(700);
+      prop('badCut', true);
+      await KA('あ、あれ…。');
+      lookAt(kidA, heroX(), heroZ());
+      prop('tears', true);
+      await KA('今のおいらならできると思ったんだけどな…。やっぱり、お兄さんが切った方が良かったんだ。');
+    }
+    // ❸：だまって いたら、ひとりで 食べて 眠って しまう
+    async function alone() {
+      await H('できた。机に運ぼう。');
+      prop('heroKnife', false); prop('carry', true); cake('carry');
+      await freeWalk('table');
+      heroFace(0, -15.5);
+      await tapAt(TAP.table, 'タップして おく');
+      prop('carry', false); cake('table');
+      sitActor(kidA, -2.2, -11.6, Math.PI);
+      await walkActor(kidA, -1.6, -13.2, 700); lookAt(kidA, 0, -15.5);
+      await KA('お、お兄さん！ケーキ切ってくれてありがとう。');
+      await H('うん。');
+      await KA('おいらも食べていい？');
+      await H('うん。');
+      sitHero(1.32, -14.45, 0, -14.45); look(0, -14.5);
+      await eatSlices(1, 600);                                 // 主人公が 1つ 食べる
+      await walkActor(kidA, -.9, -14.4, 500); lookAt(kidA, 0, -15.5);
+      await tapAt(TAP.kidHand, 'タップ');                      // 2つ 取ろうと する 手を
+      await KA('いてっ！');
+      await H('人数分で切っているから、1人1個までだよ。');
+      await KA('と、友達に渡しに行こうと思って…。');
+      await H('そうか。');
+      await KA('うん。じゃあ、持っていくね。');
+      await eatSlices(2, 200);
+      await walkPath(kidA, [[-2.2, -12.0], [-.3, -8.6], [4.0, -8.7]], 2.6); kidA.visible = false;
+      await wait(800);
+      while (true) {
+        await H('もう一個食べようかな。');
+        const c = await choose(['食べる', '食べない']);
+        if (c === '食べない') break;
+        await eatSlices(1, 700);
+        if (cakeLeft() === 0) break;
+      }
+      await H('なんだか眠くなってきたな…。');
+      await sleep(1200);
+      await fadeOut('black', 1500);
+      await wait(5000);
+      show('watch'); show('ring');
+      await say('アラーム', 'ピピピッ…。');
+      await H('ん…？');
+      await tapAt(null, 'タップして とめる');
+      hide('ring');
+      await say('アラーム', 'ピッ。');
+      hide('watch');
+      // 光って、子供Aが ケーキを 切りそこねた 所へ もどる
+      await fadeOut('white', 300);
+      await sleep(0, false);
+      sitHero(null); look(null); cake('counter'); cakeReset();
+      setHero(12.0, -12.2); sitActor(kidA, 13.2, -13.3, 0); lookAt(kidA, heroX(), heroZ()); heroFace(kidA.x, kidA.z);
+      prop('badCut', true); prop('kidKnife', true); prop('tears', true);
+      await fadeIn(700);
+    }
+  },
 };
