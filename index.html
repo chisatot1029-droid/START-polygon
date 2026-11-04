@@ -159,8 +159,14 @@
     ui.dialog.classList.remove('choosing');
     if (opt.face && FACES[opt.face]) { ui.face.src = FACES[opt.face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
-    typeText(text);
-    advanceResolve = () => { advanceResolve = null; ui.dialog.classList.add('hidden'); resolve(); };
+    // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
+    const pages = paginate(text);
+    let page = 0;
+    typeText(pages[0]);
+    advanceResolve = () => {
+      if (++page < pages.length) { typeText(pages[page]); return; }
+      advanceResolve = null; ui.dialog.classList.add('hidden'); resolve();
+    };
   });
   const choose = (options, opt = {}) => new Promise(resolve => {
     openDialog(opt.speaker || '', opt);
@@ -183,6 +189,30 @@
     ui.speaker.classList.toggle('hidden', !speaker);
     ui.dialog.classList.toggle('bottom', opt.box === 'bottom');
     ui.dialog.classList.remove('hidden');
+  }
+  // 文を 会話ウィンドウの はばで 行に わけ、2行ずつの ページに する
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  const NO_LINE_START = '、。，．・：；？！ー…」』）〜っゃゅょァィゥェォッャュョ';
+  function paginate(text) {
+    const cs = getComputedStyle(ui.text);
+    const maxW = ui.text.clientWidth || 600;
+    measureCtx.font = `${cs.fontSize} ${cs.fontFamily}`;
+    const lines = [];
+    for (const raw of text.split('\n')) {
+      let line = '';
+      for (const ch of Array.from(raw)) {
+        if (line && measureCtx.measureText(line + ch).width > maxW && !NO_LINE_START.includes(ch)) {
+          // 「 や（ が 行の おわりに のこらないように、いっしょに 次の 行へ
+          let carry = '';
+          while (line.length > 1 && '「『（'.includes(line[line.length - 1])) { carry = line[line.length - 1] + carry; line = line.slice(0, -1); }
+          lines.push(line); line = carry + ch;
+        } else line += ch;
+      }
+      lines.push(line);
+    }
+    const pages = [];
+    for (let i = 0; i < lines.length; i += 2) pages.push(lines.slice(i, i + 2).join('\n'));
+    return pages.length ? pages : [''];
   }
   function typeText(text) {
     clearInterval(typeTimer);
@@ -657,9 +687,9 @@
   scene.add(heroM, monsterM, captiveM, watchM, exclaimM, thrownM, policeM, kaitouM);
 
   const shards = new THREE.Group();
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 85; i++) {
     const m = new THREE.Mesh(new THREE.TetrahedronGeometry(.06 + Math.random() * .08, 0), flat(i % 3 ? '#cfd9b8' : '#8fa36d', { emissive: '#222a18' }));
-    m.position.set((Math.random() - .5) * 12, 2.5 + Math.random() * 3, Z(SM.corridorTop + 200) + Math.random() * (Z(MAP.bottom) - Z(SM.corridorTop + 200)));   // 通路の 上だけ
+    m.position.set((Math.random() - .5) * 12, 2.5 + Math.random() * 3 + groundY(0), Z(SM.stairsTop) + Math.random() * (Z(MAP.bottom) - Z(SM.stairsTop)));   // 通路と 階段の 上
     m.rotation.set(Math.random() * 6, Math.random() * 6, 0);
     shards.add(m);
   }
@@ -791,6 +821,14 @@
   for (let i = 0; i < 9; i++) {
     const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.45, 0), new THREE.MeshBasicMaterial({ color: '#e9ecef', transparent: true, opacity: .7, depthWrite: false }));
     m.userData.phase = i / 9; smokeG.add(m);
+  }
+  // 空中に うかぶ 三角の かけら（家の前の 広場の 上にも）
+  const shardsH = new THREE.Group(); houseG.add(shardsH);
+  for (let i = 0; i < 45; i++) {
+    const m = new THREE.Mesh(new THREE.TetrahedronGeometry(.08 + Math.random() * .1, 0), flat(i % 3 ? '#cfd9b8' : '#8fa36d', { emissive: '#222a18' }));
+    m.position.set((Math.random() - .5) * 18, 2.5 + Math.random() * 4, PLAZA.z1 - 2 + Math.random() * (PLAZA.z2 - PLAZA.z1 + 9));
+    m.rotation.set(Math.random() * 6, Math.random() * 6, 0);
+    shardsH.add(m);
   }
   // 星空 と 月
   { const pos = [];
@@ -947,6 +985,7 @@
     if (thrown) { thrownM.position.set(X(thrown.x), thrown.h, Z(thrown.y)); thrownM.rotation.set(thrown.spin, thrown.spin * .7, 0); }
 
     shards.children.forEach((s, i) => { s.rotation.x += dt * (.3 + i % 5 * .1); });
+    shardsH.children.forEach((s, i) => { s.rotation.x += dt * (.3 + i % 5 * .1); s.rotation.y += dt * .2; });
 
     if (area === 'house') {
       // 夜：星空の 下の 家を 前から 見る

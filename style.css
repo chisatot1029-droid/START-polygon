@@ -79,7 +79,7 @@ button { font: inherit; cursor: pointer; }
   left: 25.4%;
   right: 8%;
   top: 30%;
-  font-size: 3.6em;
+  font-size: 3.1em;           /* 低ポリゴン版：少し 小さく（長い 文は 2行ずつ すすむ） */
   line-height: 1.35;
   white-space: pre-wrap;
 }
