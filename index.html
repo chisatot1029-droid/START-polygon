@@ -54,6 +54,7 @@
     <div id="title" class="overlay">
       <div id="menu">
         <button id="startBtn" class="menuBtn">スタート</button>
+        <button id="sceneBtn" class="menuBtn">場面選択</button>
         <button id="settingBtn" class="menuBtn">セッティング</button>
         <button id="autoBtn" class="menuBtn">オートで みる</button>
       </div>
@@ -74,6 +75,14 @@
         <button class="dot" data-key="se" data-level="2" aria-label="SE 大"></button>
       </div>
       <button id="backBtn">back</button>
+    </div>
+
+    <!-- 場面選択：とちゅうの 場面から はじめる -->
+    <div id="scenes" class="hidden">
+      <p class="scenesTitle">場面選択</p>
+      <button class="sceneBtn" data-scene="1" style="top: 30%">場面1　何もない部屋（はじめから）</button>
+      <button class="sceneBtn" data-scene="2" style="top: 45%">場面2　怪盗の家に入るところから</button>
+      <button id="scenesBackBtn">back</button>
     </div>
 
     <div id="ending" class="overlay hidden">
@@ -416,6 +425,16 @@
   }));
   $('settingBtn').addEventListener('click', () => { showSettings(); $('settings').classList.remove('hidden'); });
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
+  // 場面選択
+  async function startScene(n) {
+    $('scenes').classList.add('hidden');
+    if (n === 1) return startGame();
+    reset(); ui.title.classList.add('hidden');
+    await runEvent(async () => { await fadeOut('black', 0); await STORY.scene2(); });   // 家に 入った ところから
+  }
+  $('sceneBtn').addEventListener('click', () => $('scenes').classList.remove('hidden'));
+  $('scenesBackBtn').addEventListener('click', () => $('scenes').classList.add('hidden'));
+  document.querySelectorAll('.sceneBtn').forEach(b => b.addEventListener('click', () => startScene(Number(b.dataset.scene))));
 
   function fit() {
     const s = Math.min(innerWidth / W, innerHeight / H);
