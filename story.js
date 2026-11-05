@@ -185,9 +185,9 @@ const STORY = {
         await away2;
         monster('captive');
         await say('???', '少年！ありがとう！', { face: 'kaitou2' });
-        await say('???', '助けてもらったところ申し訳ないが、\n急いでるんだ！', { face: 'kaitou3' });
-        await say('???', 'またいつか会えたら\n必ずお礼をするよ！', { face: 'kaitou2' });
-        await say('???', 'ほんとありがとうー！', { face: 'kaitou2' });
+        await say('???', '助けてもらったところ申し訳ないが、\n急いでるんだ！', { face: 'kaitou5' });
+        await say('???', 'またいつか会えたら\n必ずお礼をするよ！', { face: 'kaitou5' });
+        await say('???', 'ほんとありがとうー！', { face: 'kaitou5' });
         await captiveWalk(136, -750, 2000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る
         monster('none');
         await say('主人公', 'あぁ…。', { face: 'hero' });
@@ -197,7 +197,7 @@ const STORY = {
         await wait(800);                                                    // 奥の方から ドタバタと 物音
         await say('?', '…ここに…だ…がすな！');
         await say('主人公', '？', { face: 'hero' });
-        await wait(3000);                                                   // 3秒後に 警察が 現れる
+        await wait(2000);                                                   // 2秒後に 警察が 現れる
         police('police');
         await policeWalk(0, 710, 1800);
         await say('警察', 'おいそこの君！ここらへんで\n事件が起きたと聞いたが、');
@@ -224,6 +224,7 @@ const STORY = {
           act = await choose(['戦う', '逃げる', '巻き戻す']);
           if (act !== '巻き戻す') break;
           // ③：警察に 家を 聞かれる 場面に 巻き戻される
+          await say('主人公', '他の言い訳は…。', { face: 'hero' });
           show('watch');
           await wait(300);
           await fadeOut('white', 300);
@@ -238,18 +239,18 @@ const STORY = {
           await walkTo(3050, 500);                                          // 逃げようと する
         }
         show('gun');                                                        // 警察が 拳銃を 突きつける
-        await wait(1000);                                                   // 主人公が 身構える
+        await say('主人公', 'っ！', { face: 'hero' });
+        await wait(2000);                                                   // 主人公が 2秒 身構える
         await say('警察', 'パンッ！');
-        await fadeOut('white', 80);                                         // 躊躇なく 発砲する
+        await fadeOut('white', 80);                                         // 発砲する
         await fadeIn(300);
         show('flowers');                                                    // 銃弾では なく 花束が 出る
-        await say('主人公', 'っ！', { face: 'hero' });
-        await wait(3000);                                                   // 3秒ほど 固まる 主人公
+        await wait(2000);                                                   // 2秒ほど 固まる 主人公
         await say('主人公', '…？', { face: 'hero' });
         await say('警察', 'おいおい、\nなんか言ってくれよ。');
         await say('主人公', 'え？', { face: 'hero' });
-        await say('警察', 'さっきは助けてくれてありがとうな！');
-        await say('主人公', '（さっき？誰だ…？）', { face: 'hero' });
+        await say('警察', 'さっきは助けてくれてありがとう！');
+        await say('主人公', '（さっき？誰だ？）', { face: 'hero' });
         hide('gun');
         hide('flowers');
         await policeTurn();                                                 // 体を 一周 まわすと、人物Aの 姿へ
@@ -260,15 +261,15 @@ const STORY = {
         await say('主人公', '（…。でもどういうことだ？\n襲われていたところを助けた人が、）', { face: 'hero' });
         await say('主人公', '（警察に変装して\n今度は撃とうとした…？）', { face: 'hero' });
         await say('主人公', '…。', { face: 'hero' });
-        await say('怪盗', 'やれやれ。君は頭の回転が早いねぇ。', { face: 'kaitou3' });
-        await say('怪盗', '君はこの世界に初めて来たんだろう？\n心細いと思って、', { face: 'kaitou1' });
-        await say('怪盗', '君を楽しませるために\n色々と用意したんだ！', { face: 'kaitou1' });
+        await say('怪盗', 'やれやれ。もっと驚いてくれよ。\n君はこの世界に初めて来たんだろう？', { face: 'kaitou3' });
+        await say('怪盗', '心細いと思って、君を楽しませるために\n色々と用意したんだ！', { face: 'kaitou2' });
         await say('怪盗', '美味しい食事も用意しているし、\nいろんな人とも出会えるだろう。', { face: 'kaitou2' });
         await say('怪盗', '最後にはとっておきの\nお楽しみが待っている。', { face: 'kaitou2' });
         await say('怪盗', '君、時計を持っているだろう？', { face: 'kaitou1' });
         show('watch');
         await say('主人公', 'あぁ、これ。\nこんなもの持っていなかったのに。', { face: 'hero' });
-        await say('怪盗', 'ふふふ。このアラームが鳴った時に\n自分で止めると、時を戻せるんだ。', { face: 'kaitou1' });
+        await say('怪盗', 'ふふふ。', { face: 'kaitou2' });
+        await say('怪盗', 'このアラームが鳴った時に\n自分で止めると、時を戻せるんだ。', { face: 'kaitou1' });
         await say('怪盗', '本当の人生をやり直すことは\nできないが、この世界では叶えられる。', { face: 'kaitou1' });
         await say('怪盗', 'どうだ？面白いだろう！？', { face: 'kaitou2' });
         hide('watch');
@@ -289,41 +290,41 @@ const STORY = {
         await arrive;
         await say('怪盗', 'こんなに走ったのは久々だ！', { face: 'kaitou2' });
         await say('怪盗', '君を楽しませるはずが\n僕も楽しんでしまっているよ。', { face: 'kaitou2' });
-        await say('怪盗', 'これからの出来事、\nどうか楽しんでくれ！', { face: 'kaitou1' });
+        await say('怪盗', 'これからの出来事、\nどうか楽しんでくれ！', { face: 'kaitou2' });
         await say('主人公', 'ふふっ。うん。', { face: 'hero' });
         moonlight();                                                        // 月の光が 怪盗を 照らし、輝くような 笑顔に
         await wait(1500);                                                   // 一瞬 微笑む 主人公。次第に 顔が 暗くなる
-        await say('主人公', '（あ…。でも、\n僕はこの世界から出たいんだよ…。）', { face: 'hero' });
+        await say('主人公', '（あ…。でも、\n僕はこの世界から出たいんだった…。）', { face: 'hero' });
         const feel = await choose(['出たいと伝える', '出たいと伝えない']);
         if (feel === '出たいと伝える') {
           await say('主人公', '楽しませようとしているのは\n嬉しいが、助けて欲しいんだ。', { face: 'hero' });
-          await say('怪盗', '助ける…？というか、さっきから\n君は無口な子だと思っていたが、', { face: 'kaitou1' });
-          await say('怪盗', '素直に伝えられるじゃないか。', { face: 'kaitou1' });
-          await say('怪盗', 'そうか、\n人は見た目ではわからないね。', { face: 'kaitou1' });
+          await say('怪盗', '助ける…？というか、\n君は無口な子だと思っていたよ。', { face: 'kaitou1' });
+          await say('怪盗', '僕が変身した時も無反応だし、\n口数も少ないし…。', { face: 'kaitou1' });
+          await say('怪盗', 'なぁんだ、素直に伝えられるじゃないか。\nそうか、人は見た目ではわからないね。', { face: 'kaitou2' });
         } else {
           await say('主人公', 'あぁ。楽しみだよ…。', { face: 'hero' });
           await say('怪盗', '…。', { face: 'kaitou4' });
           await say('怪盗', '本当に楽しみにしているのか…？', { face: 'kaitou4' });
           await say('怪盗', '何か言いたそうに\nしているように見えるが。', { face: 'kaitou4' });
           await say('怪盗', 'ごめんよ、きっと僕に\n合わせてくれたんだろう？', { face: 'kaitou3' });
-          await say('怪盗', '素敵な優しさだが、\n自分を殺してはいけないよ。', { face: 'kaitou4' });
+          await say('怪盗', '素敵な優しさだが、\n自分を殺してはいけないよ。', { face: 'kaitou3' });
           await say('主人公', '殺す？', { face: 'hero' });
-          await say('怪盗', 'ものの例えさ。自分の意見や\n感情を押さえ込んでまで、', { face: 'kaitou1' });
-          await say('怪盗', '他人を優先すること。\n他人を想う優しさでもあるが、', { face: 'kaitou1' });
-          await say('怪盗', '次第に自分が\nわからなくなるかもしれない。', { face: 'kaitou1' });
+          await say('怪盗', 'ものの例えさ。自分の意見や\n感情を押さえ込んでまで、', { face: 'kaitou4' });
+          await say('怪盗', '他人を優先すること。\n他人を想う優しさでもあるが、', { face: 'kaitou4' });
+          await say('怪盗', '次第に自分が\nわからなくなるかもしれない。', { face: 'kaitou4' });
           await say('怪盗', '僕の前では\n自分を殺さなくていいさ。', { face: 'kaitou3' });
           await say('主人公', 'うん、わかった。\n…ここから出たい。', { face: 'hero' });
-          await say('怪盗', 'そうか。出たいのか。', { face: 'kaitou3' });
+          await say('怪盗', 'そうか。出たいのか。', { face: 'kaitou1' });
         }
         // ここで ①と② が 合流
         await say('怪盗', 'そうだなぁ。\nこの世界から抜け出すには、', { face: 'kaitou1' });
         await say('怪盗', '扉を開ける鍵「星」を\n集める必要がある。', { face: 'kaitou1' });
-        await say('怪盗', 'その星は、きっとこれから\n出会う人たちが持っているはず。', { face: 'kaitou1' });
+        await say('怪盗', 'その星は、きっとこれから\n出会う人たちが持っているさ。', { face: 'kaitou1' });
         await say('主人公', '星を集める…。', { face: 'hero' });
-        await say('怪盗', 'この家の中に、\n星を持っている子が一人いたはず。', { face: 'kaitou1' });
-        await say('怪盗', 'まずは話してみるといい。', { face: 'kaitou1' });
+        await say('怪盗', 'この家の中に、\n星を渡した子が一人いたはず。', { face: 'kaitou1' });
+        await say('怪盗', 'まずは話してみるといい。', { face: 'kaitou2' });
         await enterHouse('open');                                           // 怪盗が ゆっくり ドアを 開ける
-        await say('怪盗', 'さぁ入って。', { face: 'kaitou1' });
+        await say('怪盗', 'さぁ、入って。', { face: 'kaitou1' });
         await enterHouse('in');                                             // 怪盗が 先に 入り、主人公も 後を 追う
         await fadeOut('black', 800);
         await STORY.scene2();
@@ -338,7 +339,11 @@ const STORY = {
   // ============================================================
   scene2: async () => {
     const H = (text, opt) => say('主人公', text, { face: 'hero', ...opt });
-    const KA = text => say('子供A', text), KB = text => say('子供B', text), O = (text, face) => say('怪盗', text, { face });
+    // 子供A（青い子）は 名前を 名のるまで「子供A」、名のった あとは「リアオ」。子供B は「シィ」
+    //   KA(セリフ, 顔の番号) … 顔は 子供Aの アイコン 1〜4、KB は 子供Bの アイコン 1〜3
+    let nameA = '子供A';
+    const KA = (text, f) => say(nameA, text, { face: f && 'kidA' + f }), KB = (text, f) => say('シィ', text, { face: f && 'kidB' + f });
+    const O = (text, face) => say('怪盗', text, { face });
 
     // ---------- ○緑が多い暖かな家の中 ----------
     place('home');
@@ -349,15 +354,15 @@ const STORY = {
     await wait(400);
     await fadeOut('white', 250); setOutfit(true); await fadeIn(500);
     await H('あったかい…。');
-    await O('外は寒かったからね。星を集めるのも大変かもしれない。少しゆっくりしていくといい。', 'kaitou2');
+    await O('外は寒かったからね。星を集めるのも大変かもしれない。少しゆっくりしていくといい。', 'kaitou1');
     await H('うん。…あれ？こんな服着ていたか？');
     await O('あぁそれ。この家の中では、本当の姿を隠して過ごしているんだ。', 'kaitou1');
     await O('この家にいる子たちはみんなワケありだからね。見た目じゃなく、心で接せられるように。', 'kaitou1');
-    await O('君も知らない世界に突然やってきたワケありさんだろう？', 'kaitou1');
+    await O('君も知らない世界に突然やってきたワケありさんだろう？', 'kaitou2');
     await H('ワケありさんか。へぇ。');
     await O('っと。早速で悪いが、僕はやることがあるから失礼するね！', 'kaitou5');
-    await O('あぁ、あとそこのケーキは切って食べていいから！星は青い子が持っていたはず！', 'kaitou5');
-    await O('子供達は僕のことをオーナーさんって呼んでるから、オーナーって言えばわかると思うよ！じゃ！', 'kaitou5');
+    await O('あぁ、あとキッチンにあるケーキは切って食べていいから！星は青い子が持っていたはず！', 'kaitou5');
+    await O('子供達は僕のことをオーナーさんって呼んでるから、オーナーって言えば伝わると思うよ！じゃ！', 'kaitou5');
     // 怪盗は 奥の 裏口から 去る
     look(0, -8);
     await walkPath(owner, [[0, -6.7], [-2.1, -9.5], [-2.1, -18.8], [0, -19.6]], 4.2);
@@ -372,8 +377,8 @@ const STORY = {
     await freeWalk('cake');
     heroFace(14.72, -13.57);
     await H('ケーキってこれか。');
-    await say('お腹', 'ぐるるるるぅぅぅ。');
-    await H('…。食べてから星を探そうかな。ナイフで切ろうか。');
+    await say('主人公のお腹', 'ぐるるるるぅぅぅ。');
+    await H('腹の音がなってしまった…。食べてから星を探そうかな。まずはナイフで切らなくちゃ。');
     // キッチンの はしの ナイフを とって、ケーキの 前に もどる
     await freeWalk('knife');
     heroFace(12.9, -17);
@@ -388,24 +393,28 @@ const STORY = {
     await wait(500);
     await walkPath(kidA, [[11.4, -8.9], [11.6, -13.4]], 2.6);
     lookAt(kidA, heroX(), heroZ());
-    await KA('あ！お兄さんケーキ切ってくれるの？');
+    await KA('あ！お兄さんケーキ切ってくれるの？', 3);
     heroFace(kidA.x, kidA.z);
     await H('？');
-    await KA('違うの…？');
-    await H('（青い子だ…。）');
+    await KA('違うの…？', 4);
+    await H('青い子だ…。');
 
     const first = await choose(['切ってあげる', '嘘をつく']);
     look(12.4, -13.0, .9);
     let kind = true;                                   // ①❶❷ … やさしく 切った
     if (first === '切ってあげる') {
       await H('そうだよ。切ろうとしてたところ。');
-      await KA('やったー！おいらたち、7人いるからお兄さんの分含めて8個分ね！');
+      nameA = 'リアオ';
+      await KA('やったー！おいら、リアオ！おいらの他に6人いるから、お兄さんの分含めて8人分ね！', 2);
       await H('8等分か。やってみよう。');
       heroFace(14.72, -13.57);
       await cutTheCake();
     } else {
       await H('違う。美味しそうだなって見てただけだよ。');
-      await KA('でもナイフ…。あ…、もしかしてお客さん！？じゃあおいらが切ってあげるよ！');
+      await KA('でもナイフ…。', 1);
+      await KA('あ…、もしかしてお客さん！？', 3);
+      nameA = 'リアオ';
+      await KA('おいらリアオ！お兄さんの代わりにおいらが切ってあげるよ！', 2);
       // 子供Aが 切って 失敗する（3を えらぶと、時が もどって ここから やりなおす）
       let rewound = false;
       while (true) {
@@ -414,26 +423,26 @@ const STORY = {
         const c = await choose(['切り方を教える', '代わりに切る', '…。']);
         if (c === '切り方を教える') {
           await H('振り被らず、もっとゆっくりやれば綺麗に切れるよ。');
-          await KA('おいら、実は初めてナイフを持ったんだ。ちょっとだけ怖いから、一緒に切って欲しい！');
+          await KA('おいら、実は初めてナイフを持ったんだ。ちょっとだけ怖いから、一緒に切って欲しい！', 2);
           prop('tears', false); prop('kidKnife', false); prop('heroKnife', true);
           await walkActor(kidA, 13.0, -12.3, 400); lookAt(kidA, 14.72, -13.57);
           await walkHero(12.4, -13.3, 500); heroFace(14.72, -13.57);
         } else if (c === '代わりに切る') {
           await H('代わりに切るよ。');
           prop('tears', false); prop('kidKnife', false); prop('heroKnife', true);
-          await KA('わっ！お兄さんありがとう！');
+          await KA('わっ！お兄さんありがとう！', 2);
           await walkActor(kidA, 12.0, -12.0, 500); lookAt(kidA, 14.72, -13.57);
           await walkHero(13.2, -13.4, 500); heroFace(14.72, -13.57);
         } else {
           await H('…。');
-          await KA('あ…、ごめんなさい…！');
+          await KA('あ…、ごめんなさい…！', 4);
           prop('kidKnife', false);
           await walkPath(kidA, [[11.4, -8.9], [4.0, -8.7]], 4.0); kidA.visible = false; prop('tears', false);
           prop('heroKnife', true);
           await walkHero(13.2, -13.4, 500); heroFace(14.72, -13.57);
           kind = false;
         }
-        await H('椅子は6つか。7等分は難しいから、一度8個に切って残りは怪盗さんにあげよう。');
+        await H('さっき、8人分って言っていたか？一応8個に切り分けるか。');
         await cutTheCake();
         if (kind) break;
         // ❸：一人で 食べて、眠って しまう → アラームで 時が もどる
@@ -453,24 +462,24 @@ const STORY = {
 
     // ---------- ①❶❷：ダイニングで ----------
     sitActor(kidA, -1.41, -14.45, Math.PI / 2);
-    await KA('お兄さんありがとう！すごく綺麗に切ってある！');
+    await KA('お兄さんありがとう！すごく綺麗に切ってある！', 2);
     await H('うん。一緒に食べようか。');
     look(0, -14.5);
     await walkHero(1.32, -13.6, 400);
     await Promise.all([sitDown(kidA, .18), sitHero(1.32, -14.45, 0, -14.45, -.15, 600)]);
     await wait(400);
-    await KA('あ、あのね。おいら2つ欲しいんだ。');
+    await KA('あ、あのね。おいら、2つ欲しいんだ。', 3);
     await H('2つ？一人で2つ食べるのか？');
-    await KA('そ、それは……。');
+    await KA('そ、それは……。', 1);
     await H('君の他に、かいと…じゃなくてオーナーさんとあと5人の子がいるんだろう？みんな食べれるようにちょうど8個に切ったんだ。');
     await H('一人で2つ食べちゃったら、食べれない子が出てくる。それに、他の子も2つ食べたくなっちゃうんじゃないかな？');
-    await KA('お、おいらは2個食べないよう！');
+    await KA('お、おいらは2個食べないよう！', 4);
     await H('じゃあなんで2個って…。');
-    await KA('…オーナーさんとおいらしか知らない秘密なんだけど、屋根裏においらと同じような子がもう一人いるんだ。');
-    await KA('その子にもケーキをあげたい…。');
-    await H('！');
+    await KA('…オーナーさんとおいらしか知らない秘密なんだけど、屋根裏においらと同じような子がもう一人いるんだ。', 1);
+    await KA('その子に…もケーキをあげたい…。', 1);
+    await H('っ！');
     await H('そうだったのか…！じゃあ、今から渡しに行って、一緒に食べよう。');
-    await KA('うん！ありがとう！');
+    await KA('うん！ありがとう！', 2);
     // 階段へ（プレイヤーが 歩く。子供Aは 先に 階段へ）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidA, 0, 400)]);
     walkPath(kidA, [[-1.9, -12.0], [0.5, -8.4], [5.6, -8.6], [5.6, -12.4]], 2.4);
@@ -484,10 +493,10 @@ const STORY = {
     sitActor(kidA, 7.8, -12.9, -Math.PI / 2);
     look(8.6, -11.8);
     await fadeIn(700);
-    await KA('おーい！おやつ持ってきたよ！');
-    await KB('やった！ありがとう。');
-    await KA('一緒に食べよう！ケーキを切ってくれたお兄さんも一緒にいるんだけど、入っていいかな？');
-    await KB('いいよー！');
+    await KA('シィ〜？おやつ持ってきたよ！', 1);
+    await KB('やった！ありがとう。', 2);
+    await KA('一緒に食べよう！ケーキを切ってくれたお兄さんも一緒にいるんだけど、入っていいかな？', 1);
+    await KB('いいよー！', 2);
     await openDoor('attic', 900);
 
     // ---------- ○屋根裏部屋 ----------
@@ -495,26 +504,27 @@ const STORY = {
     look(1.4, -8.2);
     await Promise.all([walkPath(kidA, [[5.4, -12.9], [-.6, -8.6]], 2.4), (async () => { await wait(500); await walkHeroPath([[7.6, -12.9], [5.4, -12.9], [2.6, -8.9]], 2.4); })()]);
     lookAt(kidB, heroX(), heroZ()); heroFace(kidB.x, kidB.z); lookAt(kidA, kidB.x, kidB.z);
-    await KB('こんにちは！');
+    await KB('こんにちは。', 1);
     await H('こんにちは。');
     // 子供Aが おやつを ローテーブルに 置く
     await walkActor(kidA, -.4, -7.7, 600); lookAt(kidA, .68, -6.25);
     await bendPut(kidA, () => { prop('kidPlates', false); atticPlates(3); });
     lookAt(kidA, kidB.x, kidB.z);
-    await KA('これ、お兄さんが切ってくれたの');
-    await KB('へぇー！すごく綺麗に切れてる！');
-    await KA('おいらも切ろうとしたんだけど、またうまく切れなくて…。お兄さんが助けてくれたんだ！');
-    await KB('前まで切ろうともしなかったじゃないか！一歩前進だよ！');
-    await KA('へへっ。');
+    await KA('これ、お兄さんが切ってくれたの。', 2);
+    await KB('へぇー！すごく綺麗に切れてる！', 3);
+    await KA('おいらも切ろうとしたんだけど、またうまく切れなくて…。', 1);
+    await KA('お兄さんが助けてくれたんだ！', 2);
+    await KB('前まで切ろうともしなかったじゃないか！1歩前進だよ！', 3);
+    await KA('へへっ。', 2);
     await H('なんの話をしているんだ？');
-    await KA('あっ。おいら、自分の力のコントロールができないんだ。');
+    await KA('あっ。おいら、自分の力のコントロールができないんだ。', 1);
     await H('力のコントロール？');
-    await KA('例えば、さっきのナイフとか何かを持つときに、正しい力の加減がわからないんだ。');
-    await KA('でも、今日は僕の誕生日だから、何か力に変化が起きているかもしれないって思って、挑戦しちゃった。');
+    await KA('例えば、さっきのナイフとか何かを持つときに、正しい力の加減がわからないんだ。', 1);
+    await KA('でも、今日は僕の誕生日だから、何か力に変化が起きているかもしれないって思って、挑戦しちゃった。', 2);
     await H('力加減がわからない…。');
-    await KA('だから、お兄さんが助けてくれて良かった！');
+    await KA('だから、お兄さんが助けてくれて良かった！', 2);
     await H('ううん。怪我がなくて良かったよ。一緒に食べてお誕生日のお祝いをしよう。');
-    await say('子供A・B', 'うん！');
+    await say('2人', 'うん！');
     // 3人で 談笑しながら 食べる
     // テーブルを かこんで すわる
     look(.7, -6.6);
@@ -526,46 +536,47 @@ const STORY = {
     await eatPlates(2600);
     await wait(500);
     // 食べ終わりの 頃
-    await KA('えー！お兄さんずっとここにいるわけじゃないの？');
+    await KA('えー！お兄さんずっとここにいるわけじゃないの？', 3);
     await H('うん。この世界から出なきゃ行けないんだ。');
-    await KA('この世界？別の世界があるの？');
-    await KB('…。');
-    await KA('おいらたちもいつか新しい景色を見れたらいいね！');
-    await KB('うん…。');
+    await KA('この世界？別の世界があるの？', 1);
+    await KB('…。', 1);
+    await KA('おいらたちもいつか新しい景色を見れたらいいね！', 1);
+    await KB('うん…。', 1);
     await H('この世界から出るための鍵を探しているんだ。怪盗さんからはその鍵は「星」だって聞いた。');
-    await KA('カイトウ？');
+    await KA('カイトウ？', 1);
     await H('お、オーナーさん！');
-    // 子供Aが ポケットから 星を 取り出して 見せる
+    // リアオが 首元に 隠していた 星の ネックレスを 手に 取って 見せる
     lookAt(kidA, heroX(), heroZ());
     look(-1.0, -6.4, .7);
-    await KA('おいら、オーナーさんからもらった星を持ってるよ！');
+    await KA('おいら、オーナーさんからもらった星を持ってるよ！お兄さんが探してるのってこれ？', 3);
     await showStar();
-    await KA('お兄さんが探してるのってこれ？');
-    await H('星だ。');
-    await KA('お兄さんになら、おいらこれあげてもいいよ！');
+    await H('星だ…！');
+    await KA('お兄さんになら、おいらこれあげてもいいよ！', 2);
     await H('本当か？');
-    await KA('うん！お兄さん、ケーキ切る時も優しくしてくれたし、おいらがケーキ2つ持って行こうとしたら、怒るんじゃなくて話を聞いてくれたし。');
-    await KA('今日会ったのが信じられないくらい、お兄さんといると落ち着くんだ！お兄さんのこと大好きだから、あげる！');
+    await KA('うん！お兄さん、ケーキ切る時も優しくしてくれたし、おいらがケーキ2つ持って行こうとしたら、怒るんじゃなくて話を聞いてくれたし。', 2);
+    await KA('今日会ったのが信じられないくらい、お兄さんといると落ち着くんだ！お兄さんのこと大好きだから、あげる！', 2);
     await H('ありがとう。');
     await giveStar();
     note('星を 1つ 手に いれた！');
     look(.7, -6.6);
-    await KA('また会えたらいいね。');
-    await KB('でも、お兄さんにはお兄さんの世界があるんでしょ。会えないかもしれない。');
-    await KA('そっかぁ。残念だな。じゃあ、お兄さんのこと一生忘れないようにする！');
-    await KB('うん。');
+    await KA('また会えたらいいね。', 2);
+    await KB('でも、お兄さんにはお兄さんの世界があるんでしょ。会えないかもしれない。', 1);
+    await KA('そっかぁ。残念だな。', 1);
+    await KA('じゃあ、お兄さんのこと一生忘れないようにする！', 2);
+    await KB('うん。', 1);
     await H('ありがとう。');
     hideStar();
-    await KB('次はどこに行くの？');
+    await KB('次はどこに行くの？', 1);
     const next = await choose(['分からない', '教えて欲しい']);
     if (next === '分からない') await H('分からない…。');
     else await H('次に行く所を、教えて欲しい。');
-    await KB('お兄さんは星を集めているんだよね。そしたら、海辺に行くといいよ。');
+    await KB('お兄さんは星を集めているんだよね。そしたら、海辺に行くといいよ。', 1);
     await H('海辺？');
-    await KB('この部屋のドアから屋上に出て、降りた先の花道を辿れば、海辺に着くよ。');
+    await KB('この部屋のドアから屋上に出て、降りた先の花道を辿れば、海辺に着くよ。', 1);
     await H('そうか。行ってみるよ。');
-    await KA('僕は片付けしておくから、Bが途中まで案内してあげなよ！今日の僕はなんだかできる気がする！');
-    await KB('え？');
+    await KA('おいらは片付けしておくから、シィが途中まで案内してあげなよ！', 1);
+    await KA('今日のおいらはなんだかできる気がする！', 2);
+    await KB('え？', 3);
     // 子供Aが 立ち上がって、3枚の お皿を ゆっくり 集める
     await sitDown(kidA, 0, 500);
     //   テーブルを まわりこんで、手前から 1枚ずつ（机を 通りぬけない）
@@ -577,13 +588,14 @@ const STORY = {
     await bendPut(kidA, () => takePlate(2), 1100);
     lookAt(kidA, heroX(), heroZ());
     await wait(500);
-    await KA('ほら！持てた！洗い物をしちゃうぞー！へへっ。');
-    await KA('Bはここら辺のことたくさん知ってるじゃん！僕よりもBの方が安心して案内できるよ！');
-    await KA('あと、お兄さんともう会えないかもしれないなら、今のうちにたくさん話さなくちゃ。');
-    await KB('あぁ…。じゃあ、途中までだけど、私が案内するよ。');
+    await KA('ほら！持てた！洗い物をしちゃうぞー！へへっ。', 2);
+    await KA('シィはここら辺のことたくさん知ってるから、おいらよりもお兄さんも安心できるよ！', 3);
+    await KA('あと、お兄さんともう会えないかもしれないなら、今のうちにたくさん話さなくちゃ。おいらはたくさん話したけど、シィはまだ少ししか話してないでしょ？', 3);
+    await KB('あぁ…。', 3);
+    await KB('じゃあ、途中までだけど、私が案内するよ。', 1);
     await H('ありがとう。');
     heroFace(kidA.x, kidA.z); lookAt(kidA, heroX(), heroZ());
-    await KA('お兄さん！じゃあね！おいらのこと、忘れないでね！');
+    await KA('お兄さん！じゃあね！おいらのこと、忘れないでね！', 2);
     await H('うん。バイバイ。');
     // 子供Aに 見送られて、部屋の 片隅の ドアから 屋上へ（子供Bが 先に 扉を 開けて 出る。主人公は プレイヤーが 歩く）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidB, 0, 400)]);
@@ -611,13 +623,13 @@ const STORY = {
       await walkHero(12.0, -12.2, 500);
       await walkActor(kidA, 13.2, -13.3, 500); lookAt(kidA, 14.72, -13.57);
       heroFace(kidA.x, kidA.z);
-      await KA('は、初めてのケーキ切りだ！真ん中を切ればいいんだよね？そ、それっ！');
+      await KA('は、初めてのケーキ切りだ！真ん中を切ればいいんだよね？そ、それっ！', 2);
       await kidChop(700);
       prop('badCut', true);
-      await KA('あ、あれ…。');
+      await KA('あ、あれ…。', 1);
       lookAt(kidA, heroX(), heroZ());
       prop('tears', true);
-      await KA('今のおいらならできると思ったんだけどな…。やっぱり、お兄さんが切った方が良かったんだ。');
+      await KA('今のおいらならできると思ったんだけどな…。やっぱり、お兄さんが切った方が良かったんだ。', 4);
     }
     // ❸：だまって いたら、ひとりで 食べて 眠って しまう
     async function alone() {
@@ -629,19 +641,19 @@ const STORY = {
       prop('carry', false); cake('table');
       sitActor(kidA, -2.2, -11.6, Math.PI);
       await walkActor(kidA, -1.6, -13.2, 700); lookAt(kidA, 0, -15.5);
-      await KA('お、お兄さん！ケーキ切ってくれてありがとう。');
+      await KA('お、お兄さん！ケーキ切ってくれてありがとう。', 1);
       await H('うん。');
-      await KA('おいらも食べていい？');
+      await KA('おいらも食べていい？', 2);
       await H('うん。');
       sitHero(1.32, -14.45, 0, -14.45); look(0, -14.5);
       await eatSlices(1, 600);                                 // 主人公が 1つ 食べる
       await walkActor(kidA, -.9, -14.4, 500); lookAt(kidA, 0, -15.5);
       await tapAt(TAP.kidHand, 'タップ');                      // 2つ 取ろうと する 手を
-      await KA('いてっ！');
+      await KA('いてっ！', 1);
       await H('人数分で切っているから、1人1個までだよ。');
-      await KA('と、友達に渡しに行こうと思って…。');
+      await KA('と、友達に渡しに行こうと思って…。', 1);
       await H('そうか。');
-      await KA('うん。じゃあ、持っていくね。');
+      await KA('うん…。じゃあ、持っていくね。', 1);
       await eatSlices(2, 200);
       await walkPath(kidA, [[-2.2, -12.0], [-.3, -8.6], [4.0, -8.7]], 2.6); kidA.visible = false;
       await wait(800);

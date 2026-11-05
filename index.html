@@ -118,6 +118,8 @@
     police: 'assets/face_police.png', heroAlt: 'assets/face_hero_alt.png',     // 警察・家の中の 変身した 主人公
     kaitou1: 'assets/face_kaitou1.png', kaitou2: 'assets/face_kaitou2.png', kaitou3: 'assets/face_kaitou3.png',   // 怪盗の 表情 1〜5
     kaitou4: 'assets/face_kaitou4.png', kaitou5: 'assets/face_kaitou5.png',
+    kidA1: 'assets/face_kidA1.png', kidA2: 'assets/face_kidA2.png', kidA3: 'assets/face_kidA3.png', kidA4: 'assets/face_kidA4.png',   // 子供A（ふつう・にこにこ・おどろき・しょんぼり）
+    kidB1: 'assets/face_kidB1.png', kidB2: 'assets/face_kidB2.png', kidB3: 'assets/face_kidB3.png',   // 子供B（にこっ・わらう・おどろき）
   };
   const SPEAKER_FACE = { 'バケモノ': 'monster', '警察': 'police' };   // 表情が 変わらない 人は 名前で きまる
 
@@ -1115,7 +1117,7 @@
       m.position.z = -.03; necklace.add(m);
       const glowS = new THREE.Mesh(new THREE.CircleGeometry(.36, 16), new THREE.MeshBasicMaterial({ color: '#fff3b0', transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false }));
       glowS.position.z = -.05; necklace.add(glowS); necklace.userData.glow = glowS; }
-    necklace.position.set(.22, .5, .4);
+    necklace.position.set(0, .98, .42);      // 首元に 隠している
     // なみだ・ナイフ（場面で 使う）
     const tears = new THREE.Group(); tears.visible = false; g.add(tears);
     for (const s of [-1, 1]) { const tr = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#8fd3ff', { emissive: '#2a6a9a' })); tr.position.set(s * .12, 1.1, .5); tears.add(tr); }
@@ -1314,10 +1316,10 @@
   let kidChopK = 0;
   const sleep = (ms, on = true) => tween(ms, p => { heroSleep = on ? ease(p) : 1 - ease(p); });
   // 子供Aの 首元の 星が 主人公の 手に わたる
-  // 子供Aが ポケットから 星を 取り出して、高く かかげる
+  // 子供A（リアオ）が 首元の 星の ネックレスを 手に 取って、高く かかげる
   const showStar = () => {
     const n = kidAM.userData.necklace; n.visible = true;
-    return tween(1300, p => { const e = ease(p); n.position.set(.22 - e * .1, .5 + e * .75 + Math.sin(p * Math.PI) * .15, .4 + e * .2); n.scale.setScalar(.5 + e * .9); n.userData.spin = (1 - e) * 6; });
+    return tween(1300, p => { const e = ease(p); n.position.set(e * .12, .98 + e * .27 + Math.sin(p * Math.PI) * .1, .42 + e * .18); n.scale.setScalar(.5 + e * .9); n.userData.spin = (1 - e) * 6; });
   };
   const giveStar = async () => {
     const from = new THREE.Vector3(), to = new THREE.Vector3();
