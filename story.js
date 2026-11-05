@@ -100,7 +100,7 @@ const STORY = {
         show('watch');
         show('ring');
         await say('時計', 'ピピピピピピッ…。');
-        await say('主人公', 'なんだ？\n時計なんて持っていたか？', { face: 'hero' });
+        await say('主人公', 'なんだよもう。\n時計なんて持ってたか？', { face: 'hero' });
         await walkTo(5560, 1400);                                           // ゆっくり 歩き出すと
         hide('ring');                                                       // アラームが 鳴り、止まる
         await say('時計', 'ピッ…。');
@@ -207,24 +207,28 @@ const STORY = {
         await say('主人公', '事件…。知らないです。', { face: 'hero' });     // 目を 合わせずに
 
         // 警察に 家を 聞かれる 場面（③巻き戻す を えらぶと ここに もどる）
-        let act;
+        let act, rewound = false;
         while (true) {
           await say('警察', 'そうか。最近物騒になってきたから\n気をつけろよ。');
           await say('警察', '…君、お家は？');
-          await say('主人公', '（僕の家は…。）', { face: 'hero' });
-          await say('主人公', '（まずい、すぐ答えなかったら\n不審がられる。）', { face: 'hero' });
-          await say('主人公', 'えーと。', { face: 'hero' });
+          if (rewound) {
+            await say('主人公', '他の言い訳は…。', { face: 'hero' });   // 巻き戻した 時
+          } else {
+            await say('主人公', '（僕の家は…。）', { face: 'hero' });
+            await say('主人公', '（まずい、すぐ答えなかったら\n不審がられる。）', { face: 'hero' });
+            await say('主人公', 'えーと。', { face: 'hero' });
+          }
           const answer = await choose(['すぐそこです。', '3つ隣の街で…。', '…。']);
           await say('主人公', answer, { face: 'hero' });
           if (answer === 'すぐそこです。') await say('警察', 'ここら辺に登録されてる\n住宅地はないぞ。');
           else if (answer === '3つ隣の街で…。') await say('警察', 'ここは他の街の者は\n立ち入り禁止だぞ。');
           else await say('警察', '答えられないのか？');
           await say('警察', 'どういうことだ？君、\n少しだけ話を聞いても良いかな？');   // 動揺する 主人公を 怪しむ
-          await say('主人公', 'このままだとまずい！', { face: 'hero' });
+          if (!rewound) await say('主人公', 'このままだとまずい！', { face: 'hero' });   // 巻き戻した 時は 言わない
           act = await choose(['戦う', '逃げる', '巻き戻す']);
           if (act !== '巻き戻す') break;
           // ③：警察に 家を 聞かれる 場面に 巻き戻される
-          await say('主人公', '他の言い訳は…。', { face: 'hero' });
+          rewound = true;
           show('watch');
           await wait(300);
           await fadeOut('white', 300);
