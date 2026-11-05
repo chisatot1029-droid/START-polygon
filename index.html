@@ -650,9 +650,14 @@
         alt.add(ear);
       }
       const band = new THREE.Mesh(new THREE.TorusGeometry(.33, .035, 4, 10, Math.PI), black); band.rotation.set(Math.PI / 2, 0, 0); band.position.set(0, 1.1, -.04); alt.add(band);   // うしろの えりの ヘッドホンの バンド
-      const bag = new THREE.Mesh(new THREE.BoxGeometry(.36, .38, .1), black); bag.position.set(-.08, .74, .43); bag.rotation.z = .04; alt.add(bag);
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(.035, .9, .03), black); strap.scale.y = .62; strap.position.set(.04, .9, -.41); strap.rotation.z = -.55; alt.add(strap);   // かたから かけた かばんの ひも
-      const strapB = new THREE.Mesh(new THREE.BoxGeometry(.035, .5, .03), black); strapB.position.set(.15, .98, .42); strapB.rotation.z = .7; alt.add(strapB); }
+      // 黒い リュック（せなかに 背負う。かたひもは 両かたから 前へ）
+      const bag = new THREE.Mesh(new THREE.BoxGeometry(.42, .46, .18), black); bag.position.set(0, .78, .44); bag.rotation.x = -.12; alt.add(bag);
+      const flap = new THREE.Mesh(new THREE.BoxGeometry(.44, .14, .2), flat('#2a2a2a')); flap.position.set(0, .97, .45); flap.rotation.x = -.12; alt.add(flap);
+      const pocket = new THREE.Mesh(new THREE.BoxGeometry(.28, .16, .06), flat('#2a2a2a')); pocket.position.set(0, .66, .55); alt.add(pocket);
+      for (const s of [-1, 1]) {
+        const top = new THREE.Mesh(new THREE.BoxGeometry(.07, .05, .62), black); top.position.set(s * .2, 1.12, .02); alt.add(top);        // かたの 上
+        const front = new THREE.Mesh(new THREE.BoxGeometry(.07, .5, .04), black); front.position.set(s * .2, .88, -.38); front.rotation.x = .25; alt.add(front);   // むねの 前
+      } }
     g.userData = { legs, arms, bodyMat, hood, normal, alt, legsN: legs, armsN: arms, legsA: altLegs, armsA: altArms };
     shadowAll(g);
     g.scale.setScalar(CHAR);
@@ -1020,7 +1025,7 @@
     ['#f2c14e', '#e6a8d8', '#ffffff'].forEach((c, i) => { const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.06, 0), flat(c)); f.position.set((i - 1) * .07, .5 * FUR + .45, 0); t.add(f); });
     shadowAll(t); homeG.add(t); }
   // 青い ラグ
-  { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#141a40')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .02, -9.04); homeG.add(rug); }
+  { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#141a40')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .07, -9.04); homeG.add(rug); }   // 床の でこぼこより 上に
   // ダイニングテーブルと 椅子 6つ
   const TABLE = { x1: -.99, x2: .96, z1: -17.67, z2: -13.37, y: .78 * FUR + .05 };
   { const t = new THREE.Group();
@@ -1087,7 +1092,8 @@
   const LOWTABLE = { x: .68, z: -6.25 };
   { const t = new THREE.Mesh(new THREE.BoxGeometry(4.0, .12, 2.0), flat('#a9784a')); t.position.set(LOWTABLE.x, .38 * FUR, LOWTABLE.z); t.castShadow = true; atticG.add(t);
     for (const [a, b] of [[-1.8, -.85], [1.8, -.85], [-1.8, .85], [1.8, .85]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.1, .38 * FUR, .1), flat('#7a5434')); l.position.set(LOWTABLE.x + a, .19 * FUR, LOWTABLE.z + b); atticG.add(l); } }
-  { const z = new THREE.Mesh(new THREE.BoxGeometry(1.4, .12, 1.4), flat('#d97a6a')); z.position.set(3.5, .06, -6.25); atticG.add(z); }      // 座布団
+  { const z = new THREE.Mesh(new THREE.BoxGeometry(1.4, .12, 1.4), flat('#d97a6a')); z.position.set(3.5, .06, -6.25); atticG.add(z);       // 座布団（主人公・リアオ・シィ）
+    [[-2.0, -6.25, '#7fa6d9'], [.68, -7.9, '#b996e0']].forEach(([x, zz, c]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(1.4, .12, 1.4), flat(c)); m.position.set(x, .06, zz); atticG.add(m); }); }
   { const f = new THREE.Mesh(new THREE.BoxGeometry(10.3, .16, 3.4), flat('#f3eee4')); f.position.set(1.44, .08, -1.74); atticG.add(f);       // 敷布団
     const blanket = new THREE.Mesh(new THREE.BoxGeometry(6, .1, 3.2), flat('#e9b8c8')); blanket.position.set(3.5, .2, -1.74); atticG.add(blanket); }
   for (let i = 0; i < 8; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(3.0, .2 + i * .02, 1.2), flat('#a07c56')); st.position.set(11.4, -.1 - i * .25, -9.6 + i * 1.2); atticG.add(st); }   // 下へ おりる 階段
@@ -1141,7 +1147,15 @@
     const tears = new THREE.Group(); tears.visible = false; g.add(tears);
     for (const s of [-1, 1]) { const tr = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#8fd3ff', { emissive: '#2a6a9a' })); tr.position.set(s * .12, 1.1, .5); tears.add(tr); }
     const knife = new THREE.Mesh(new THREE.BoxGeometry(.05, .34, .015), flat('#dfe5ea')); knife.position.set(.4, .95, .2); knife.visible = false; g.add(knife);
-    const plates = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .12, 10), flat('#ffffff')); plates.position.set(0, .7, .45); plates.visible = false; g.add(plates);
+    // お盆（ケーキ 2切れ）を 両手で 持つ
+    const plates = new THREE.Group(); plates.position.set(0, .72, .5); plates.visible = false; g.add(plates);
+    { const tray = new THREE.Mesh(new THREE.BoxGeometry(.8, .04, .5), flat('#a9784a')); plates.add(tray);
+      for (const x of [-.18, .18]) {
+        const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .03, 10), flat('#ffffff')); pl.position.set(x, .035, 0); plates.add(pl);
+        const sl = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .24, 4, 1, false, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(x - .06, .17, -.14); plates.add(sl);
+        const b = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 4), flat('#d8343c')); b.position.set(x + .02, .32, .05); plates.add(b);
+        plates.userData.slices = (plates.userData.slices || []).concat([sl, b]);
+      } }
     g.userData = { necklace, tears, knife, plates };
     shadowAll(g); g.scale.setScalar(KID); return g;
   }
@@ -1195,6 +1209,28 @@
   plateMeshes[0].position.set(LOWTABLE.x - 1.1, .38 * FUR + .07, LOWTABLE.z);
   plateMeshes[1].position.set(LOWTABLE.x, .38 * FUR + .07, LOWTABLE.z - .5);
   plateMeshes[2].position.set(LOWTABLE.x + 1.1, .38 * FUR + .07, LOWTABLE.z);
+  // ケーキ 一切れを のせた お皿（ダイニングに 置く・主人公が 運ぶ）
+  function makeDish() {
+    const p = new THREE.Group();
+    const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .15, .02, 12), flat('#ffffff')); p.add(pl);
+    const sl = new THREE.Mesh(new THREE.CylinderGeometry(.26, .26, .16, 4, 1, false, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(-.05, .09, -.12); p.add(sl);
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#d8343c')); b.position.set(.02, .2, .05); p.add(b);
+    shadowAll(p); return p;
+  }
+  const DINE = [[.6, -14.45], [-.6, -14.45]];          // ダイニングの 主人公・リアオの 前
+  const diningDish = DINE.map(([x, z]) => { const d = makeDish(); d.position.set(x, TABLE.y + .045, z); d.visible = false; homeG.add(d); return d; });
+  const heroDish = makeDish(); heroDish.visible = false; scene.add(heroDish);
+  let heroDishOn = false;
+  // ホールケーキから 一切れ 取って お皿へ（i：0 = 主人公、1 = リアオ）
+  const serveSlice = async i => {
+    slicesLeft--; showSlices(slicesLeft);
+    const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52);
+    d.visible = true;
+    await tween(550, p => { d.position.lerpVectors(from, to, ease(p)); d.position.y += Math.sin(p * Math.PI) * .25; });
+  };
+  const heroHoldDish = on => { heroDishOn = on; heroCarry = on; };
+  const pickDish = i => { diningDish[i].visible = false; };                 // ダイニングの お皿を 手に とる
+  const cakeTake = () => { slicesLeft--; showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
   { const c = kidAM.userData.necklace.children[0].clone(); c.scale.setScalar(KID * 1.3); heroStar.add(c); }
   const heroKnife = new THREE.Mesh(new THREE.BoxGeometry(.04, .3, .015), flat('#dfe5ea')); heroKnife.visible = false; scene.add(heroKnife);
@@ -1305,12 +1341,16 @@
     u.normal.visible = !on; u.alt.visible = on;
     u.legs = on ? u.legsA : u.legsN; u.arms = on ? u.armsA : u.armsN;
   };
-  let camK = 1;
-  const look = (x, z, k = 1, snap = false) => { focus2 = x === undefined || x === null ? null : [x, z]; camK = k; if (snap) first = true; };
+  let camK = 1, camKCur = 1, camRate = .002;
+  // カメラの 見る 所：k は 引き（大きいほど 遠く）、snap で すぐ 切りかえ、speed: 'slow' で ゆっくり 動く
+  const look = (x, z, k = 1, snap = false, speed) => {
+    focus2 = x === undefined || x === null ? null : [x, z]; camK = k;
+    camRate = speed === 'slow' ? .4 : .002; if (snap) { first = true; camKCur = k; }
+  };
   // すわる（drop：いすは -.15、ゆかは -.45）。x が null なら 立ち上がる
   const sitHero = (x, z, fx, fz, drop = -.15, ms = 0) => {
     if (x === undefined || x === null) { const k0 = heroSitK; return tween(ms || 0, p => { heroSitK = k0 * (1 - p); }); }
-    setHero(x, z); heroFace(fx, fz); heroSitDrop = outfit ? (drop > -.3 ? .17 : -.06) : drop;   // 変身した 姿は 足が みじかい
+    setHero(x, z); heroFace(fx, fz); heroSitDrop = outfit ? (drop > -.3 ? .17 : .05) : drop;   // 変身した 姿は 足が みじかい
     return tween(ms, p => { heroSitK = ease(p); });
   };
   // 子供たちが すわる・立つ（少し かがんでから）
@@ -1320,7 +1360,7 @@
   const sitActor = (a, x, z, rot, lift = 0) => { a.seq++; a.moving = false; a.lean = 0; a.x = x; a.z = z; a.rot = rot; a.lift = lift; a.visible = true; };
   const prop = (name, on) => {
     const u = kidAM.userData;
-    ({ tears: () => { u.tears.visible = on; }, kidKnife: () => { u.knife.visible = on; }, kidPlates: () => { u.plates.visible = on; },
+    ({ tears: () => { u.tears.visible = on; }, kidKnife: () => { u.knife.visible = on; }, kidPlates: () => { u.plates.visible = on; }, traySlices: () => { u.plates.userData.slices.forEach(m => { m.visible = on; }); },
        necklace: () => { u.necklace.visible = on; }, heroKnife: () => { heroKnife.visible = on; }, rackKnife: () => { knifeTaken.visible = on; },
        badCut: () => { badCut.visible = on; }, carry: () => { heroCarry = on; } })[name]();
   };
@@ -1328,9 +1368,21 @@
   const cakeReset = () => { cakeCut = false; slicesLeft = 8; badCut.visible = false; showSlices(8); };
   const cakeSliced = () => { cakeCut = true; slicesLeft = 8; badCut.visible = false; showSlices(8); };
   const eatSlices = async (n, ms = 700) => { for (let i = 0; i < n && slicesLeft > 0; i++) { await wait(ms); slicesLeft--; showSlices(slicesLeft); } };
-  const atticPlates = (n, withCake = true) => plateMeshes.forEach((p, i) => { p.visible = i < n; p.userData.slice.forEach(m => { m.visible = withCake; }); });
+  const atticPlates = (n, withCake = true) => plateMeshes.forEach((p, i) => { p.visible = i < n; p.userData.slice.forEach(m => { m.visible = withCake; if (withCake) m.scale.setScalar(1); }); });
   const takePlate = i => { plateMeshes[i].visible = false; };
-  const eatPlates = ms => tween(ms, p => { plateMeshes.forEach(pl => pl.userData.slice[0].scale.setScalar(Math.max(.001, 1 - p))); }).then(() => atticPlates(3, false));
+  const showPlate = i => { plateMeshes[i].visible = true; plateMeshes[i].userData.slice.forEach(m => { m.visible = true; m.scale.setScalar(1); }); };
+  // 3人で 一口ずつ 食べる（もぐっと 小さく なる。食べる 人は こくっと うなずく）
+  const eatPlates = async (bites = 3, gap = 420) => {
+    const eaters = [A, B, null];
+    for (let k = 1; k <= bites; k++) for (let i = 0; i < 3; i++) {
+      const pl = plateMeshes[i]; if (!pl.visible) continue;
+      const [sl, berry] = pl.userData.slice, r = Math.max(.001, 1 - k / bites);
+      sl.scale.set(r, 1, r); if (k === 1) berry.visible = false; if (r <= .001) sl.visible = false;
+      const a = eaters[i];
+      tween(260, p => { const v = Math.sin(p * Math.PI); if (a) a.lean = v * .3; else heroSleep = v * .25; }).then(() => { if (a) a.lean = 0; else heroSleep = 0; });
+      await wait(gap);
+    }
+  };
   const kidChop = ms => tween(ms, p => { kidChopK = p; }).then(() => { kidChopK = 0; });
   let kidChopK = 0;
   const sleep = (ms, on = true) => tween(ms, p => { heroSleep = on ? ease(p) : 1 - ease(p); });
@@ -1365,20 +1417,24 @@
   const tmpV2 = new THREE.Vector3();
   const tmpQ = new THREE.Quaternion(), tmpQ2 = new THREE.Quaternion(), Y_AXIS = new THREE.Vector3(0, 1, 0);
   // プレイヤーが 決まった 所まで 歩くのを 待つ（矢印が 道を 案内する）
-  let goalResolve = null;
+  let goalResolve = null, goalNear = null;
+  // 決まった 点で なくても、近くに 来たら 着いた ことに する 場所（テーブルの まわり なら どこからでも）
+  const nearRect = (x1, z1, x2, z2, r) => Math.hypot(Math.max(x1 - heroX(), 0, heroX() - x2), Math.max(z1 - heroZ(), 0, heroZ() - z2)) < r;
+  const GOAL_NEAR = { table: () => nearRect(TABLE.x1, TABLE.z1, TABLE.x2, TABLE.z2, .95) };
   const freeWalk = name => new Promise(resolve => {
-    setGoal(name); mode = 'play'; heroSitK = 0; focus2 = null; camK = 1;
+    setGoal(name); mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = GOAL_NEAR[name] || null;
     goalResolve = () => { goalResolve = null; goal = []; mode = 'event'; player.moving = false; resolve(); };
   });
   function reset2() {
-    setOutfit(false); camK = 1; heroSitK = 0; heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
+    setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
     Object.assign(doors, { back: 0, attic: 0, exit: 0 });
     for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0 });
     for (const k of ['tears', 'kidKnife', 'kidPlates', 'necklace', 'heroKnife', 'badCut']) prop(k, false);
+    prop('traySlices', true);
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
+  Object.assign(window, { pickDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };
@@ -1419,6 +1475,8 @@
     if (cakeState === 'carry') cakeG.position.set(heroM.position.x + fx * .4, .58, heroM.position.z + fz * .4);
     else if (cakeState === 'counter') cakeG.position.set(HOME.x + 14.72, COUNTER_H + .05, HOME.z - 13.57);
     else if (cakeState === 'table') cakeG.position.set(HOME.x, TABLE.y + .04, HOME.z - 15.52);
+    heroDish.visible = heroDishOn && (area === 'home' || area === 'attic');
+    if (heroDishOn) heroDish.position.set(heroM.position.x + fx * .3, heroM.position.y + .55, heroM.position.z + fz * .3);
     cakeG.visible = area === 'home' && cakeState !== 'hidden';
     // 主人公の ナイフ（右手）
     if (heroKnife.visible) heroKnife.position.set(heroM.position.x + Math.cos(player.face) * .2 + fx * .12, .5, heroM.position.z + Math.sin(player.face) * .2 + fz * .12);
@@ -1438,10 +1496,11 @@
       arrowMat.forEach((m, i) => { m.opacity = .25 + .75 * Math.max(0, Math.sin(t * 5 - i * .9)); });
     }
     // カメラ：主人公（または 見せたい 所）を ななめ 上から
-    const [lx, lz] = focus2 || [heroX(), heroZ()], ck = camK * (area === 'attic' ? .62 : 1);
+    if (first) camKCur = camK; else camKCur += (camK - camKCur) * (1 - Math.pow(camRate, dt));
+    const [lx, lz] = focus2 || [heroX(), heroZ()], ck = camKCur * (area === 'attic' ? .62 : 1);
     wantL.set(base.x + lx * S, .5, base.z + lz * S - 1.1 * ck);
     if (first) { camL.copy(wantL); first = false; }
-    camL.lerp(wantL, 1 - Math.pow(.002, dt));
+    camL.lerp(wantL, 1 - Math.pow(camRate, dt));
     cam.position.set(camL.x, .5 + (area === 'attic' ? 7.5 : 6.9) * ck, camL.z + (area === 'attic' ? 6.4 : 5.4) * ck);
     cam.lookAt(camL);
     // あたたかい 家の 明かり
@@ -1463,7 +1522,7 @@
     for (let i = goal.length - 1; i >= 1; i--) if (clear(goal[i])) { goal.splice(0, i); break; }   // いちばん 先の 見とおせる 点へ
     while (goal.length > 1 && Math.hypot(goal[0][0] - heroX(), goal[0][1] - heroZ()) < .6) goal.shift();
     const last = goal[goal.length - 1];
-    if (Math.hypot(last[0] - heroX(), last[1] - heroZ()) < .45 && goalResolve) goalResolve();
+    if ((Math.hypot(last[0] - heroX(), last[1] - heroZ()) < .45 || (goalNear && goalNear())) && goalResolve) goalResolve();
   }
 
   // ============================================================
@@ -1599,7 +1658,7 @@
     }
     // 場面2（家の中・屋根裏）
     if (area === 'home' || area === 'attic') drawScene2(t, dt);
-    else { cakeG.visible = kidAM.visible = kidBM.visible = heroStar.visible = heroKnife.visible = false; }
+    else { cakeG.visible = kidAM.visible = kidBM.visible = heroStar.visible = heroKnife.visible = heroDish.visible = false; }
     // こわれた かべの がれき
     for (const rg of [rubbleG, rubbleR]) if (rg.visible) rg.children.forEach(r => {
       if (r.userData.t > 1.2) return;
