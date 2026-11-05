@@ -575,13 +575,14 @@ const STORY = {
     await wait(700);                                                       // 主人公が 見えてから 渡す
     await giveStar();
     note('星を 1つ 手に いれた！');
+    await wait(600);
+    hideStar();                                                            // 受け取ったら しまう
     await KA('また会えたらいいね。', 2);
     await KB('でも、お兄さんにはお兄さんの世界があるんでしょ。会えないかもしれない。', 1);
     await KA('そっかぁ。残念だな。', 1);
     await KA('じゃあ、お兄さんのこと一生忘れないようにする！', 2);
     await KB('うん。', 1);
     await H('ありがとう。');
-    hideStar();
     await KB('次はどこに行くの？', 1);
     const next = await choose(['分からない', '教えて欲しい']);
     if (next === '分からない') await H('分からない…。');
@@ -615,6 +616,7 @@ const STORY = {
     await H('うん。バイバイ。');
     // 子供Aに 見送られて、部屋の 片隅の ドアから 屋上へ（子供Bが 先に 扉を 開けて 出る。主人公は プレイヤーが 歩く）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidB, 0, 400)]);
+    kidA.track = true;                                                     // リアオは その場で 主人公を 目で おって 見送る
     (async () => {
       await walkPath(kidB, [[-2.4, -7.9], [-5.4, -4.6], [-6.0, -1.6]], 1.6);
       await openDoor('exit', 700);

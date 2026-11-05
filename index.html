@@ -1371,15 +1371,17 @@
   const atticPlates = (n, withCake = true) => plateMeshes.forEach((p, i) => { p.visible = i < n; p.userData.slice.forEach(m => { m.visible = withCake; if (withCake) m.scale.setScalar(1); }); });
   const takePlate = i => { plateMeshes[i].visible = false; };
   const showPlate = i => { plateMeshes[i].visible = true; plateMeshes[i].userData.slice.forEach(m => { m.visible = true; m.scale.setScalar(1); }); };
-  // 3人で 一口ずつ 食べる（もぐっと 小さく なる。食べる 人は こくっと うなずく）
-  const eatPlates = async (bites = 3, gap = 420) => {
-    const eaters = [A, B, null];
-    for (let k = 1; k <= bites; k++) for (let i = 0; i < 3; i++) {
-      const pl = plateMeshes[i]; if (!pl.visible) continue;
-      const [sl, berry] = pl.userData.slice, r = Math.max(.001, 1 - k / bites);
-      sl.scale.set(r, 1, r); if (k === 1) berry.visible = false; if (r <= .001) sl.visible = false;
-      const a = eaters[i];
-      tween(260, p => { const v = Math.sin(p * Math.PI); if (a) a.lean = v * .3; else heroSleep = v * .25; }).then(() => { if (a) a.lean = 0; else heroSleep = 0; });
+  // 3人で いっしょに 一口ずつ 食べる（口に 入れる タイミングは 少しずつ ずらす。食べる 人は こくっと うなずく）
+  const eatPlates = async (bites = 3, gap = 900) => {
+    const eaters = [A, B, null], delay = [0, 160, 330];
+    for (let k = 1; k <= bites; k++) {
+      for (let i = 0; i < 3; i++) setTimeout(() => {
+        const pl = plateMeshes[i]; if (!pl.visible) return;
+        const [sl, berry] = pl.userData.slice, r = Math.max(.001, 1 - k / bites);
+        sl.scale.set(r, 1, r); if (k === 1) berry.visible = false; if (r <= .001) sl.visible = false;
+        const a = eaters[i];
+        tween(260, p => { const v = Math.sin(p * Math.PI); if (a) a.lean = v * .3; else heroSleep = v * .25; }).then(() => { if (a) a.lean = 0; else heroSleep = 0; });
+      }, (delay[i] + (k * 37 % 60)) / timeScale);
       await wait(gap);
     }
   };
@@ -1428,7 +1430,7 @@
   function reset2() {
     setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
     Object.assign(doors, { back: 0, attic: 0, exit: 0 });
-    for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0 });
+    for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0, track: false });
     for (const k of ['tears', 'kidKnife', 'kidPlates', 'necklace', 'heroKnife', 'badCut']) prop(k, false);
     prop('traySlices', true);
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); heroStar.visible = false; kidChopK = 0;
@@ -1456,6 +1458,7 @@
     const drawActor = (m, a) => {
       m.visible = a.visible; if (!a.visible) return;
       const bob = a.moving ? Math.abs(Math.sin(a.t * 11)) * .06 * CHAR : 0;
+      if (a.track) a.rot = Math.atan2(heroX() - a.x, heroZ() - a.z);   // その場で 主人公の ほうを むきつづける
       m.position.set(base.x + a.x * S, bob + (a.lift || 0) + stairY(a.x, a.z), base.z + a.z * S); m.rotation.set(a.lean || 0, a.rot, 0);
     };
     drawActor(kaitouM, KH); drawActor(kidAM, A); drawActor(kidBM, B);
