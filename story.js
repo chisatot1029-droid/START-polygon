@@ -57,8 +57,8 @@ const STORY = {
   home: async () => {
     await say('ナレーション', 'これはとあるロボットが、\n人間を研究するために作ったゲーム「スターと」です。');
     await say('ナレーション', '長いこと起動されるのを待っています。\n遊んであげましょう。');
-    labCut('talk');
-    await say('研究員', 'やっと電気がついた！どんなデータが取れるか楽しみだなぁ！');
+    await labCut('talk');
+    await say('研究員', 'やっと遊んでくれる人が現れたのか！どんなデータが取れるか楽しみだなぁ！');
     await say('研究員', 'こっそりここから見ていよう！');
     labCut(false);
   },
@@ -224,7 +224,7 @@ const STORY = {
             await say('主人公', 'このままだとまずい！', { face: 'hero' });
             // 警察に 対しての 行動が 出たあと、画面に 透明度50%の 黒い 幕が はられ、研究員の カットが 入る
             await peekChoose(['戦う', '逃げる', '巻き戻す'], 1600);
-            labCut('dim');
+            await labCut('dim');
             await say('研究員', 'ワタクシはここで、「自分を守るため」か「早く脱出するためか」、何を優先して行動を選ぶのかを研究しているんだった！');
             await say('研究員', 'この行動は、大事なデータとして取らせていただこう。');
             labCut(false);
@@ -246,7 +246,7 @@ const STORY = {
           await say('主人公', '逃げろっ！', { face: 'hero' });
           await walkTo(3050, 500);                                          // 逃げようと する
         }
-        labCut('memo');                                                     // 研究員が メモを する 仕草
+        await labCut('memo');                                                     // 研究員が メモを する 仕草
         await wait(1800);
         labCut(false);
         show('gun');                                                        // 警察が 拳銃を 突きつける
