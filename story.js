@@ -47,21 +47,28 @@ const STORY = {
     'ヘッドホンのコード',
     '3つ隣の街で…。', '巻き戻す',      // 巻き戻すと 家を 答える 選択肢に もどる
     'すぐそこです。', '逃げる',
-    '行く',
     '出たいと伝えない',
     '嘘をつく', '代わりに切る',        // 場面2：子供Aが 切りそこねて、代わりに 切る
     '分からない',
   ],
+
+  // ---------- ○ホーム画面（ページを 開いた 時。このあと「始める・設定・場面を選択」が 出る） ----------
+  home: async () => {
+    await say('ナレーション', 'これはとあるロボットが、人間を研究するために作ったゲーム「スターと」です。');
+    await say('ナレーション', '長いこと起動されるのを待っています。遊んであげましょう。');
+    await say('研究員', 'やっと電気がついた！どんなデータが取れるか楽しみだなぁ！');
+    await say('研究員', 'こっそりここから見ていよう！');
+  },
 
   // ---------- ○何もない部屋 ----------
   opening: async () => {
     flags.loop = 1;
     await fadeOut('black', 0);
     await wait(600);
-    await say('主人公', 'また眠ってしまったのか…？', { box: 'bottom' });
-    note('ここは「主人公の一人称の動画」が入る予定（瞬きをし、起き上がる）');
+    await say('ナレーション', 'あなたはいつのまにか眠ってしまったようですね。この夢の世界から脱出をしましょう。', { box: 'bottom' });
+    note('ここは「主人公の一人称の動画」が入る予定（数回瞬きをし、起き上がる）');
     await blink();
-    await say('主人公', 'まだ目が覚めきらないが、\nとにかくここを出なくては。', { face: 'heroSleepy' });
+    await say('主人公', '眠っていたのか…？まだ目が覚めきらないが、とにかくここを出なくては。', { face: 'heroSleepy' });
     // 【プレイヤーが操作し、自由に歩く。】
   },
 
@@ -73,14 +80,14 @@ const STORY = {
       if: () => flags.loop === 1,
       run: async () => {
         show('exclaim');
-        await say('???', 'おい！誰かいるのか？\n助けてくれー！');
+        await say('???', 'おーい！誰かいるのか？\n助けてくれー！');
         hide('exclaim');
         // 助けに行くか 迷う
         //   ②この場に残る：人物A「助けてってばー！」と 何度も 聞こえる。
         //   2回 つづけて ② を えらぶと、①助けに行く だけが 出る
         let stay = 0;
         while (true) {
-          await say('主人公', '…。', { face: 'hero' });
+          if (stay === 0) await say('主人公', '…？', { face: 'hero' });
           const c = await choose(stay >= 2 ? ['助けに行く'] : ['助けに行く', 'この場に残る']);
           if (c === '助けに行く') break;
           stay++;
@@ -93,22 +100,6 @@ const STORY = {
       },
     },
     {
-      id: 'watch',
-      y: 5680,
-      if: () => flags.loop === 1 && flags.heard,
-      run: async () => {
-        show('watch');
-        show('ring');
-        await say('時計', 'ピピピピピピッ…。');
-        await say('主人公', 'なんだよもう。\n時計なんて持ってたか？', { face: 'hero' });
-        await walkTo(5560, 1400);                                           // ゆっくり 歩き出すと
-        hide('ring');                                                       // アラームが 鳴り、止まる
-        await say('時計', 'ピッ…。');
-        await say('主人公', '勝手に止まった。\n一体何だったんだ。', { face: 'hero' });
-        hide('watch');
-      },
-    },
-    {
       // ---------- ○広い部屋 ----------
       id: 'encounter1',
       y: 3010,                       // バケモノ（y 2555）の 少し 手前
@@ -117,8 +108,8 @@ const STORY = {
         await camera(2070, 900);
         await say('???', 'やっと助けが来たのか！', { face: 'kaitou5' });     // 笑顔で 言う
         await say('主人公', '（な、なんだこのバケモノは…！）', { face: 'hero' });
-        await say('???', 'うっ。', { face: 'kaitou5' });
-        await wait(800);                                                    // 立ち尽くす
+        await wait(2000);                                                   // 2秒 驚き 立ち尽くす
+        await say('???', '早くこいつを…！うっ。', { face: 'kaitou5' });
         monster('eat');                                                     // あっという間に 食べられる
         await wait(900);
         monster('alone');
@@ -138,7 +129,7 @@ const STORY = {
         show('watch');
         show('ring');
         await say('時計', 'ピピピピッ。');
-        await say('主人公', 'こんな時にまた？', { face: 'hero' });
+        await say('主人公', 'なんだ！？と、時計なんて持っていたか？', { face: 'hero' });
         await stopAlarm();                                                  // 止めるように さそう エフェクト
         hide('ring');
         await wait(300);
@@ -157,7 +148,7 @@ const STORY = {
         await say('???', '助けてー！');
         hide('exclaim');
         await say('主人公', 'な、なんだ？\nさっきと同じ声が聞こえる…。', { face: 'hero' });
-        await say('主人公', '急いでみよう。', { face: 'hero' });
+        await say('主人公', '行ってみよう。', { face: 'hero' });
         flags.run = true;                                                   // 【プレイヤーが 操作】走る 主人公
       },
     },
@@ -171,7 +162,7 @@ const STORY = {
         await say('主人公', '（やっぱり同じ人だ。\nさっきより早く着けたのか？）', { face: 'hero' });
         await say('主人公', '（まだ食われていないような…。）', { face: 'hero' });
         await say('???', 'こいつをやっつけてくれ！', { face: 'kaitou5' });
-        await say('主人公', 'やっつける！？\nど、どうすればいいんだ？', { face: 'hero' });
+        await say('主人公', 'やっつける！？\nどうすればいいんだ？', { face: 'hero' });
         await choose(['カセットテープ', 'ヘッドホンの\nコード', 'リュック\nそのもの'], { speaker: '主人公の荷物' });
         await say('主人公', 'これを使うのか…？\nッえい！', { face: 'hero' });   // （動揺した表情）
         await throwItem();                                                  // 顔を 苦くしながら 投げ、追い払う
@@ -187,7 +178,7 @@ const STORY = {
         await say('???', '少年！ありがとう！', { face: 'kaitou2' });
         await say('???', '助けてもらったところ申し訳ないが、\n急いでるんだ！', { face: 'kaitou5' });
         await say('???', 'またいつか会えたら\n必ずお礼をするよ！', { face: 'kaitou5' });
-        await say('???', 'ほんとありがとうー！', { face: 'kaitou5' });
+        await say('???', '本当にありがとう！', { face: 'kaitou5' });
         await captiveWalk(136, -750, 2000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る
         monster('none');
         await say('主人公', 'あぁ…。', { face: 'hero' });
@@ -202,8 +193,8 @@ const STORY = {
         await policeWalk(0, 710, 1800);
         await say('警察', 'おいそこの君！ここらへんで\n事件が起きたと聞いたが、');
         await say('警察', '何か見なかったか！？');
-        await say('主人公', '（ここを出なくては\nいけないんだ…。）', { face: 'hero' });
-        await say('主人公', '（今面倒なことに\n巻き込まれたくはない。）', { face: 'hero' });
+        await say('主人公', '（早くここを出なくては\nいけないんだ…。）', { face: 'hero' });
+        await say('主人公', '（面倒なことに\n巻き込まれたくはない。）', { face: 'hero' });
         await say('主人公', '事件…。知らないです。', { face: 'hero' });     // 目を 合わせずに
 
         // 警察に 家を 聞かれる 場面（③巻き戻す を えらぶと ここに もどる）
@@ -215,7 +206,7 @@ const STORY = {
             await say('主人公', '他の言い訳は…。', { face: 'hero' });   // 巻き戻した 時
           } else {
             await say('主人公', '（僕の家は…。）', { face: 'hero' });
-            await say('主人公', '（まずい、すぐ答えなかったら\n不審がられる。）', { face: 'hero' });
+            await say('主人公', '（どうしよう！すぐ答えなかったら\n怪しまれる！）', { face: 'hero' });
             await say('主人公', 'えーと。', { face: 'hero' });
           }
           const answer = await choose(['すぐそこです。', '3つ隣の街で…。', '…。']);
@@ -224,7 +215,15 @@ const STORY = {
           else if (answer === '3つ隣の街で…。') await say('警察', 'ここは他の街の者は\n立ち入り禁止だぞ。');
           else await say('警察', '答えられないのか？');
           await say('警察', 'どういうことだ？君、\n少しだけ話を聞いても良いかな？');   // 動揺する 主人公を 怪しむ
-          if (!rewound) await say('主人公', 'このままだとまずい！', { face: 'hero' });   // 巻き戻した 時は 言わない
+          if (!rewound) {                                                   // 巻き戻した 時は 言わない
+            await say('主人公', 'このままだとまずい！', { face: 'hero' });
+            // 選択肢が 出たところで 研究員の カットが 入る → もう一度 選択肢が 出て 選べる
+            await peekChoose(['戦う', '逃げる', '巻き戻す'], 1600);
+            labCut('talk');
+            await say('研究員', 'ワタクシはここで、「自分を守るため」か「早く脱出するため」か。何を優先して選ぶのかを研究しているんだった！');
+            await say('研究員', 'その手段も、大事な結果だ。');
+            labCut(false);
+          }
           act = await choose(['戦う', '逃げる', '巻き戻す']);
           if (act !== '巻き戻す') break;
           // ③：警察に 家を 聞かれる 場面に 巻き戻される
@@ -242,8 +241,11 @@ const STORY = {
           await say('主人公', '逃げろっ！', { face: 'hero' });
           await walkTo(3050, 500);                                          // 逃げようと する
         }
+        labCut('memo');                                                     // 研究員が メモを する 仕草
+        await wait(1800);
+        labCut(false);
         show('gun');                                                        // 警察が 拳銃を 突きつける
-        await say('主人公', 'っ！', { face: 'hero' });
+        await say('主人公', '拳銃っ！？', { face: 'hero' });
         await wait(2000);                                                   // 主人公が 2秒 身構える
         await say('警察', 'パンッ！');
         await fadeOut('white', 80);                                         // 発砲する
@@ -251,7 +253,7 @@ const STORY = {
         show('flowers');                                                    // 銃弾では なく 花束が 出る
         await wait(2000);                                                   // 2秒ほど 固まる 主人公
         await say('主人公', '…？', { face: 'hero' });
-        await say('警察', 'おいおい、\nなんか言ってくれよ。');
+        await say('警察', 'おいおい。\nなんか言ってくれよ。');
         await say('主人公', 'え？', { face: 'hero' });
         await say('警察', 'さっきは助けてくれてありがとう！');
         await say('主人公', '（さっき？誰だ？）', { face: 'hero' });
@@ -262,34 +264,41 @@ const STORY = {
         // ---- 怪盗 ----
         await say('主人公', 'さっきの！', { face: 'hero' });
         await say('怪盗', 'やっとわかってくれたか！', { face: 'kaitou2' });
-        await say('主人公', '（…。でもどういうことだ？\n襲われていたところを助けた人が、）', { face: 'hero' });
-        await say('主人公', '（警察に変装して\n今度は撃とうとした…？）', { face: 'hero' });
-        await say('主人公', '…。', { face: 'hero' });
+        await say('主人公', '（でも、どういうことだ？\n襲われていた人が、）', { face: 'hero' });
+        await say('主人公', '（警察に変装して、\n今度は撃とうとした…？）', { face: 'hero' });
         await say('怪盗', 'やれやれ。もっと驚いてくれよ。\n君はこの世界に初めて来たんだろう？', { face: 'kaitou3' });
         await say('怪盗', '心細いと思って、君を楽しませるために\n色々と用意したんだ！', { face: 'kaitou2' });
-        await say('怪盗', '美味しい食事も用意しているし、\nいろんな人とも出会えるだろう。', { face: 'kaitou2' });
-        await say('怪盗', '最後にはとっておきの\nお楽しみが待っている。', { face: 'kaitou2' });
+        await say('怪盗', '美味しい食事も、いろんな人との出会いも！\n最後にはとっておきのお楽しみが待っている。', { face: 'kaitou2' });
         await say('怪盗', '君、時計を持っているだろう？', { face: 'kaitou1' });
         show('watch');
         await say('主人公', 'あぁ、これ。\nこんなもの持っていなかったのに。', { face: 'hero' });
         await say('怪盗', 'ふふふ。', { face: 'kaitou2' });
-        await say('怪盗', 'このアラームが鳴った時に\n自分で止めると、時を戻せるんだ。', { face: 'kaitou1' });
-        await say('怪盗', '本当の人生をやり直すことは\nできないが、この世界では叶えられる。', { face: 'kaitou1' });
+        await say('怪盗', 'このアラームが鳴った時に\n自分で止めると時間を戻せるんだ。', { face: 'kaitou1' });
+        await say('怪盗', '本当の人生をやり直すことは\nできないが、この世界ではそれが叶う。', { face: 'kaitou1' });
         await say('怪盗', 'どうだ？面白いだろう！？', { face: 'kaitou2' });
         hide('watch');
-        await say('主人公', '時を戻す…。\nさっきは確かに時が戻っていた。', { face: 'hero' });
+        await say('主人公', '時間を戻す…。\n確かにさっきは時が戻っていた。', { face: 'hero' });
         await say('主人公', 'この人は何か\n知っているのかもしれない。', { face: 'hero' });
-        await say('怪盗', 'さぁ。行こう！', { face: 'kaitou1' });
-        await choose(['行く']);                                             // 行く 選択肢しか 表示されない
-        const run = runWithKaitou();                                        // 笑顔で 主人公の 手を取り 走り出す
-        await wait(1500);
-        await fadeOut('black', 800);                                        // 走りながら 暗い 通路へ
-        await run;
+        await say('怪盗', 'ぜひこの世界を楽しんでくれ！さぁ。行こう！', { face: 'kaitou1' });
+        // 怪盗は 主人公を 置いて 走り出す。【プレイヤーの 操作】怪盗に ついていく
+        await kaitouRunAhead();
+        follow();
+        flags.follow = true;
+      },
+    },
+    {
+      // 怪盗を 追って 階段まで 来たら、暗い 通路を 抜けて 家の前へ
+      id: 'house',
+      y: 1600,
+      if: () => flags.follow,
+      run: async () => {
+        flags.follow = false;
+        await fadeOut('black', 800);
 
         // ---------- ○怪盗の家の前（暗い通路を抜け、星空の もとに ポツンと 佇む 家） ----------
         police('none');
         place('house');
-        const arrive = arriveHouse();                                       // 走って 家の前に たどり着く
+        const arrive = arriveHouse('follow');                               // 先に 着いた 怪盗の もとへ
         await fadeIn(900);
         await arrive;
         await say('怪盗', 'こんなに走ったのは久々だ！', { face: 'kaitou2' });

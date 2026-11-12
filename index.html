@@ -29,6 +29,27 @@
     #cakeGame.hidden { display: none; }
     #cakeGame canvas { width: 46em; height: 46em; }
     #cakeGame p { margin: .4em 0; color: #fff; font-size: 2.4em; text-shadow: 0 .1em .3em rgba(0,0,0,.6); }
+    /* 会話ウィンドウは タイトル画面の 上にも 出す（ホーム画面の ナレーション） */
+    #dialog { z-index: 5; }
+    #menu.hidden { visibility: hidden; }
+    #menu { transition: opacity .6s; }
+    /* 研究員の カット（仮：研究室の モニターの 前） */
+    #labCut { position: absolute; inset: 0; z-index: 4; overflow: hidden;
+      background: radial-gradient(ellipse at 50% 35%, #1d3a4a 0%, #0b1418 70%); }
+    #labCut.hidden { display: none; }
+    #labCut .monitor { position: absolute; left: 30%; top: 10%; width: 40%; height: 36%; border-radius: 1.2em;
+      background: repeating-linear-gradient(0deg, rgba(120,255,190,.08) 0 .3em, transparent .3em .6em), #12302a;
+      border: .8em solid #2c3a40; box-shadow: 0 0 4em rgba(100,255,190,.35); }
+    #labCut .monitor::after { content: 'スターと  ▶ 実行中'; position: absolute; left: 6%; top: 8%; color: #8fffc6; font-size: 2.2em; }
+    #labCut .desk { position: absolute; left: 0; right: 0; top: 55%; height: 6%; background: #3b2c20; }
+    #labCut .head { position: absolute; left: 13%; top: 30%; width: 13%; aspect-ratio: 1; border-radius: 50%; background: #0a0d0f; }
+    #labCut .body { position: absolute; left: 8%; top: 46%; width: 23%; height: 40%; border-radius: 45% 45% 0 0; background: #0a0d0f; }
+    #labCut .glasses { position: absolute; left: 16%; top: 36%; width: 7%; height: 2.5%; border: .3em solid #8fffc6; border-radius: 1em; opacity: .7; }
+    #labCut .memo { position: absolute; left: 33%; top: 52%; width: 16%; height: 20%; background: #f4f0e2; transform: rotate(-6deg); display: none;
+      background-image: repeating-linear-gradient(0deg, transparent 0 1.6em, #b9c7d9 1.6em 1.75em); }
+    #labCut.memo .memo { display: block; }
+    #labCut .memo::after { content: ''; position: absolute; left: 10%; top: 18%; height: .25em; background: #2a2a2a; animation: memoLine 1.4s steps(8) infinite; }
+    @keyframes memoLine { from { width: 0; } to { width: 78%; } }
     #lpBadge { position: absolute; left: 1.5%; bottom: 2.5%; color: #fff; background: rgba(21,31,16,.8);
       padding: .4em .9em; border-radius: .4em; font-size: 1.6em; pointer-events: none; }
   </style>
@@ -48,14 +69,16 @@
       <div id="nextMark">▶</div>
     </div>
 
+    <div id="labCut" class="hidden"><div class="monitor"></div><div class="desk"></div><div class="body"></div><div class="head"></div><div class="glasses"></div><div class="memo"></div></div>
+
     <div id="lpBadge">低ポリゴン版（ためし）</div>
     <button id="alarmGuide" class="hidden" aria-label="アラームを とめる"><span>タップして とめる</span></button>
 
     <div id="title" class="overlay">
       <div id="menu">
-        <button id="startBtn" class="menuBtn">スタート</button>
-        <button id="sceneBtn" class="menuBtn">場面選択</button>
-        <button id="settingBtn" class="menuBtn">セッティング</button>
+        <button id="startBtn" class="menuBtn">始める</button>
+        <button id="settingBtn" class="menuBtn">設定</button>
+        <button id="sceneBtn" class="menuBtn">場面を選択</button>
         <button id="autoBtn" class="menuBtn">オートで みる</button>
       </div>
       <p class="howto">↑ ↓ ← → キー・ゆびで なぞる：あるく　／　クリック・タップ・Enter：すすむ・えらぶ</p>
@@ -153,6 +176,7 @@
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden');
+    $('labCut').classList.add('hidden'); peeking = false;
   }
   function resetPlayer() {
     player = { x: STORY.playerStart.x, y: STORY.playerStart.y, moving: false, t: 0, face: 0 };
@@ -318,7 +342,12 @@
     await Promise.all([policeWalk(0, SM.corridorTop - 40 - pyNow, 2600), walkTo(SM.corridorTop + 60, 2600)]);
     running = false;
   };
-  const arriveHouse = async () => {
+  const arriveHouse = async (how) => {
+    if (how === 'follow') {                                             // 怪盗は 先に 着いて 待っている。主人公が 階段を 上って くる
+      houseKaitou.x = 1.5; houseKaitou.z = 3.8; houseHero.x = -.9; houseHero.z = 12.6;
+      await walkHouse(houseHero, -.5, 5.7, 3000);
+      return;
+    }
     running = true;
     houseHero.x = -.9; houseHero.z = 12.6; houseKaitou.x = 1.7; houseKaitou.z = 12.2;  // 階段を 走って 上って くる
     await Promise.all([walkHouse(houseHero, -.5, 5.7, 2400), walkHouse(houseKaitou, 1.5, 3.8, 2400)]);
@@ -363,6 +392,26 @@
     wallBroken = 0; breakableWall.visible = breakableWallR.visible = true; rubbleG.visible = rubbleR.visible = false;
   }
 
+  // 研究員の カット（'talk'：話す、'memo'：メモを とる、false：もどる）
+  const labCut = m => { $('labCut').classList.toggle('hidden', !m); $('labCut').classList.toggle('memo', m === 'memo'); };
+  // 選択肢を 少しの 間 見せるだけ（まだ 選べない）
+  let peeking = false;
+  const peekChoose = async (options, ms = 1600) => {
+    peeking = true;
+    openDialog('', {}); ui.dialog.classList.add('choosing');
+    ui.choices.innerHTML = ''; ui.choices.classList.toggle('three', options.length >= 3);
+    options.forEach(label => { const b = document.createElement('button'); b.className = 'choice'; b.textContent = label; b.disabled = true; ui.choices.appendChild(b); });
+    await wait(ms);
+    ui.choices.innerHTML = ''; ui.dialog.classList.add('hidden'); peeking = false;
+  };
+  // 怪盗が 主人公を 置いて 先に 走り、階段の 上で 待つ
+  const kaitouRunAhead = async () => {
+    running = true;
+    const pyNow = MON_Y - 651 + policeDY;
+    await policeWalk(0, SM.corridorTop - 260 - pyNow, 2200);
+    running = false;                                                   // ふりかえって 主人公を 待つ
+  };
+  Object.assign(window, { labCut, peekChoose, kaitouRunAhead });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
     police, policeWalk, throwItem, camera, follow, walkTo, resetPlayer, note, end });
@@ -1784,6 +1833,7 @@
   async function autopilot() {
     while (auto) {
       if (cakeActive) { await wait(500); if (auto && cakeActive) await cakeAutoCut(); continue; }
+      if (peeking) { await wait(100); continue; }
       if (alarmResolve) {
         await wait(700);
         if (auto && alarmResolve) await autoClick($('alarmGuide'));
@@ -1855,6 +1905,13 @@
 
   reset();
   requestAnimationFrame(loop);
+  // ○ホーム画面：ナレーションと 研究員（ページを 開いた 時に 一度だけ）。そのあと メニューが 出る
+  (async () => {
+    $('menu').classList.add('hidden'); $('menu').style.opacity = 0;
+    await wait(600);
+    if (STORY.home) await STORY.home();
+    $('menu').classList.remove('hidden'); $('menu').style.opacity = 1;
+  })();
   window.__lp = { get mode() { return mode; }, get player() { return player; }, advance, get flags() { return flags; }, monster, camera, show, runEvent, get area() { return area; }, get goal() { return goal; } };
   </script>
 </body>
