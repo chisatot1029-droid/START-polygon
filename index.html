@@ -36,23 +36,20 @@
     #dialog.narration #nextMark { color: #fff; right: 6%; bottom: 7%; }
     #menu.hidden { visibility: hidden; }
     #menu { transition: opacity .6s; }
-    /* 研究員の カット（仮：研究室の モニターの 前） */
-    #labCut { position: absolute; inset: 0; z-index: 4; overflow: hidden;
-      background: radial-gradient(ellipse at 50% 35%, #1d3a4a 0%, #0b1418 70%); }
-    #labCut.hidden { display: none; }
-    #labCut .monitor { position: absolute; left: 30%; top: 10%; width: 40%; height: 36%; border-radius: 1.2em;
-      background: repeating-linear-gradient(0deg, rgba(120,255,190,.08) 0 .3em, transparent .3em .6em), #12302a;
-      border: .8em solid #2c3a40; box-shadow: 0 0 4em rgba(100,255,190,.35); }
-    #labCut .monitor::after { content: 'スターと  ▶ 実行中'; position: absolute; left: 6%; top: 8%; color: #8fffc6; font-size: 2.2em; }
-    #labCut .desk { position: absolute; left: 0; right: 0; top: 55%; height: 6%; background: #3b2c20; }
-    #labCut .head { position: absolute; left: 13%; top: 30%; width: 13%; aspect-ratio: 1; border-radius: 50%; background: #0a0d0f; }
-    #labCut .body { position: absolute; left: 8%; top: 46%; width: 23%; height: 40%; border-radius: 45% 45% 0 0; background: #0a0d0f; }
-    #labCut .glasses { position: absolute; left: 16%; top: 36%; width: 7%; height: 2.5%; border: .3em solid #8fffc6; border-radius: 1em; opacity: .7; }
-    #labCut .memo { position: absolute; left: 33%; top: 52%; width: 16%; height: 20%; background: #f4f0e2; transform: rotate(-6deg); display: none;
-      background-image: repeating-linear-gradient(0deg, transparent 0 1.6em, #b9c7d9 1.6em 1.75em); }
+    /* 研究員の カット：右下の 小さな わくに 研究員、セリフは その 上の 吹き出し */
+    #labVeil { position: absolute; inset: 0; z-index: 4; background: rgba(0, 0, 0, .5); }
+    #labVeil.hidden, #labCut.hidden { display: none; }
+    #labCut { position: absolute; right: 3.4%; bottom: 6.5%; width: 18.2%; z-index: 6; background: #fff; border: .35em solid #111; line-height: 0; }
+    #labCut img { width: 100%; display: block; }
+    #labCut .memo { position: absolute; left: 8%; bottom: 10%; width: 30%; height: 26%; background: #f4f0e2; border: .15em solid #333; transform: rotate(-6deg); display: none; }
     #labCut.memo .memo { display: block; }
-    #labCut .memo::after { content: ''; position: absolute; left: 10%; top: 18%; height: .25em; background: #2a2a2a; animation: memoLine 1.4s steps(8) infinite; }
-    @keyframes memoLine { from { width: 0; } to { width: 78%; } }
+    #labCut .memo::after { content: ''; position: absolute; left: 12%; top: 40%; height: .25em; background: #2a2a2a; animation: memoLine 1.2s steps(6) infinite; }
+    @keyframes memoLine { from { width: 0; } to { width: 76%; } }
+    #dialog.lab { left: auto; right: 3.4%; top: auto; bottom: 29%; width: 34%; height: auto; min-height: 9%; border-width: .3em; border-radius: 2.2em; padding: 1.2em 1.8em 1.4em; z-index: 7; }
+    #dialog.lab #speaker, #dialog.lab #face { display: none; }
+    #dialog.lab #text { position: static; font-size: 2.3em; line-height: 1.4; }
+    #dialog.lab #nextMark { font-size: 1.8em; right: 4%; bottom: 8%; }
+    #dialog.lab::after { content: ''; position: absolute; left: 62%; bottom: -1.6em; border: .9em solid transparent; border-top: 1em solid #000; }
     #lpBadge { position: absolute; left: 1.5%; bottom: 2.5%; color: #fff; background: rgba(21,31,16,.8);
       padding: .4em .9em; border-radius: .4em; font-size: 1.6em; pointer-events: none; }
   </style>
@@ -72,7 +69,8 @@
       <div id="nextMark">▶</div>
     </div>
 
-    <div id="labCut" class="hidden"><div class="monitor"></div><div class="desk"></div><div class="body"></div><div class="head"></div><div class="glasses"></div><div class="memo"></div></div>
+    <div id="labVeil" class="hidden"></div>
+    <div id="labCut" class="hidden"><img src="assets/researcher.png" alt="研究員"><div class="memo"></div></div>
 
     <div id="lpBadge">低ポリゴン版（ためし）</div>
     <button id="alarmGuide" class="hidden" aria-label="アラームを とめる"><span>タップして とめる</span></button>
@@ -179,7 +177,7 @@
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden');
-    $('labCut').classList.add('hidden'); peeking = false;
+    $('labCut').classList.add('hidden'); $('labVeil').classList.add('hidden'); peeking = false;
   }
   function resetPlayer() {
     player = { x: STORY.playerStart.x, y: STORY.playerStart.y, moving: false, t: 0, face: 0 };
@@ -239,6 +237,7 @@
     // ナレーションは 吹き出しでは なく、画面を 暗くして 白い 文字で まんなかに
     const narr = speaker === 'ナレーション';
     ui.dialog.classList.toggle('narration', narr);
+    ui.dialog.classList.toggle('lab', speaker === '研究員');          // 研究員は 右下の カットの 吹き出し
     ui.speaker.textContent = speaker;
     ui.speaker.classList.toggle('hidden', !speaker || narr);
     ui.dialog.classList.toggle('bottom', opt.box === 'bottom');
@@ -249,7 +248,7 @@
   const NO_LINE_START = '、。，．・：；？！ー…」』）〜っゃゅょァィゥェォッャュョ';
   function paginate(text) {
     const cs = getComputedStyle(ui.text);
-    const maxW = ui.text.clientWidth || 600;
+    const maxW = (ui.text.clientWidth || 600) * .94;   // 少し 余白を もたせて 折りかえす
     measureCtx.font = `${cs.fontSize} ${cs.fontFamily}`;
     const lines = [];
     for (const raw of text.split('\n')) {
@@ -399,7 +398,11 @@
   }
 
   // 研究員の カット（'talk'：話す、'memo'：メモを とる、false：もどる）
-  const labCut = m => { $('labCut').classList.toggle('hidden', !m); $('labCut').classList.toggle('memo', m === 'memo'); };
+  //   'dim' は 画面に 透明度50%の 黒い 幕を はってから
+  const labCut = m => {
+    $('labCut').classList.toggle('hidden', !m); $('labCut').classList.toggle('memo', m === 'memo');
+    $('labVeil').classList.toggle('hidden', m !== 'dim');
+  };
   // 選択肢を 少しの 間 見せるだけ（まだ 選べない）
   let peeking = false;
   const peekChoose = async (options, ms = 1600) => {
