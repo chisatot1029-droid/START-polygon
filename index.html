@@ -49,6 +49,14 @@
       75%  { transform: scale(1, 1); filter: brightness(1.6); }
       100% { transform: scale(1, 1); filter: brightness(1); }
     }
+    /* 消える ときは テレビを 消す ように：縦に つぶれて 横線 → 光の 点 → 消える */
+    #labCut.off { animation: tvOff .55s ease-in both; }
+    @keyframes tvOff {
+      0%   { transform: scale(1, 1); filter: brightness(1); }
+      45%  { transform: scale(1, .02); filter: brightness(3); }
+      85%  { transform: scale(.02, .01); filter: brightness(3); }
+      100% { transform: scale(0, 0); filter: brightness(3); }
+    }
     #labCut .memo { position: absolute; left: 8%; bottom: 10%; width: 30%; height: 26%; background: #f4f0e2; border: .15em solid #333; transform: rotate(-6deg); display: none; }
     #labCut.memo .memo { display: block; }
     #labCut .memo::after { content: ''; position: absolute; left: 12%; top: 40%; height: .25em; background: #2a2a2a; animation: memoLine 1.2s steps(6) infinite; }
@@ -185,7 +193,7 @@
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden');
-    $('labCut').classList.add('hidden'); $('labVeil').classList.add('hidden'); peeking = false;
+    $('labCut').classList.add('hidden'); $('labCut').classList.remove('off'); $('labVeil').classList.add('hidden'); peeking = false;
   }
   function resetPlayer() {
     player = { x: STORY.playerStart.x, y: STORY.playerStart.y, moving: false, t: 0, face: 0 };
@@ -407,11 +415,16 @@
 
   // 研究員の カット（'talk'：話す、'memo'：メモを とる、false：もどる）
   //   'dim' は 画面に 透明度50%の 黒い 幕を はってから
-  const labCut = m => {
-    const wasHidden = $('labCut').classList.contains('hidden');
-    $('labCut').classList.toggle('hidden', !m); $('labCut').classList.toggle('memo', m === 'memo');
+  const labCut = async m => {
+    const c = $('labCut'), wasHidden = c.classList.contains('hidden');
+    if (!m) {                                                      // テレビを 消す ように 閉じる
+      if (!wasHidden) { c.classList.add('off'); await wait(560); }
+      c.classList.add('hidden'); c.classList.remove('off', 'memo'); $('labVeil').classList.add('hidden');
+      return;
+    }
+    c.classList.remove('off'); c.classList.toggle('hidden', false); c.classList.toggle('memo', m === 'memo');
     $('labVeil').classList.toggle('hidden', m !== 'dim');
-    return m && wasHidden ? wait(750) : Promise.resolve();         // テレビが つき おわってから 話す
+    if (wasHidden) await wait(750);                                // テレビが つき おわってから 話す
   };
   // 選択肢を 少しの 間 見せるだけ（まだ 選べない）
   let peeking = false;

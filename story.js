@@ -60,7 +60,7 @@ const STORY = {
     await labCut('talk');
     await say('研究員', 'やっと遊んでくれる人が現れたのか！どんなデータが取れるか楽しみだなぁ！');
     await say('研究員', 'こっそりここから見ていよう！');
-    labCut(false);
+    await labCut(false);
   },
 
   // ---------- ○何もない部屋 ----------
@@ -227,7 +227,7 @@ const STORY = {
             await labCut('dim');
             await say('研究員', 'ワタクシはここで、「自分を守るため」か「早く脱出するためか」、何を優先して行動を選ぶのかを研究しているんだった！');
             await say('研究員', 'この行動は、大事なデータとして取らせていただこう。');
-            labCut(false);
+            await labCut(false);
           }
           act = await choose(['戦う', '逃げる', '巻き戻す']);
           if (act !== '巻き戻す') break;
@@ -248,7 +248,7 @@ const STORY = {
         }
         await labCut('memo');                                                     // 研究員が メモを する 仕草
         await wait(1800);
-        labCut(false);
+        await labCut(false);
         show('gun');                                                        // 警察が 拳銃を 突きつける
         await say('主人公', '拳銃っ！？', { face: 'hero' });
         await wait(2000);                                                   // 主人公が 2秒 身構える
