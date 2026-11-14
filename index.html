@@ -1385,6 +1385,16 @@
     const b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#d8343c')); b.position.set(.08, .24, .16); p.add(b);
     p.userData.slice = [sl, b]; p.visible = false; p.scale.set(.7 / ATS, 1, .7 / ATS); atticG.add(p); plateMeshes.push(p);
   }
+  // 屋根うらの ゆかに 散らばった 星の かけら（リアオが 割って しまった 星）
+  const shardG = new THREE.Group(); shardG.visible = false; atticG.add(shardG);
+  { const mat = new THREE.MeshStandardMaterial({ color: '#ffd84a', emissive: '#c79a10', emissiveIntensity: .8, flatShading: true });
+    for (let i = 0; i < 11; i++) {
+      const m = new THREE.Mesh(new THREE.TetrahedronGeometry(.035 + (i * 7 % 5) * .008), mat);
+      const a = i * 2.39, r = .25 + (i * 13 % 7) * .1;
+      m.position.set(Math.cos(a) * r / ATS, .03, Math.sin(a) * r * .7 / ATS); m.rotation.set(i, i * 1.7, i * .6); m.scale.set(1 / ATS, 1, 1 / ATS);
+      shardG.add(m);
+    } }
+  shardG.position.set(-.6, 0, -10.2);
   plateMeshes[0].position.set(LOWTABLE.x - 1.1, .38 * FUR + .07, LOWTABLE.z);
   plateMeshes[1].position.set(LOWTABLE.x, .38 * FUR + .07, LOWTABLE.z - .5);
   plateMeshes[2].position.set(LOWTABLE.x + 1.1, .38 * FUR + .07, LOWTABLE.z);
@@ -1666,13 +1676,27 @@
     for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0, track: false });
     for (const k of ['tears', 'kidKnife', 'kidPlates', 'necklace', 'heroKnife', 'badCut']) prop(k, false);
     prop('traySlices', true);
-    prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); heroStar.visible = false; kidChopK = 0;
+    prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };
+  window.slicesBack = n => { slicesLeft += n; showSlices(slicesLeft); };   // 取った ケーキを もどす
+  // 星の かけら：shards(true) で ゆかに 出す。giveShards() で かけらが 主人公の 手もとへ 集まる
+  window.shards = on => { shardG.visible = on; shardG.children.forEach(m => { m.visible = true; }); };
+  window.giveShards = async () => {
+    const pcs = shardG.children.map(m => { const v = new THREE.Vector3(); m.getWorldPosition(v); return v; });
+    const fly = pcs.map((v, i) => { const m = shardG.children[i].clone(); m.scale.setScalar(1); scene.add(m); m.position.copy(v); return m; });
+    shardG.visible = false;
+    const to = new THREE.Vector3();
+    await tween(1300, p => {
+      to.set(heroM.position.x, .7 * CHAR, heroM.position.z);
+      fly.forEach((m, i) => { const q = Math.min(1, Math.max(0, p * 1.4 - i * .04)); m.position.lerpVectors(pcs[i], to, ease(q)); m.position.y += Math.sin(q * Math.PI) * .35; m.rotation.y += .1; });
+    });
+    fly.forEach(m => scene.remove(m));
+  };
   Object.assign(window, { heroX, heroZ, cakeLeft: () => slicesLeft });
 
   // 場面2の 描画（draw から よぶ）
