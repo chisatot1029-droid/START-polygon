@@ -707,18 +707,26 @@
   const CHAR = .6;
   const KAITOU = 1.35 * CHAR;      // かいとう：主人公の 頭が 胸元に くる 大きさ
 
+  // 点を なめらかに つないだ ひも（リュックの かたひもなど）
+  function strapTube(pts, r, mat) {
+    return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 20, r, 5, false), mat);
+  }
+  // 2点の 間に 角材を わたす（しっぽの ぎざぎざなど）
+  function barBetween(a, b, w, mat) {
+    const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), m = new THREE.Mesh(new THREE.BoxGeometry(w, A.distanceTo(B) + w, w), mat);
+    m.position.copy(A).add(B).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize()); return m;
+  }
   function makeHero() {
     const g = new THREE.Group();
     const white = flat('#f6f6f1'), black = flat('#1b1b1b'), red = flat('#c42a22');
     const head = new THREE.Mesh(new THREE.BoxGeometry(.54, .46, .44), white); head.position.y = 1.6; g.add(head);
-    // 顔（前がわ）：つり上がった まゆ と 目、小さな 口
+    // 顔（前がわ）：まっすぐな まゆ と、その 内がわの はしから 下へ のびる 目（田野さんの 4面図 修正）
     for (const s of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.BoxGeometry(.06, .13, .02), black); eye.position.set(s * .1, 1.6, -.23); g.add(eye);
-      const brow = new THREE.Mesh(new THREE.BoxGeometry(.12, .025, .02), black); brow.position.set(s * .1, 1.71, -.23); brow.rotation.z = s * .35; g.add(brow);
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(.13, .03, .02), black); brow.position.set(s * .135, 1.59, -.23); g.add(brow);
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(.05, .11, .02), black); eye.position.set(s * .097, 1.54, -.23); g.add(eye);
       const cup = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .1, 7), black);
       cup.rotation.z = Math.PI / 2; cup.position.set(s * .32, 1.58, 0); g.add(cup);
     }
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(.04, .03, .02), black); mouth.position.set(0, 1.5, -.23); g.add(mouth);
     const band = new THREE.Mesh(new THREE.TorusGeometry(.31, .03, 4, 9, Math.PI), black); band.position.y = 1.6; g.add(band);
     const bodyMat = flat('#f6f6f1');
     const body = new THREE.Mesh(new THREE.BoxGeometry(.44, .52, .3), bodyMat); body.position.y = 1.1; g.add(body);
@@ -727,17 +735,20 @@
     { const hm = flat('#9cc7a4');
       const back = new THREE.Mesh(new THREE.BoxGeometry(.62, .54, .4), hm); back.position.set(0, 1.63, .07); hood.add(back);
       for (const s of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.08, .16, 4), hm); ear.position.set(s * .2, 1.96, .05); hood.add(ear); } }
-    const pack = new THREE.Mesh(new THREE.DodecahedronGeometry(.21, 0), black); pack.scale.set(1, 1.3, .7); pack.position.set(0, 1.1, .25); g.add(pack);
-    for (const s of [-1, 1]) {      // リュックの ひも
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(.05, .5, .02), black); strap.position.set(s * .14, 1.12, -.16); g.add(strap);
+    // リュック：うしろから 見ると 六角形、横から 見ると 角の 丸い 四角
+    const pack = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .16, 6), black); pack.rotation.set(Math.PI / 2, Math.PI / 2, 0); pack.scale.set(1, 1, 1.15); pack.position.set(0, 1.1, .24); g.add(pack);
+    for (const s of [-1, 1]) {      // リュックの かたひも：せなかから かたを こえて 前へ、わきの 下を とおって リュックに もどる
+      g.add(strapTube([[s * .1, 1.3, .2], [s * .11, 1.385, 0], [s * .12, 1.355, -.165], [s * .16, 1.27, -.168], [s * .215, 1.2, -.14], [s * .235, 1.12, -.02], [s * .235, 1.05, .12], [s * .16, 1.0, .22]], .018, black));
     }
+    // 足を 短く した ので、足より 上は すこし 下げる
+    g.children.forEach(c => { c.position.y -= 0.3; });
     const legs = [], arms = [];
     for (const s of [-1, 1]) {
-      const leg = new THREE.Group(); leg.position.set(s * .11, .84, 0);
-      const l = new THREE.Mesh(new THREE.BoxGeometry(.06, .66, .06), black); l.position.y = -.33; leg.add(l);
-      const shoe = new THREE.Mesh(new THREE.DodecahedronGeometry(.16, 0), red); shoe.scale.set(1.1, .55, 1.6); shoe.position.set(s * .02, -.68, -.06); leg.add(shoe);
+      const leg = new THREE.Group(); leg.position.set(s * .11, .84 - 0.3, 0);
+      const l = new THREE.Mesh(new THREE.BoxGeometry(.06, .66 - 0.3, .06), black); l.position.y = -(.66 - 0.3) / 2; leg.add(l);
+      const shoe = new THREE.Mesh(new THREE.DodecahedronGeometry(.16, 0), red); shoe.scale.set(1.1, .55, 1.6); shoe.position.set(s * .02, -.68 + 0.3, -.06); leg.add(shoe);
       g.add(leg); legs.push(leg);
-      const arm = new THREE.Group(); arm.position.set(s * .27, 1.32, 0); arm.rotation.z = s * .22;
+      const arm = new THREE.Group(); arm.position.set(s * .27, 1.32 - 0.3, 0); arm.rotation.z = s * .22;
       const a = new THREE.Mesh(new THREE.BoxGeometry(.045, .5, .045), black); a.position.y = -.25; arm.add(a);
       const hand = new THREE.Mesh(new THREE.IcosahedronGeometry(.045, 0), white); hand.position.y = -.52; arm.add(hand);
       g.add(arm); arms.push(arm);
@@ -752,17 +763,17 @@
       const body = new THREE.Mesh(new THREE.SphereGeometry(.44, 12, 9), wm); body.scale.set(1, 1.05, .92); body.position.y = .66; alt.add(body);
       const neck = new THREE.Mesh(new THREE.CylinderGeometry(.27, .36, .4, 12), wm); neck.position.y = 1.02; alt.add(neck);
       const head = new THREE.Mesh(new THREE.SphereGeometry(.5, 12, 9), wm); head.scale.set(1.05, .82, .95); head.position.y = 1.42; alt.add(head);
-      // 目：太い まゆと 黒い 目（前は -z）
+      // 目：目の すぐ 上に 細い まっすぐな まゆ（ねむそうな 目）。前は -z
       for (const s of [-1, 1]) {
-        const brow = new THREE.Mesh(new THREE.BoxGeometry(.17, .045, .03), black); brow.position.set(s * .15, 1.66, -.42); brow.rotation.z = s * .08; alt.add(brow);
-        const eye = new THREE.Mesh(new THREE.BoxGeometry(.1, .15, .03), black); eye.position.set(s * .13, 1.53, -.44); alt.add(eye);
-        const shine = new THREE.Mesh(new THREE.BoxGeometry(.04, .025, .02), wm); shine.position.set(s * .13 + .02, 1.5, -.46); alt.add(shine);
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(.17, .03, .03), black); brow.position.set(s * .145, 1.6, -.435); alt.add(brow);
+        const eye = new THREE.Mesh(new THREE.BoxGeometry(.1, .13, .03), black); eye.position.set(s * .13, 1.525, -.44); alt.add(eye);
+        const shine = new THREE.Mesh(new THREE.BoxGeometry(.035, .025, .02), wm); shine.position.set(s * .13 + .02, 1.5, -.46); alt.add(shine);
         // 首の ヘッドホン
         const cup = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .13, 10), black); cup.rotation.z = Math.PI / 2; cup.position.set(s * .35, 1.04, -.08); alt.add(cup);
         // 羽の ような うで（肩から 下がる。先が ふさふさ）
         const arm = new THREE.Group(); arm.position.set(s * .4, .98, 0); arm.rotation.z = s * .32;
         const w = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), wm); w.scale.set(.7, 2.5, 1.2); w.position.y = -.3; arm.add(w);
-        for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.06, .2, 4), wm); f.position.set(s * (.02 + i * .04), -.62 + i * .03, (i - 1.5) * .07); f.rotation.z = Math.PI + s * (.2 + i * .3); arm.add(f); }
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(.13, 8, 6), wm); tip.scale.set(.8, 1, 1.15); tip.position.y = -.6; arm.add(tip);   // 手の 先は 丸く
         alt.add(arm); altArms.push(arm);
         // 大きな 赤い くつ
         const leg = new THREE.Group(); leg.position.set(s * .16, .26, 0);
@@ -780,10 +791,10 @@
       const bag = new THREE.Mesh(new THREE.BoxGeometry(.42, .46, .18), black); bag.position.set(0, .78, .44); bag.rotation.x = -.12; alt.add(bag);
       const flap = new THREE.Mesh(new THREE.BoxGeometry(.44, .14, .2), flat('#2a2a2a')); flap.position.set(0, .97, .45); flap.rotation.x = -.12; alt.add(flap);
       const pocket = new THREE.Mesh(new THREE.BoxGeometry(.28, .16, .06), flat('#2a2a2a')); pocket.position.set(0, .66, .55); alt.add(pocket);
-      for (const s of [-1, 1]) {
-        const top = new THREE.Mesh(new THREE.BoxGeometry(.07, .05, .62), black); top.position.set(s * .2, 1.12, .02); alt.add(top);        // かたの 上
-        const front = new THREE.Mesh(new THREE.BoxGeometry(.07, .5, .04), black); front.position.set(s * .2, .88, -.38); front.rotation.x = .25; alt.add(front);   // むねの 前
+      for (const s of [-1, 1]) {     // かたひも：リュックの 上から かたを こえて 前へ、わきの 下を とおって リュックへ
+        alt.add(strapTube([[s * .18, 1.0, .5], [s * .2, 1.15, .2], [s * .22, 1.12, -.2], [s * .27, .98, -.38], [s * .4, .86, -.2], [s * .36, .78, .2], [s * .2, .7, .5]], .022, black));
       } }
+    alt.scale.setScalar(.85);        // 変身した すがたは すこし 小さく
     g.userData = { legs, arms, bodyMat, hood, normal, alt, legsN: legs, armsN: arms, legsA: altLegs, armsA: altArms };
     shadowAll(g);
     g.scale.setScalar(CHAR);
@@ -822,7 +833,6 @@
     [2.36, 2.22, 2.08].forEach((y, i) => {
       const lip = new THREE.Mesh(new THREE.SphereGeometry(.12, 7, 4), dark); lip.scale.set(1.5, .55, 1.1); lip.position.set(-.55 - (i === 1 ? .04 : 0), y, 0); body.add(lip);
     });
-    const seam = new THREE.Mesh(new THREE.BoxGeometry(.025, .45, .025), black); seam.position.set(-.33, 2.85, .06); seam.rotation.z = .55; body.add(seam);
     g.userData.body = body;
     shadowAll(g);
     return g;
@@ -834,8 +844,8 @@
     const white = flat('#f6f6f1'), black = flat('#1d1d1d'), cape = flat('#1d1d1d', { side: THREE.DoubleSide }), eyeM = flat('#e8b400', { emissive: '#5a4300' });
     const body = new THREE.Mesh(new THREE.CylinderGeometry(.21, .3, 1.15, 7), white); body.position.y = .98; g.add(body);
     const head = new THREE.Mesh(new THREE.CylinderGeometry(.19, .21, .42, 7), white); head.position.y = 1.76; g.add(head);
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(.08, .5, 5), white); nose.rotation.x = Math.PI / 2; nose.position.set(-.05, 1.72, .4); g.add(nose);
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(.04, .1, .02), eyeM); eye.position.set(.07, 1.82, .2); g.add(eye);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(.08, .5, 5), white); nose.rotation.x = Math.PI / 2; nose.position.set(0, 1.72, .4); g.add(nose);
+    for (const s of [-1, 1]) { const eye = new THREE.Mesh(new THREE.BoxGeometry(.04, .1, .02), eyeM); eye.position.set(s * .075, 1.82, .2); eye.rotation.y = s * .3; g.add(eye); }   // 両目 黄色
     const brim = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .03, 9), black); brim.position.y = 1.98; g.add(brim);
     const crown = new THREE.Mesh(new THREE.CylinderGeometry(.21, .22, .46, 9), black); crown.position.y = 2.22; g.add(crown);
     const capeM = new THREE.Mesh(new THREE.CylinderGeometry(.24, .62, 1.5, 9, 1, true, Math.PI * .28, Math.PI * 1.44), cape); capeM.position.y = .95; g.add(capeM);
@@ -868,7 +878,8 @@
       // こしに 手を あてた うで
       const arm = new THREE.Group(); g.add(arm); akimbo[s] = arm;
       const up = new THREE.Mesh(new THREE.BoxGeometry(.09, .32, .09), blue); up.position.set(s * .43, .98, 0); up.rotation.z = s * .9; arm.add(up);
-      const lo = new THREE.Mesh(new THREE.BoxGeometry(.09, .3, .09), blue); lo.position.set(s * .43, .7, 0); lo.rotation.z = -s * .7; arm.add(lo);
+      const lo = new THREE.Mesh(new THREE.BoxGeometry(.09, .3, .09), blue); lo.position.set(s * .462, .77, 0); lo.rotation.z = -s * .7; arm.add(lo);   // ひじで つながる
+      const elbow = new THREE.Mesh(new THREE.BoxGeometry(.09, .09, .09), blue); elbow.position.set(s * .545, .875, 0); elbow.rotation.z = s * .1; arm.add(elbow);
       const leg = new THREE.Mesh(new THREE.BoxGeometry(.1, .42, .1), blue); leg.position.set(s * .14, .25, 0); g.add(leg);
       const foot = new THREE.Mesh(new THREE.BoxGeometry(.2, .07, .34), navy); foot.position.set(s * .2, .035, .08); foot.rotation.y = -s * .3; g.add(foot);
     }
@@ -1241,24 +1252,37 @@
   // ---------- 子どもたち（田野さんの デザイン） ----------
   //   子どもA：青い 子（星を 持っている。力の かげんが できない）、子どもB：紫の 子（屋根うらに 住む）。前は +z
   const KID = CHAR * .88;
+  // 前髪：顔（だ円）の 前の 上の 部分に そった うすい からを かぶせる。sides：両はしを 目の 高さまで たらす
+  function bangs(mat, y, z, opt = {}) {
+    const g = new THREE.Group(); g.position.set(0, y, z); g.scale.set(1.05, .9 * 1.05, .5 * 1.3);   // 頭巾の 面より ほんの すこし 前に 出す
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 16, 10, .15, Math.PI - .3, .5, (opt.bottom || 1.22) - .5), mat));
+    for (const [a, b] of opt.sides || []) g.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 6, 6, a, b - a, 1.1, .55), mat));
+    g.rotation.z = opt.tilt || 0;
+    return g;
+  }
   function makeKidA() {
     const g = new THREE.Group(), navy = flat('#1d2142'), skin = flat('#f7e3d4'), hair = flat('#f1cd4c'), shoe = flat('#cf5f58'), gold = flat('#f2c94c');
-    const body = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), navy); body.scale.set(1, 1.15, .9); body.position.y = .6; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), navy); head.position.y = 1.3; g.add(head);
-    const face = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), skin); face.scale.set(1, .88, .5); face.position.set(0, 1.24, .33); g.add(face);
-    // ぎざぎざの 金色の 前髪（顔の 上に かかる）
-    for (let i = -2; i <= 2; i++) { const b = new THREE.Mesh(new THREE.ConeGeometry(.08, .22, 4), hair); b.position.set(i * .1, 1.38 - Math.abs(i) * .03, .43); b.rotation.set(-.3, 0, Math.PI + i * .12); g.add(b); }
+    // からだ：せを 低く、すそは パーカーの ような 平らな ゴム（田野さんの 4面図 修正）
+    const D = .14;                 // からだを 低く した ぶん、頭を 下げる
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), navy); body.scale.set(1, .98, .9); body.position.y = .56; g.add(body);
+    const hem = new THREE.Mesh(new THREE.CylinderGeometry(.37, .34, .14, 10), navy); hem.scale.z = .9; hem.position.y = .2; g.add(hem);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), navy); head.position.y = 1.3 - D; g.add(head);
+    // 顔は 頭の 丸みの 中に おさめる（横から 見て とび出さない）
+    const face = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), skin); face.scale.set(1, .88, .5); face.position.set(0, 1.24 - D, .25); g.add(face);
+    // 金色の 前髪：なめらかに 顔の 上を おおい、両はしが すこし 外へ はねる
+    g.add(bangs(hair, 1.24 - D, .25, { bottom: 1.4, sides: [[.15, .6], [Math.PI - .6, Math.PI - .15]] }));
     for (const s of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.BoxGeometry(.07, .11, .02), flat('#e0a51a')); eye.position.set(s * .11, 1.2, .48); g.add(eye);
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), navy); ear.position.set(s * .3, 1.66, 0); g.add(ear);
-      const star = new THREE.Mesh(new THREE.OctahedronGeometry(.07, 0), gold); star.position.set(s * .3, 1.72, .12); g.add(star);
-      const str = new THREE.Mesh(new THREE.BoxGeometry(.025, .22, .025), flat('#ffffff')); str.position.set(s * .07, .86, .37); g.add(str);
-      const arm = new THREE.Mesh(new THREE.SphereGeometry(.12, 7, 5), navy); arm.scale.y = 1.4; arm.position.set(s * .36, .62, .12); g.add(arm);
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(.07, .11, .02), flat('#e0a51a')); eye.position.set(s * .11, 1.2 - D, .395); g.add(eye);
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), navy); ear.position.set(s * .3, 1.66 - D, 0); g.add(ear);
+      const star = new THREE.Mesh(new THREE.OctahedronGeometry(.07, 0), gold); star.position.set(s * .3, 1.72 - D, .12); g.add(star);
+      const str = new THREE.Mesh(new THREE.BoxGeometry(.025, .2, .025), flat('#ffffff')); str.position.set(s * .07, .82, .33); str.rotation.x = -.35; g.add(str);
+      const arm = new THREE.Mesh(new THREE.SphereGeometry(.12, 7, 5), navy); arm.scale.y = 1.4; arm.position.set(s * .36, .55, .12); g.add(arm);
       const sh = new THREE.Mesh(new THREE.BoxGeometry(.28, .12, .42), shoe); sh.position.set(s * .17, .06, .06); g.add(sh);
     }
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(.08, .015, .02), flat('#3a2a2a')); mouth.position.set(0, 1.1, .47); g.add(mouth);
-    // しっぽ（ねこの ような 細い しっぽ）
-    [[0, .45, -.38, .4], [.12, .7, -.55, .9], [.18, 1.0, -.6, 1.4]].forEach(([x, y, z, r]) => { const t = new THREE.Mesh(new THREE.CylinderGeometry(.05, .06, .36, 6), navy); t.position.set(x, y, z); t.rotation.x = -r * .6; t.rotation.z = -.3; g.add(t); });
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(.08, .015, .02), flat('#3a2a2a')); mouth.position.set(0, 1.1 - D, .385); g.add(mouth);
+    // しっぽ：1本に つながった いなずまの 形
+    { const pts = [[0, .36, -.34], [0, .56, -.7], [0, .7, -.55], [0, 1.0, -.86]];
+      for (let i = 0; i < pts.length - 1; i++) g.add(barBetween(pts[i], pts[i + 1], .09, navy)); }
     // 首元に かくした 星の ネックレス（わたす 時に 見える）
     // ポケットに 入れていた 星（取り出して 見せる）
     const necklace = new THREE.Group(); necklace.visible = false; g.add(necklace);
@@ -1269,13 +1293,13 @@
       m.position.z = -.03; necklace.add(m);
       const glowS = new THREE.Mesh(new THREE.CircleGeometry(.36, 16), new THREE.MeshBasicMaterial({ color: '#fff3b0', transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false }));
       glowS.position.z = -.05; necklace.add(glowS); necklace.userData.glow = glowS; }
-    necklace.position.set(0, .98, .42);      // 首元に かくしている
+    necklace.position.set(0, .98 - D, .42);  // 首元に かくしている
     // なみだ・ナイフ（場面で 使う）
     const tears = new THREE.Group(); tears.visible = false; g.add(tears);
-    for (const s of [-1, 1]) { const tr = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#8fd3ff', { emissive: '#2a6a9a' })); tr.position.set(s * .12, 1.1, .5); tears.add(tr); }
-    const knife = new THREE.Mesh(new THREE.BoxGeometry(.05, .34, .015), flat('#dfe5ea')); knife.position.set(.4, .95, .2); knife.visible = false; g.add(knife);
+    for (const s of [-1, 1]) { const tr = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#8fd3ff', { emissive: '#2a6a9a' })); tr.position.set(s * .12, 1.1 - D, .41); tears.add(tr); }
+    const knife = new THREE.Mesh(new THREE.BoxGeometry(.05, .34, .015), flat('#dfe5ea')); knife.position.set(.4, .85, .2); knife.visible = false; g.add(knife);
     // お盆（ケーキ 2切れ）を 両手で 持つ
-    const plates = new THREE.Group(); plates.position.set(0, .72, .5); plates.visible = false; g.add(plates);
+    const plates = new THREE.Group(); plates.position.set(0, .66, .5); plates.visible = false; g.add(plates);
     { const tray = new THREE.Mesh(new THREE.BoxGeometry(.8, .04, .5), flat('#a9784a')); plates.add(tray);
       for (const x of [-.18, .18]) {
         const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .03, 10), flat('#ffffff')); pl.position.set(x, .035, 0); plates.add(pl);
@@ -1288,20 +1312,24 @@
   }
   function makeKidB() {
     const g = new THREE.Group(), lav = flat('#c8a6f0'), skin = flat('#f7e3d4'), hair = flat('#b05be0'), shoe = flat('#3b1a5c'), ear = flat('#f4c21b');
-    const body = new THREE.Mesh(new THREE.SphereGeometry(.44, 10, 8), lav); body.scale.set(1, 1.15, .9); body.position.y = .6; g.add(body);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), lav); head.position.y = 1.3; g.add(head);
-    const face = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), skin); face.scale.set(1, .88, .5); face.position.set(0, 1.24, .33); g.add(face);
-    // 紫の 前髪（ななめに 流す）
-    for (let i = -2; i <= 2; i++) { const b = new THREE.Mesh(new THREE.ConeGeometry(.09, .2, 4), hair); b.position.set(i * .1, 1.4 - (i + 2) * .025, .42); b.rotation.set(-.3, 0, Math.PI - .4); g.add(b); }
+    // からだ：せを 低く（田野さんの 4面図 修正）
+    const D = .18;                 // からだを 低く した ぶん、頭を 下げる
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.44, 10, 8), lav); body.scale.set(1, .94, .9); body.position.y = .5; g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), lav); head.position.y = 1.3 - D; g.add(head);
+    // 顔は 頭の 丸みの 中に おさめる（横から 見て とび出さない）
+    const face = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), skin); face.scale.set(1, .88, .5); face.position.set(0, 1.24 - D, .25); g.add(face);
+    // 紫の 前髪：左上から 右下へ なめらかに 流す
+    g.add(bangs(hair, 1.24 - D, .25, { bottom: 1.3, tilt: -.3, sides: [[Math.PI - .65, Math.PI - .15]] }));
     for (const s of [-1, 1]) {
-      const e = new THREE.Mesh(new THREE.ConeGeometry(.15, .3, 4), ear); e.position.set(s * .27, 1.72, 0); e.rotation.z = -s * .25; g.add(e);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 4), flat('#1b1b1b')); eye.position.set(s * .11, 1.22, .48); g.add(eye);
-      const arm = new THREE.Mesh(new THREE.SphereGeometry(.13, 7, 5), lav); arm.scale.set(1.5, .9, 1); arm.position.set(s * .44, .72, .05); g.add(arm);
+      const e = new THREE.Mesh(new THREE.ConeGeometry(.15, .3, 8), ear); e.position.set(s * .27, 1.72 - D, 0); e.rotation.z = -s * .25; g.add(e);   // 耳は 丸みを 出す
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 4), flat('#1b1b1b')); eye.scale.z = .5; eye.position.set(s * .11, 1.22 - D, .395); g.add(eye);
+      // うでは かたから ななめ 下へ 生える
+      const arm = new THREE.Mesh(new THREE.SphereGeometry(.13, 7, 5), lav); arm.scale.set(1.6, .85, 1); arm.position.set(s * .42, .7, .05); arm.rotation.z = -s * .55; g.add(arm);
       const sh = new THREE.Mesh(new THREE.BoxGeometry(.3, .13, .42), shoe); sh.position.set(s * .18, .065, .06); g.add(sh);
     }
-    const smile = new THREE.Mesh(new THREE.TorusGeometry(.05, .012, 4, 8, Math.PI), flat('#3a2a2a')); smile.rotation.z = Math.PI; smile.position.set(0, 1.12, .48); g.add(smile);
-    for (const y of [.78, .58]) { const b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#ffffff')); b.position.set(0, y, .4); g.add(b); }
-    [[0, .5, -.4], [.1, .68, -.52], [.18, .86, -.5]].forEach(([x, y, z], i) => { const t = new THREE.Mesh(new THREE.IcosahedronGeometry(.16 + i * .02, 0), lav); t.position.set(x, y, z); g.add(t); });   // ふさふさの しっぽ
+    const smile = new THREE.Mesh(new THREE.TorusGeometry(.05, .012, 4, 8, Math.PI), flat('#3a2a2a')); smile.rotation.z = Math.PI; smile.position.set(0, 1.12 - D, .385); g.add(smile);
+    for (const y of [.66, .48]) { const b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#ffffff')); b.scale.z = .6; b.position.set(0, y, .396 * Math.sqrt(1 - ((y - .5) / .414) ** 2) - .03); g.add(b); }   // ボタンは からだの 面に
+    [[0, .45, -.38], [.1, .62, -.5], [.18, .8, -.48]].forEach(([x, y, z], i) => { const t = new THREE.Mesh(new THREE.IcosahedronGeometry(.16 + i * .02, 0), lav); t.position.set(x, y, z); g.add(t); });   // ふさふさの しっぽ
     shadowAll(g); g.scale.setScalar(KID); return g;
   }
   const kidAM = makeKidA(), kidBM = makeKidB();
@@ -1676,10 +1704,10 @@
     else if (cakeState === 'counter') cakeG.position.set(HOME.x + 14.72, COUNTER_H + .05, HOME.z - 13.57);
     else if (cakeState === 'table') cakeG.position.set(HOME.x, TABLE.y + .04, HOME.z - 15.52);
     heroDish.visible = heroDishOn && (area === 'home' || area === 'attic');
-    if (heroDishOn) heroDish.position.set(heroM.position.x + fx * .3, heroM.position.y + .55, heroM.position.z + fz * .3);
+    if (heroDishOn) heroDish.position.set(heroM.position.x + fx * .3, heroM.position.y + .48, heroM.position.z + fz * .3);
     cakeG.visible = area === 'home' && cakeState !== 'hidden';
     // 主人公の ナイフ（右手）
-    if (heroKnife.visible) heroKnife.position.set(heroM.position.x + Math.cos(player.face) * .2 + fx * .12, .5, heroM.position.z + Math.sin(player.face) * .2 + fz * .12);
+    if (heroKnife.visible) heroKnife.position.set(heroM.position.x + Math.cos(player.face) * .2 + fx * .12, .44, heroM.position.z + Math.sin(player.face) * .2 + fz * .12);
     if (starFly) { heroStar.position.set(heroM.position.x + fx * .2, .75 * CHAR + Math.sin(t * 3) * .03, heroM.position.z + fz * .2); heroStar.rotation.y += dt * 2; }
     if (heroStar.visible) heroStar.quaternion.copy(cam.quaternion);
     // とびら
