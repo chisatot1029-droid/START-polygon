@@ -2,12 +2,19 @@
    #screen の font-size が 画面の幅に あわせて変わるので、
    1em ＝ Figma の 10px くらい です。 */
 
+/* 縁架ドットゴシック24（Enthiesia／SIL Open Font License 1.1 → assets/fonts/OFL.txt） */
+@font-face {
+  font-family: 'Enka Dot Gothic 24';
+  src: url('assets/fonts/EnkaDotGothic24.ttf') format('truetype');
+  font-display: block;
+}
+
 html, body {
   margin: 0;
   height: 100%;
   background: #151f10;
   overflow: hidden;
-  font-family: 'Mochiy Pop One', 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif;
+  font-family: 'Enka Dot Gothic 24', 'Mochiy Pop One', 'Hiragino Maru Gothic ProN', 'Meiryo', sans-serif;
   color: #000;
   user-select: none;
   -webkit-user-select: none;

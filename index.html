@@ -277,7 +277,8 @@
   }
   // 文を 会話ウィンドウの はばで 行に わけ、2行ずつの ページに する
   const measureCtx = document.createElement('canvas').getContext('2d');
-  const NO_LINE_START = '、。，．・：；？！ー…」』）〜っゃゅょァィゥェォッャュョ';
+  if (document.fonts) document.fonts.load("20px 'Enka Dot Gothic 24'", 'あ漢');   // 文の はばを はかる 前に フォントを 読みこんで おく
+  const NO_LINE_START = '、。，．・：；？！ー…」』）〜～っゃゅょァィゥェォッャュョ';
   function paginate(text) {
     const cs = getComputedStyle(ui.text);
     const maxW = (ui.text.clientWidth || 600) * .94;   // 少し 余白を もたせて 折りかえす
@@ -1558,7 +1559,7 @@
     e.preventDefault(); if (!writing) return;
     let v = $('writeInput').value.trim();
     const o = writing.opt;
-    if (o.number) { const n = Math.round(Number(v)); if (!n || n < o.min || n > o.max) { $('writeLabel').textContent = `${o.min}〜${o.max} の 数を 入れてね`; return; } v = n; }
+    if (o.number) { const n = Math.round(Number(v)); if (!n || n < o.min || n > o.max) { $('writeLabel').textContent = `${o.min}～${o.max} の 数を 入れてね`; return; } v = n; }
     else if (!v && !o.allowEmpty) { $('writeLabel').textContent = 'ひとことでも 書いてね'; return; }
     writing.done(v);
   });

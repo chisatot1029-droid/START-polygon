@@ -544,7 +544,7 @@ const STORY = {
     sitActor(kidA, 7.8, -12.9, -Math.PI / 2);
     look(8.6, -11.8);
     await fadeIn(700);
-    await KA('シィ〜？おやつ持ってきたよ！', 1);
+    await KA('シィ～？おやつ持ってきたよ！', 1);
     await KB('やった！ありがとう。', 2);
     await KA('いっしょに食べよう！ケーキを切ってくれたお兄さんもいっしょにいるんだけど、入っていいかな？', 1);
     await KB('いいよー！', 2);
@@ -677,7 +677,7 @@ const STORY = {
     async function cutByChoice() {
       const c = await choose(['8こ切る', 'すきな数を切る']);
       let n = 8;
-      if (c === 'すきな数を切る') n = await writeIn({ number: true, min: 2, max: 16, label: '何こに 切る？（2〜16）', placeholder: 'れい：10', autoNumber: 6 });
+      if (c === 'すきな数を切る') n = await writeIn({ number: true, min: 2, max: 16, label: '何こに 切る？（2～16）', placeholder: 'れい：10', autoNumber: 6 });
       prop('badCut', false);
       await cakeGame(n);
       cakeSliced(n);
