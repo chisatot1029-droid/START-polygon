@@ -693,7 +693,7 @@ const STORY = {
       await walkHero(12.0, -12.2, 500);
       await walkActor(kidA, 13.2, -13.3, 500); lookAt(kidA, 14.72, -13.57);
       heroFace(kidA.x, kidA.z);
-      await KA('は、{初|はじ}めてのケーキ切りだ！真ん中を切ればいいんだよね？そ、それっ！', 2);
+      await KA('この家にはお兄さんふくめて8人いるから8{個|こ}に切らなきゃ！まずは真ん中を切ればいいんだよね？そ、それっ！', 2);
       await kidChop(700);
       prop('badCut', true);
       await KA('あ、あれ…。', 1);
@@ -705,9 +705,10 @@ const STORY = {
     function riaoLeaves() {
       const st = { stopped: false };
       st.done = (async () => {
+        look(1.8, -10.4, 1.75, false, 'slow');                            // 登場した 時の ように 画面全体を ゆっくり 引く
         if (kidA.lift) await sitDown(kidA, 0, 400);
         await walkPath(kidA, [[-2.2, kidA.z], [-2.2, -12.0], [0.5, -8.4], [5.6, -8.6], [5.6, -12.4]], .9);
-        if (!st.stopped) kidA.visible = false;
+        if (!st.stopped) { kidA.visible = false; look(0, -14.5, 1, false, 'slow'); }   // 2階へ 行ったら もどす
       })();
       return st;
     }
