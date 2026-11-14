@@ -67,7 +67,7 @@
     @keyframes memoLine { from { width: 0; } to { width: 76%; } }
     #dialog.lab { left: auto; right: 3.4%; top: auto; bottom: 29%; width: 34%; height: auto; min-height: 9%; border-width: .3em; border-radius: 2.2em; padding: 1.2em 1.8em 1.4em; z-index: 7; }
     #dialog.lab #speaker, #dialog.lab #face { display: none; }
-    #dialog.lab #text { position: static; font-size: 1.9em; line-height: 1.4; }
+    #dialog.lab #text { position: static; font-size: 1.9em; line-height: 1.7; }
     #dialog.lab #nextMark { font-size: 1.4em; right: 4%; bottom: 8%; }
     #dialog.lab::after { content: ''; position: absolute; left: 62%; bottom: -1.6em; border: .9em solid transparent; border-top: 1em solid #000; }
     /* 書き込む 欄（プレイヤーが 文字を 入れる） */
@@ -101,14 +101,14 @@
     <form id="writeBox" class="hidden" autocomplete="off"><label id="writeLabel"></label><div class="row"><input id="writeInput" type="text" maxlength="40"><button type="submit">決定</button></div></form>
     <div id="labCut" class="hidden"><img src="assets/researcher.png" alt="研究員"><div class="memo"></div><div class="memoBubble">メモメモ...</div></div>
 
-    <div id="lpBadge">低ポリゴン版（ためし）</div>
+    <div id="lpBadge"><ruby>低<rt>てい</rt></ruby>ポリゴン<ruby>版<rt>ばん</rt></ruby>（ためし）</div>
     <button id="alarmGuide" class="hidden" aria-label="アラームを とめる"><span>タップして とめる</span></button>
 
     <div id="title" class="overlay">
       <div id="menu">
         <button id="startBtn" class="menuBtn">始める</button>
-        <button id="settingBtn" class="menuBtn">せってい</button>
-        <button id="sceneBtn" class="menuBtn">場面をえらぶ</button>
+        <button id="settingBtn" class="menuBtn"><ruby>設定<rt>せってい</rt></ruby></button>
+        <button id="sceneBtn" class="menuBtn">場面を<ruby>選<rt>えら</rt></ruby>ぶ</button>
         <button id="autoBtn" class="menuBtn">オートで みる</button>
       </div>
       <p class="howto">↑ ↓ ← → キー・ゆびで なぞる：あるく　／　クリック・タップ・Enter：すすむ・えらぶ</p>
@@ -132,7 +132,7 @@
 
     <!-- 場面をえらぶ：とちゅうの 場面から はじめる -->
     <div id="scenes" class="hidden">
-      <p class="scenesTitle">場面をえらぶ</p>
+      <p class="scenesTitle">場面を<ruby>選<rt>えら</rt></ruby>ぶ</p>
       <button class="sceneBtn" data-scene="1" style="top: 30%">場面1　何もない部屋（はじめから）</button>
       <button class="sceneBtn" data-scene="2" style="top: 45%">場面2　かいとうの家に入るところから</button>
       <button id="scenesBackBtn">back</button>
@@ -183,7 +183,7 @@
     kidA1: 'assets/face_kidA1.png', kidA2: 'assets/face_kidA2.png', kidA3: 'assets/face_kidA3.png', kidA4: 'assets/face_kidA4.png',   // 子どもA（ふつう・にこにこ・おどろき・しょんぼり）
     kidB1: 'assets/face_kidB1.png', kidB2: 'assets/face_kidB2.png', kidB3: 'assets/face_kidB3.png',   // 子どもB（にこっ・わらう・おどろき）
   };
-  const SPEAKER_FACE = { 'バケモノ': 'monster', 'けいさつ': 'police' };   // 表情が 変わらない 人は 名前で きまる
+  const SPEAKER_FACE = { 'バケモノ': 'monster', '{警察|けいさつ}': 'police' };   // 表情が 変わらない 人は 名前で きまる
 
   window.flags = {};
   let mode = 'title';
@@ -230,6 +230,13 @@
 
   const wait = ms => new Promise(r => setTimeout(r, ms / timeScale));
 
+  // ルビ：文の 中の {漢字|よみ} を <ruby> に する（小4〜6で 習う 漢字）
+  const RUBY_RE = /\{([^{}|]+)\|([^{}]+)\}/g;
+  const plainText = s => String(s).replace(RUBY_RE, '$1');            // はばを はかる 時は 漢字だけ
+  const kanaText = s => String(s).replace(RUBY_RE, '$2');             // ルビが 使えない 所（入力らんの 見本）は よみがな
+  const rubyHTML = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]).replace(RUBY_RE, '<ruby>$1<rt>$2</rt></ruby>');
+  const setRuby = (el, s) => { el.innerHTML = rubyHTML(s); };
+  const textUnits = s => String(s).match(/\{[^{}|]+\|[^{}]+\}|[\s\S]/gu) || [];   // ルビの かたまりは 1つと して あつかう
   let advanceResolve = null, typeTimer = null, typing = false, fullText = '', chooseResolve = null;
   let talker = null;                                                   // いま 話している 人（体を ゆっくり ゆらす）
   const say = (speaker, text, opt = {}) => new Promise(resolve => {
@@ -256,7 +263,7 @@
     ui.choices.classList.toggle('three', options.length >= 3);
     options.forEach(label => {
       const b = document.createElement('button');
-      b.className = 'choice'; b.textContent = label;
+      b.className = 'choice'; setRuby(b, label); b.dataset.label = label;
       b.addEventListener('click', ev => {
         ev.stopPropagation(); chooseResolve = null; ui.choices.innerHTML = '';
         ui.dialog.classList.add('hidden'); resolve(label);
@@ -270,7 +277,7 @@
     const narr = speaker === 'ナレーション';
     ui.dialog.classList.toggle('narration', narr);
     ui.dialog.classList.toggle('lab', speaker === '研究員');          // 研究員は 右下の カットの 吹き出し
-    ui.speaker.textContent = speaker;
+    setRuby(ui.speaker, speaker);
     ui.speaker.classList.toggle('hidden', !speaker || narr);
     ui.dialog.classList.toggle('bottom', opt.box === 'bottom');
     ui.dialog.classList.remove('hidden');
@@ -286,8 +293,8 @@
     const lines = [];
     for (const raw of text.split('\n')) {
       let line = '';
-      for (const ch of Array.from(raw)) {
-        if (line && measureCtx.measureText(line + ch).width > maxW && !NO_LINE_START.includes(ch)) {
+      for (const ch of textUnits(raw)) {
+        if (line && measureCtx.measureText(plainText(line + ch)).width > maxW && !NO_LINE_START.includes(plainText(ch)[0])) {
           // 「 や（ が 行の おわりに のこらないように、いっしょに 次の 行へ
           let carry = '';
           while (line.length > 1 && '「『（'.includes(line[line.length - 1])) { carry = line[line.length - 1] + carry; line = line.slice(0, -1); }
@@ -302,11 +309,11 @@
   }
   function typeText(text) {
     clearInterval(typeTimer);
-    const chars = Array.from(text); let n = 0;
+    const chars = textUnits(text); let n = 0;
     fullText = text; typing = true; ui.text.textContent = ''; ui.nextMark.classList.add('hidden');
-    typeTimer = setInterval(() => { n++; ui.text.textContent = chars.slice(0, n).join(''); if (n >= chars.length) finishTyping(); }, 40 / timeScale);
+    typeTimer = setInterval(() => { n++; setRuby(ui.text, chars.slice(0, n).join('')); if (n >= chars.length) finishTyping(); }, 40 / timeScale);
   }
-  function finishTyping() { clearInterval(typeTimer); typing = false; ui.text.textContent = fullText; ui.nextMark.classList.remove('hidden'); }
+  function finishTyping() { clearInterval(typeTimer); typing = false; setRuby(ui.text, fullText); ui.nextMark.classList.remove('hidden'); }
   function advance() {
     if (ui.dialog.classList.contains('hidden') || ui.dialog.classList.contains('choosing')) return;
     if (typing) { finishTyping(); return; }
@@ -358,10 +365,10 @@
   };
   let toastTimer = null;
   const note = text => {
-    ui.toast.textContent = text; ui.toast.classList.add('show');
+    setRuby(ui.toast, text); ui.toast.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 3500);
   };
-  const end = text => { mode = 'end'; ui.endText.textContent = text; ui.ending.classList.remove('hidden'); };
+  const end = text => { mode = 'end'; setRuby(ui.endText, text); ui.ending.classList.remove('hidden'); };
 
   const walked = () => Math.hypot(player.x - STORY.playerStart.x, player.y - STORY.playerStart.y);
   // 時計に「タップして とめる」を 出して、とめるまで 待つ
@@ -456,7 +463,7 @@
     peeking = true;
     openDialog('', {}); ui.dialog.classList.add('choosing');
     ui.choices.innerHTML = ''; ui.choices.classList.toggle('three', options.length >= 3);
-    options.forEach(label => { const b = document.createElement('button'); b.className = 'choice'; b.textContent = label; b.disabled = true; ui.choices.appendChild(b); });
+    options.forEach(label => { const b = document.createElement('button'); b.className = 'choice'; setRuby(b, label); b.disabled = true; ui.choices.appendChild(b); });
     await wait(ms);
     // 見た目を そのまま 写す（id の CSS が 効かなくなるので、計算された スタイルを 直接 のせる）
     const copy = ui.dialog.cloneNode(true), src = [ui.dialog, ...ui.dialog.querySelectorAll('*')], dst = [copy, ...copy.querySelectorAll('*')];
@@ -1136,6 +1143,7 @@
   iWall(homeG, -3.1, -7.44, -.61, -6.0); iWall(homeG, .61, -7.44, 3.1, -6.0);      // 仕切り（まんなかが 通り道）
   // 奥の 扉（かいとうが 去る）
   const backDoor = doorMesh(1.1, 1.2); backDoor.position.set(-.55, 0, -20.08); homeG.add(backDoor);
+  backDoor.visible = false;                         // プレイヤーには 見せない（かいとうは 奥の かべの 所で 消える）
   // 玄関の ミニテーブルと 花瓶
   { const t = new THREE.Group(); t.position.set(2.08, 0, -5.4);
     const top = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, .05, 10), flat('#f4efe4')); top.position.y = .5 * FUR + .1; t.add(top);
@@ -1271,7 +1279,7 @@
     { const tray = new THREE.Mesh(new THREE.BoxGeometry(.8, .04, .5), flat('#a9784a')); plates.add(tray);
       for (const x of [-.18, .18]) {
         const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .03, 10), flat('#ffffff')); pl.position.set(x, .035, 0); plates.add(pl);
-        const sl = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .24, 4, 1, false, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(x - .06, .17, -.14); plates.add(sl);
+        const sl = new THREE.Mesh(wedgeGeo(.3, .24, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(x - .06, .17, -.14); plates.add(sl);
         const b = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 4), flat('#d8343c')); b.position.set(x + .02, .32, .05); plates.add(b);
         plates.userData.slices = (plates.userData.slices || []).concat([sl, b]);
       } }
@@ -1301,6 +1309,15 @@
   scene.add(kidAM, kidBM);
 
   // ---------- ケーキ ----------
+  // 切った ケーキの 一切れ（切り口も ふさいだ 形。CylinderGeometry の 一部だと 切り口が あいて 中が すける）
+  function wedgeGeo(r, h, start, len, seg = 4) {
+    const sh = new THREE.Shape(); sh.moveTo(0, 0);
+    for (let i = 0; i <= seg; i++) { const a = start + len * i / seg; sh.lineTo(r * Math.sin(a), -r * Math.cos(a)); }
+    sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false });
+    g.rotateX(-Math.PI / 2); g.translate(0, -h / 2, 0);       // 上へ のばして、まんなかを 原点に（CylinderGeometry と 同じ）
+    return g;
+  }
   const cakeG = new THREE.Group(); scene.add(cakeG);
   const CAKE_R = .3, CAKE_H = .2;
   const cakeWhole = new THREE.Group(); cakeG.add(cakeWhole);
@@ -1314,7 +1331,7 @@
     const st = Math.PI * 2 / n;
     for (let i = 0; i < n; i++) {
       const sl = new THREE.Group();
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(CAKE_R, CAKE_R, CAKE_H, 4, 1, false, i * st + .02, st - .04), flat('#fbf6ee')); w.position.y = CAKE_H / 2; w.castShadow = true; sl.add(w);
+      const w = new THREE.Mesh(wedgeGeo(CAKE_R, CAKE_H, i * st + .02, st - .04), flat('#fbf6ee')); w.position.y = CAKE_H / 2; w.castShadow = true; sl.add(w);
       sl.visible = false; cakeG.add(sl); slices.push(sl);
       const a = (i + .5) * st, b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#d8343c')); b.position.set(Math.sin(a) * CAKE_R * .65, CAKE_H + .03, Math.cos(a) * CAKE_R * .65); berries.add(b);
     }
@@ -1328,7 +1345,7 @@
   for (let i = 0; i < 3; i++) {
     const p = new THREE.Group();
     const pl = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .02, 10), flat('#ffffff')); p.add(pl);
-    const sl = new THREE.Mesh(new THREE.CylinderGeometry(CAKE_R, CAKE_R, CAKE_H, 4, 1, false, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.y = .11; p.add(sl);
+    const sl = new THREE.Mesh(wedgeGeo(CAKE_R, CAKE_H, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.y = .11; p.add(sl);
     const b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#d8343c')); b.position.set(.08, .24, .16); p.add(b);
     p.userData.slice = [sl, b]; p.visible = false; p.scale.set(.7 / ATS, 1, .7 / ATS); atticG.add(p); plateMeshes.push(p);
   }
@@ -1339,7 +1356,7 @@
   function makeDish() {
     const p = new THREE.Group();
     const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .15, .02, 12), flat('#ffffff')); p.add(pl);
-    const sl = new THREE.Mesh(new THREE.CylinderGeometry(.26, .26, .16, 4, 1, false, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(-.05, .09, -.12); p.add(sl);
+    const sl = new THREE.Mesh(wedgeGeo(.26, .16, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(-.05, .09, -.12); p.add(sl);
     const b = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#d8343c')); b.position.set(.02, .2, .05); p.add(b);
     shadowAll(p); return p;
   }
@@ -1540,7 +1557,7 @@
   };
   // 目じるしを タップするまで 待つ（target：位置を かえす 関数。null なら 画面の まんなか）
   const tapAt = (target, label = 'タップ') => new Promise(resolve => {
-    guideAt = target; $('alarmGuide').querySelector('span').textContent = label;
+    guideAt = target; setRuby($('alarmGuide').querySelector('span'), label);
     $('alarmGuide').classList.remove('hidden');
     alarmResolve = () => { alarmResolve = null; guideAt = null; $('alarmGuide').classList.add('hidden'); resolve(); };
   });
@@ -1548,10 +1565,10 @@
   let writing = null;
   const writeIn = (opt = {}) => new Promise(resolve => {
     const box = $('writeBox'), inp = $('writeInput');
-    $('writeLabel').textContent = opt.label || 'ここに 書いてね';
+    setRuby($('writeLabel'), opt.label || 'ここに 書いてね');
     inp.type = opt.number ? 'number' : 'text'; inp.inputMode = opt.number ? 'numeric' : 'text';
     if (opt.number) { inp.min = opt.min; inp.max = opt.max; } else { inp.removeAttribute('min'); inp.removeAttribute('max'); }
-    inp.value = ''; inp.placeholder = opt.placeholder || '';
+    inp.value = ''; inp.placeholder = kanaText(opt.placeholder || '');
     box.classList.remove('hidden'); setTimeout(() => { try { inp.focus(); } catch (e) {} }, 50);
     writing = { opt, done: v => { writing = null; box.classList.add('hidden'); inp.blur(); resolve(v); } };
   });
@@ -1747,8 +1764,8 @@
   let first = true;
   // 話す 人の 名前 → ゆらす 体（見えて いる ものだけ ゆれる）
   const TALK_MODELS = {
-    '???': [captiveM, kaitouM, policeM], 'かいとう': [kaitouM, policeM, captiveM], 'けいさつ': [policeM],
-    '子どもA': [kidAM], 'リアオ': [kidAM], 'シィ': [kidBM], 'バケモノ': [monsterM], '2人': [kidAM, kidBM],
+    '???': [captiveM, kaitouM, policeM], 'かいとう': [kaitouM, policeM, captiveM], '{警察|けいさつ}': [policeM],
+    '子{供|ども}A': [kidAM], 'リアオ': [kidAM], 'シィ': [kidBM], 'バケモノ': [monsterM], '2人': [kidAM, kidBM],
   };
   function draw(now, dt) {
     const t = now / 1000;
@@ -1998,7 +2015,7 @@
         const btns = [...ui.choices.children];
         if (!btns.length) continue;
         const want = (STORY.autoChoices || [])[autoChoiceIdx];
-        const b = btns.find(b => want !== undefined && b.textContent.replace(/\n/g, '') === want.replace(/\n/g, ''));
+        const b = btns.find(b => want !== undefined && (b.dataset.label || b.textContent).replace(/\n/g, '') === want.replace(/\n/g, ''));
         if (b) autoChoiceIdx++;
         await autoClick(b || btns[0]);
       } else if (open) {

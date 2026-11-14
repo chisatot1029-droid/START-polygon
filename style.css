@@ -87,7 +87,7 @@ button { font: inherit; cursor: pointer; }
   right: 8%;
   top: 30%;
   font-size: 2.7em;           /* 低ポリゴン版：少し 小さく（長い 文は 2行ずつ すすむ） */
-  line-height: 1.35;
+  line-height: 1.7;           /* ルビが 入っても 行の 間が かわらないように */
   white-space: pre-wrap;
 }
 #dialog.noFace #text { left: 25.4%; }
@@ -350,3 +350,7 @@ button { font: inherit; cursor: pointer; }
   letter-spacing: 0.06em;
   cursor: pointer;
 }
+
+/* ルビ（小4〜6で 習う 漢字の よみがな） */
+ruby { ruby-position: over; }
+rt { font-size: .5em; line-height: 1; letter-spacing: 0; }
