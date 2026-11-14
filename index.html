@@ -59,6 +59,10 @@
     }
     #labCut .memo { position: absolute; left: 8%; bottom: 10%; width: 30%; height: 26%; background: #f4f0e2; border: .15em solid #333; transform: rotate(-6deg); display: none; }
     #labCut.memo .memo { display: block; }
+    #labCut .memoBubble { display: none; position: absolute; right: 4%; bottom: 104%; padding: .5em 1em; background: #fff; border: .25em solid #000; border-radius: 1.2em;
+      font-size: 2em; line-height: 1.3; white-space: nowrap; }
+    #labCut .memoBubble::after { content: ''; position: absolute; right: 22%; bottom: -1em; border: .5em solid transparent; border-top: .6em solid #000; }
+    #labCut.memo .memoBubble { display: block; }
     #labCut .memo::after { content: ''; position: absolute; left: 12%; top: 40%; height: .25em; background: #2a2a2a; animation: memoLine 1.2s steps(6) infinite; }
     @keyframes memoLine { from { width: 0; } to { width: 76%; } }
     #dialog.lab { left: auto; right: 3.4%; top: auto; bottom: 29%; width: 34%; height: auto; min-height: 9%; border-width: .3em; border-radius: 2.2em; padding: 1.2em 1.8em 1.4em; z-index: 7; }
@@ -66,6 +70,14 @@
     #dialog.lab #text { position: static; font-size: 2.3em; line-height: 1.4; }
     #dialog.lab #nextMark { font-size: 1.8em; right: 4%; bottom: 8%; }
     #dialog.lab::after { content: ''; position: absolute; left: 62%; bottom: -1.6em; border: .9em solid transparent; border-top: 1em solid #000; }
+    /* 書き込む 欄（プレイヤーが 文字を 入れる） */
+    #writeBox { position: absolute; left: 6%; bottom: 7%; width: 54%; z-index: 9; background: #fff; border: .4em solid #000; border-radius: 1.2em;
+      padding: 1.4em 1.8em; display: flex; flex-direction: column; gap: 1em; box-sizing: border-box; }
+    #writeBox.hidden { display: none; }
+    #writeBox label { font-size: 2em; color: #3d5a2a; }
+    #writeBox .row { display: flex; gap: 1em; }
+    #writeBox input { flex: 1; min-width: 0; font: inherit; font-size: 2.6em; padding: .25em .5em; border: .12em solid #999; border-radius: .4em; }
+    #writeBox button { font: inherit; font-size: 2.4em; padding: .2em 1em; border: none; border-radius: .5em; background: #3d5a2a; color: #fff; cursor: pointer; }
     #lpBadge { position: absolute; left: 1.5%; bottom: 2.5%; color: #fff; background: rgba(21,31,16,.8);
       padding: .4em .9em; border-radius: .4em; font-size: 1.6em; pointer-events: none; }
   </style>
@@ -86,7 +98,8 @@
     </div>
 
     <div id="labVeil" class="hidden"></div>
-    <div id="labCut" class="hidden"><img src="assets/researcher.png" alt="研究員"><div class="memo"></div></div>
+    <form id="writeBox" class="hidden" autocomplete="off"><label id="writeLabel"></label><div class="row"><input id="writeInput" type="text" maxlength="40"><button type="submit">決定</button></div></form>
+    <div id="labCut" class="hidden"><img src="assets/researcher.png" alt="研究員"><div class="memo"></div><div class="memoBubble">メモメモ...</div></div>
 
     <div id="lpBadge">低ポリゴン版（ためし）</div>
     <button id="alarmGuide" class="hidden" aria-label="アラームを とめる"><span>タップして とめる</span></button>
@@ -193,6 +206,7 @@
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden');
+    $('writeBox').classList.add('hidden'); writing = null; roamNoArrow = false; if ($('peekCopy')) $('peekCopy').remove();
     $('labCut').classList.add('hidden'); $('labCut').classList.remove('off'); $('labVeil').classList.add('hidden'); peeking = false;
   }
   function resetPlayer() {
@@ -383,6 +397,12 @@
     }
   };
   const moonlight = () => tween(1500, p => { moon = p; });
+  // 家の 玄関から 庭へ 出た ところ（怪盗が 庭に いる）
+  const gardenSetup = () => {
+    place('house');
+    houseHero = { x: -.2, z: 1.6, t: 0, moving: false }; houseKaitou = { x: 1.7, z: 3.9, t: 0, moving: false, visible: true, goIn: false };
+    doorOpen = 1; moon = 1;
+  };
   const walkHouse = (who, x, z, ms) => {
     const fx = who.x, fz = who.z; who.moving = true;
     return tween(ms, p => { who.x = fx + (x - fx) * p; who.z = fz + (z - fz) * p; who.t += .016; }).then(() => { who.moving = false; });
@@ -428,14 +448,21 @@
   };
   // 選択肢を 少しの 間 見せるだけ（まだ 選べない）
   let peeking = false;
-  const peekChoose = async (options, ms = 1600) => {
+  //   選択肢の 絵を 写しとって 幕の 下に のこし（unpeek で 消す）、本物の 会話ウィンドウは 研究員に ゆずる
+  const peekChoose = async (options, ms = 250) => {
     peeking = true;
     openDialog('', {}); ui.dialog.classList.add('choosing');
     ui.choices.innerHTML = ''; ui.choices.classList.toggle('three', options.length >= 3);
     options.forEach(label => { const b = document.createElement('button'); b.className = 'choice'; b.textContent = label; b.disabled = true; ui.choices.appendChild(b); });
     await wait(ms);
+    // 見た目を そのまま 写す（id の CSS が 効かなくなるので、計算された スタイルを 直接 のせる）
+    const copy = ui.dialog.cloneNode(true), src = [ui.dialog, ...ui.dialog.querySelectorAll('*')], dst = [copy, ...copy.querySelectorAll('*')];
+    src.forEach((el, i) => { const cs = getComputedStyle(el); for (const k of cs) dst[i].style.setProperty(k, cs.getPropertyValue(k)); dst[i].removeAttribute('id'); });
+    copy.id = 'peekCopy'; copy.style.zIndex = 3; copy.style.pointerEvents = 'none';
+    unpeek(); screenEl.appendChild(copy);
     ui.choices.innerHTML = ''; ui.dialog.classList.add('hidden'); peeking = false;
   };
+  const unpeek = () => { const c = $('peekCopy'); if (c) c.remove(); };
   // 怪盗が 主人公を 置いて 先に 走り、階段の 上で 待つ
   const kaitouRunAhead = async () => {
     running = true;
@@ -443,7 +470,8 @@
     await policeWalk(0, SM.corridorTop - 260 - pyNow, 2200);
     running = false;                                                   // ふりかえって 主人公を 待つ
   };
-  Object.assign(window, { labCut, peekChoose, kaitouRunAhead });
+  Object.assign(window, { labCut, peekChoose, unpeek, kaitouRunAhead });
+  Object.assign(window, { gardenSetup });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
     police, policeWalk, throwItem, camera, follow, walkTo, resetPlayer, note, end });
@@ -467,6 +495,7 @@
   addEventListener('keydown', e => {
     const k = KEYMAP[e.key];
     if (k) { keys[k] = true; e.preventDefault(); }
+    if (writing) return;                                                   // 書き込み中は 文字を 打つ
     if (!e.repeat && (e.key === 'Enter' || e.key === ' ')) { if (alarmResolve) alarmResolve(); else advance(); e.preventDefault(); }
     if (chooseResolve && /^[1-9]$/.test(e.key)) chooseResolve(Number(e.key) - 1);
   });
@@ -1267,14 +1296,21 @@
   const CAKE_R = .3, CAKE_H = .2;
   const cakeWhole = new THREE.Group(); cakeG.add(cakeWhole);
   { const c = new THREE.Mesh(new THREE.CylinderGeometry(CAKE_R, CAKE_R, CAKE_H, 16), flat('#fbf6ee')); c.position.y = CAKE_H / 2; cakeWhole.add(c); }
-  const slices = [];
-  for (let i = 0; i < 8; i++) {      // 8 切れ（切った あと）
-    const sl = new THREE.Group();
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(CAKE_R, CAKE_R, CAKE_H, 4, 1, false, i * Math.PI / 4 + .02, Math.PI / 4 - .04), flat('#fbf6ee')); w.position.y = CAKE_H / 2; sl.add(w);
-    sl.visible = false; cakeG.add(sl); slices.push(sl);
-  }
+  let slices = [];
   const berries = new THREE.Group(); cakeG.add(berries);
-  for (let i = 0; i < 8; i++) { const a = (i + .5) * Math.PI / 4; const b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#d8343c')); b.position.set(Math.sin(a) * CAKE_R * .65, CAKE_H + .03, Math.cos(a) * CAKE_R * .65); berries.add(b); }
+  // n 切れに 切った ケーキ（切る 前は ホールケーキ）
+  function buildSlices(n) {
+    slices.forEach(sl => cakeG.remove(sl)); slices = [];
+    while (berries.children.length) berries.remove(berries.children[0]);
+    const st = Math.PI * 2 / n;
+    for (let i = 0; i < n; i++) {
+      const sl = new THREE.Group();
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(CAKE_R, CAKE_R, CAKE_H, 4, 1, false, i * st + .02, st - .04), flat('#fbf6ee')); w.position.y = CAKE_H / 2; w.castShadow = true; sl.add(w);
+      sl.visible = false; cakeG.add(sl); slices.push(sl);
+      const a = (i + .5) * st, b = new THREE.Mesh(new THREE.SphereGeometry(.045, 6, 4), flat('#d8343c')); b.position.set(Math.sin(a) * CAKE_R * .65, CAKE_H + .03, Math.cos(a) * CAKE_R * .65); berries.add(b);
+    }
+  }
+  buildSlices(8);
   const badCut = new THREE.Mesh(new THREE.BoxGeometry(.012, .01, CAKE_R * 2), flat('#8a6a48')); badCut.position.set(.09, CAKE_H + .006, 0); badCut.rotation.y = .5; badCut.visible = false; cakeG.add(badCut);   // ずれた 切れ目
   shadowAll(cakeG);
   let cakeState = 'counter', cakeCut = false, slicesLeft = 8;
@@ -1304,14 +1340,14 @@
   let heroDishOn = false;
   // ホールケーキから 一切れ 取って お皿へ（i：0 = 主人公、1 = リアオ）
   const serveSlice = async i => {
-    slicesLeft--; showSlices(slicesLeft);
+    slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft);
     const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52);
     d.visible = true;
     await tween(550, p => { d.position.lerpVectors(from, to, ease(p)); d.position.y += Math.sin(p * Math.PI) * .25; });
   };
   const heroHoldDish = on => { heroDishOn = on; heroCarry = on; };
   const pickDish = i => { diningDish[i].visible = false; };                 // ダイニングの お皿を 手に とる
-  const cakeTake = () => { slicesLeft--; showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
+  const cakeTake = () => { slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
   { const c = kidAM.userData.necklace.children[0].clone(); c.scale.setScalar(KID * 1.3); heroStar.add(c); }
   const heroKnife = new THREE.Mesh(new THREE.BoxGeometry(.04, .3, .015), flat('#dfe5ea')); heroKnife.visible = false; scene.add(heroKnife);
@@ -1346,6 +1382,7 @@
     back: [[13.2, -13.4]],
     table: [[11.6, -8.7], [1.9, -8.7], [1.9, -12.9]],
     stairs: [[1.9, -12.0], [1.9, -8.8], [6.3, -8.8], [6.3, -12.6]],
+    stairsAny: [[0, -4.6], [0, -8.7], [1.9, -8.8], [6.3, -8.8], [6.3, -12.6]],   // 玄関からでも ダイニングからでも 階段へ（オート用）
     exit: [[3.3, -3.7], [-5.3, -3.7], [-6.2, -1.6], [-7.7, -1.6]],   // 屋根裏の 片隅の 扉から 屋上へ
   };
   const setGoal = name => { goal = (GOALS[name] || []).map(p => p.slice()); };
@@ -1361,54 +1398,60 @@
   const blocked2 = (x, z) => area === 'attic' ? atticBlocked(x, z) : homeBlocked(x, z);
   const homeBlocked = (x, z) => !HOME_WALK.some(([a, b, c, d]) => x > a && x < c && z > b && z < d) || HOME_BLOCK.some(([a, b, c, d]) => x > a && x < c && z > b && z < d);
 
-  // ---------- ケーキを 8こに 切る ミニゲーム ----------
-  //   回る 線を タップすると、そこで 切れる（目じるしの 近くなら ぴったり そろう）。4回 切ると 8こ
+  // ---------- ケーキを 切る ミニゲーム（何こに 切るかは えらべる） ----------
+  //   回る 線を タップすると、そこで 切れる（目じるしの 近くなら ぴったり そろう）
+  //   偶数の 時は まんなかを 通る 線（8こなら 4回）、奇数の 時は まんなかから 外への 線（5こなら 5回）
   const cakeUI = document.createElement('div'); cakeUI.id = 'cakeGame'; cakeUI.className = 'hidden';
-  cakeUI.innerHTML = '<p id="cakeMsg">ケーキを 8こに 切ろう！ 線が 目じるしに かさなったら タップ</p><canvas id="cakeCanvas" width="520" height="520"></canvas><p id="cakeCount"></p>';
+  cakeUI.innerHTML = '<p id="cakeMsg"></p><canvas id="cakeCanvas" width="520" height="520"></canvas><p id="cakeCount"></p>';
   screenEl.appendChild(cakeUI);
   const cakeCv = cakeUI.querySelector('#cakeCanvas'), cctx = cakeCv.getContext('2d');
-  let cakeActive = false, cakeCuts = [], cakeAngle = 0, cakeResolve = null, cakeT0 = 0;
+  let cakeActive = false, cakeCuts = [], cakeAngle = 0, cakeResolve = null, cakeT0 = 0, cakeN = 8;
   const CAKE_SPEED = Math.PI / 2.4;                 // 1 秒に まわる 角度
+  const cakeSpoke = () => cakeN % 2 === 1, cakePeriod = () => cakeSpoke() ? Math.PI * 2 : Math.PI;
+  const cakeGuides = () => { const st = Math.PI * 2 / cakeN, n = cakeSpoke() ? cakeN : cakeN / 2; return Array.from({ length: n }, (_, k) => k * st); };
+  function cakeLine(c, a, r) { c.beginPath(); c.moveTo(cakeSpoke() ? 0 : Math.cos(a) * -r, cakeSpoke() ? 0 : Math.sin(a) * -r); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); c.stroke(); }
   function drawCakeGame(now) {
     cakeAngle = liveAngle();
     const c = cctx, W2 = 260; c.clearRect(0, 0, 520, 520);
     c.save(); c.translate(W2, W2);
     c.fillStyle = '#e9d8c0'; c.beginPath(); c.arc(0, 0, 238, 0, Math.PI * 2); c.fill();        // お皿
     c.fillStyle = '#fbf6ee'; c.strokeStyle = '#d9c9b0'; c.lineWidth = 6; c.beginPath(); c.arc(0, 0, 200, 0, Math.PI * 2); c.fill(); c.stroke();
-    for (let i = 0; i < 8; i++) { const a = (i + .5) * Math.PI / 4; c.fillStyle = '#d8343c'; c.beginPath(); c.arc(Math.cos(a) * 140, Math.sin(a) * 140, 16, 0, Math.PI * 2); c.fill(); }
+    for (let i = 0; i < cakeN; i++) { const a = (i + .5) * Math.PI * 2 / cakeN; c.fillStyle = '#d8343c'; c.beginPath(); c.arc(Math.cos(a) * 140, Math.sin(a) * 140, 14, 0, Math.PI * 2); c.fill(); }
     c.setLineDash([6, 10]); c.strokeStyle = 'rgba(120,90,60,.35)'; c.lineWidth = 3;
-    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; c.beginPath(); c.moveTo(Math.cos(a) * -205, Math.sin(a) * -205); c.lineTo(Math.cos(a) * 205, Math.sin(a) * 205); c.stroke(); }
+    for (const a of cakeGuides()) cakeLine(c, a, 205);
     c.setLineDash([]); c.strokeStyle = '#6b4a2a'; c.lineWidth = 5;
-    for (const a of cakeCuts) { c.beginPath(); c.moveTo(Math.cos(a) * -200, Math.sin(a) * -200); c.lineTo(Math.cos(a) * 200, Math.sin(a) * 200); c.stroke(); }
-    if (cakeActive) { c.strokeStyle = '#e8473f'; c.lineWidth = 6; c.beginPath(); c.moveTo(Math.cos(cakeAngle) * -230, Math.sin(cakeAngle) * -230); c.lineTo(Math.cos(cakeAngle) * 230, Math.sin(cakeAngle) * 230); c.stroke(); }
+    for (const a of cakeCuts) cakeLine(c, a, 200);
+    if (cakeActive) { c.strokeStyle = '#e8473f'; c.lineWidth = 6; cakeLine(c, cakeAngle, 230); }
     c.restore();
-    cakeUI.querySelector('#cakeCount').textContent = `${cakeCuts.length} / 4 回`;
+    cakeUI.querySelector('#cakeCount').textContent = `${cakeCuts.length} / ${cakeGuides().length} 回`;
   }
-  const angDiff = (a, b) => { const d = Math.abs(((a - b) % Math.PI + Math.PI) % Math.PI); return Math.min(d, Math.PI - d); };
-  const liveAngle = () => ((performance.now() - cakeT0) / 1000 * CAKE_SPEED * timeScale) % Math.PI;
+  const angDiff = (a, b) => { const P = cakePeriod(), d = Math.abs(((a - b) % P + P) % P); return Math.min(d, P - d); };
+  const liveAngle = () => ((performance.now() - cakeT0) / 1000 * CAKE_SPEED * timeScale) % cakePeriod();
   function cakeTap() {
     if (!cakeActive) return;
     let a = liveAngle();
-    const near = Math.round(a / (Math.PI / 4)) * (Math.PI / 4);
-    if (angDiff(a, near) < .2) a = near % Math.PI;                 // 目じるしの 近くなら ぴったり
-    if (cakeCuts.some(b => angDiff(a, b) < .12)) return;            // 同じ 所は 切らない
+    const st = Math.PI * 2 / cakeN, near = Math.round(a / st) * st;
+    if (angDiff(a, near) < Math.min(.2, st * .35)) a = near % cakePeriod();     // 目じるしの 近くなら ぴったり
+    if (cakeCuts.some(b => angDiff(a, b) < .12)) return;                         // 同じ 所は 切らない
     cakeCuts.push(a);
-    if (cakeCuts.length >= 4) {
+    if (cakeCuts.length >= cakeGuides().length) {
       cakeActive = false;
       setTimeout(() => { cakeUI.classList.add('hidden'); const r = cakeResolve; cakeResolve = null; if (r) r(cakeCuts.slice()); }, 700 / timeScale);
     }
   }
   cakeUI.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); cakeTap(); });
   addEventListener('keydown', e => { if (cakeActive && !e.repeat && (e.key === 'Enter' || e.key === ' ')) { cakeTap(); e.preventDefault(); e.stopImmediatePropagation(); } }, true);
-  const cakeGame = () => new Promise(resolve => {
+  const cakeGame = (n = 8) => new Promise(resolve => {
+    cakeN = Math.max(2, Math.min(16, Math.round(n) || 8));
+    cakeUI.querySelector('#cakeMsg').textContent = `ケーキを ${cakeN}こに 切ろう！ 線が 目じるしに かさなったら タップ`;
     cakeCuts = []; cakeActive = true; cakeT0 = performance.now(); cakeResolve = resolve; cakeUI.classList.remove('hidden');
   });
   // オート：次の 目じるしに 線が かさなる 時に タップする
   async function cakeAutoCut() {
-    const targets = [0, 1, 2, 3].map(k => k * Math.PI / 4).filter(a => !cakeCuts.some(b => angDiff(a, b) < .12));
+    const targets = cakeGuides().filter(a => !cakeCuts.some(b => angDiff(a, b) < .12));
     if (!targets.length) return;
     const c = centerOf(cakeCv); await cursorTo(c.x, c.y);
-    while (auto && cakeActive && !targets.some(a => angDiff(liveAngle(), a) < .12)) await new Promise(r => setTimeout(r, 4));
+    while (auto && cakeActive && !targets.some(a => angDiff(liveAngle(), a) < .1)) await new Promise(r => setTimeout(r, 4));
     if (auto && cakeActive) { cakeTap(); await clickFx(); }
   }
 
@@ -1441,13 +1484,13 @@
   const sitActor = (a, x, z, rot, lift = 0) => { a.seq++; a.moving = false; a.lean = 0; a.x = x; a.z = z; a.rot = rot; a.lift = lift; a.visible = true; };
   const prop = (name, on) => {
     const u = kidAM.userData;
-    ({ tears: () => { u.tears.visible = on; }, kidKnife: () => { u.knife.visible = on; }, kidPlates: () => { u.plates.visible = on; }, traySlices: () => { u.plates.userData.slices.forEach(m => { m.visible = on; }); },
+    ({ tears: () => { u.tears.visible = on; }, kidKnife: () => { u.knife.visible = on; }, kidPlates: () => { u.plates.visible = on; }, traySlices: () => { u.plates.userData.slices.forEach(m => { m.visible = on; }); }, trayOne: () => { u.plates.userData.slices.forEach((m, i) => { m.visible = on ? i < 2 : true; }); },
        necklace: () => { u.necklace.visible = on; }, heroKnife: () => { heroKnife.visible = on; }, rackKnife: () => { knifeTaken.visible = on; },
        badCut: () => { badCut.visible = on; }, carry: () => { heroCarry = on; } })[name]();
   };
   const cake = state => { cakeState = state; };
-  const cakeReset = () => { cakeCut = false; slicesLeft = 8; badCut.visible = false; showSlices(8); };
-  const cakeSliced = () => { cakeCut = true; slicesLeft = 8; badCut.visible = false; showSlices(8); };
+  const cakeReset = () => { buildSlices(8); cakeCut = false; slicesLeft = 8; badCut.visible = false; showSlices(8); };
+  const cakeSliced = (n = 8) => { buildSlices(n); cakeCut = true; slicesLeft = n; badCut.visible = false; showSlices(n); };
   const eatSlices = async (n, ms = 700) => { for (let i = 0; i < n && slicesLeft > 0; i++) { await wait(ms); slicesLeft--; showSlices(slicesLeft); } };
   const atticPlates = (n, withCake = true) => plateMeshes.forEach((p, i) => { p.visible = i < n; p.userData.slice.forEach(m => { m.visible = withCake; if (withCake) m.scale.setScalar(1); }); });
   const takePlate = i => { plateMeshes[i].visible = false; };
@@ -1492,7 +1535,54 @@
     $('alarmGuide').classList.remove('hidden');
     alarmResolve = () => { alarmResolve = null; guideAt = null; $('alarmGuide').classList.add('hidden'); resolve(); };
   });
+  // 書き込む 欄を 出して、プレイヤーが 決定するまで 待つ（number:true で 数字だけ）
+  let writing = null;
+  const writeIn = (opt = {}) => new Promise(resolve => {
+    const box = $('writeBox'), inp = $('writeInput');
+    $('writeLabel').textContent = opt.label || 'ここに 書いてね';
+    inp.type = opt.number ? 'number' : 'text'; inp.inputMode = opt.number ? 'numeric' : 'text';
+    if (opt.number) { inp.min = opt.min; inp.max = opt.max; } else { inp.removeAttribute('min'); inp.removeAttribute('max'); }
+    inp.value = ''; inp.placeholder = opt.placeholder || '';
+    box.classList.remove('hidden'); setTimeout(() => { try { inp.focus(); } catch (e) {} }, 50);
+    writing = { opt, done: v => { writing = null; box.classList.add('hidden'); inp.blur(); resolve(v); } };
+  });
+  $('writeBox').addEventListener('submit', e => {
+    e.preventDefault(); if (!writing) return;
+    let v = $('writeInput').value.trim();
+    const o = writing.opt;
+    if (o.number) { const n = Math.round(Number(v)); if (!n || n < o.min || n > o.max) { $('writeLabel').textContent = `${o.min}〜${o.max} の 数を 入れてね`; return; } v = n; }
+    else if (!v && !o.allowEmpty) { $('writeLabel').textContent = 'ひとことでも 書いてね'; return; }
+    writing.done(v);
+  });
+  ['pointerdown', 'click', 'keydown'].forEach(t => $('writeBox').addEventListener(t, e => e.stopPropagation()));
+  // 目じるしを タップするか、until が 先に おわるまで 待つ（タップしたら true）
+  const tapUntil = (target, label, until) => new Promise(resolve => {
+    let done = false;
+    tapAt(target, label).then(() => { if (!done) { done = true; resolve(true); } });
+    until.then(() => { if (!done) { done = true; if (alarmResolve) { alarmResolve(); } resolve(false); } });
+  });
+  // 自由に 歩いて、決まった 場所に 来たら「この先に行きますか？」。はいを えらんだ 場所の 名前を かえす
+  let roamNoArrow = false;
+  const roam = (zones, autoGoal) => new Promise(resolve => {
+    setGoal(autoGoal); roamNoArrow = true; mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = null;
+    let armed = zones.map(() => true), busy = false;
+    const tick = async () => {
+      if (busy) return;
+      const i = zones.findIndex(z => Math.hypot(heroX() - z.x, heroZ() - z.z) < z.r);
+      zones.forEach((z, k) => { if (k !== i) armed[k] = true; });
+      if (i >= 0 && armed[i] && mode === 'play') {
+        busy = true; mode = 'event'; player.moving = false;
+        await say('', 'この先に行きますか？');
+        const c = await choose(['はい', 'いいえ']);
+        busy = false;
+        if (c === 'はい') { clearInterval(timer); roamNoArrow = false; goal = []; resolve(zones[i].name); return; }
+        armed[i] = false; mode = 'play';
+      }
+    };
+    const timer = setInterval(tick, 60);
+  });
   const TAP = {
+    kidBody: () => tmpV2.set(kidAM.position.x, .45 * KID * 1.6, kidAM.position.z),
     knife: () => tmpV2.set(HOME.x + KNIFE.x, KNIFE.y, HOME.z + KNIFE.z),
     table: () => tmpV2.set(HOME.x, TABLE.y + .2, HOME.z - 15.52),
     kidHand: () => tmpV2.set(kidAM.position.x + Math.sin(A.rot) * .25, .55 * KID, kidAM.position.z + Math.cos(A.rot) * .25),
@@ -1517,7 +1607,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { pickDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
+  Object.assign(window, { writeIn, tapUntil, roam, pickDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };
@@ -1571,7 +1661,7 @@
     atticDoor.rotation.y = -Math.PI / 2 - doors.attic * 1.3;
     exitDoor.rotation.y = Math.PI / 2 + doors.exit * 1.3;
     // 行き先の 矢印
-    const freeMove = mode === 'play' && goal.length && ui.dialog.classList.contains('hidden');
+    const freeMove = mode === 'play' && goal.length && !roamNoArrow && ui.dialog.classList.contains('hidden');
     arrowG.visible = !!freeMove;
     if (freeMove) {
       const [gx, gz] = goal[0], dx = gx - heroX(), dz = gz - heroZ(), len = Math.hypot(dx, dz) || 1, ux = dx / len, uz = dz / len;
@@ -1825,7 +1915,7 @@
   // ============================================================
   const cursorEl = $('cursor'), ringEl = $('cursorRing'), badgeEl = $('autoBadge');
   const AUTO_DOOR_X = 606;
-  let auto = false, autoMove = null, autoChoiceIdx = 0;
+  let auto = false, autoMove = null, autoChoiceIdx = 0, autoWriteIdx = 0;
   const cur = { x: W / 2, y: H / 2 };
   function placeCursor() { cursorEl.style.left = (cur.x / W * 100) + '%'; cursorEl.style.top = (cur.y / H * 100) + '%'; }
   function cursorTo(x, y) {
@@ -1851,7 +1941,7 @@
   }
   async function startAuto() {
     if (auto) return;
-    auto = true; timeScale = STORY.autoSpeed || 1; autoChoiceIdx = 0;
+    auto = true; timeScale = STORY.autoSpeed || 1; autoChoiceIdx = 0; autoWriteIdx = 0;
     screenEl.classList.add('auto'); badgeEl.classList.remove('hidden'); cursorEl.classList.remove('hidden');
     const c = centerOf($('autoBtn')); cur.x = c.x; cur.y = c.y; placeCursor();
     await wait(400);
@@ -1866,6 +1956,13 @@
     while (auto) {
       if (cakeActive) { await wait(500); if (auto && cakeActive) await cakeAutoCut(); continue; }
       if (peeking) { await wait(100); continue; }
+      if (writing) {                                                          // オート：用意した 答えを 書きこむ
+        await wait(900); if (!auto || !writing) continue;
+        const list = STORY.autoWrites || [], o = writing.opt;
+        $('writeInput').value = o.number ? (o.autoNumber || 8) : (list[autoWriteIdx++ % Math.max(1, list.length)] || 'いい子');
+        await autoClick($('writeBox').querySelector('button'));
+        continue;
+      }
       if (alarmResolve) {
         await wait(700);
         if (auto && alarmResolve) await autoClick($('alarmGuide'));
