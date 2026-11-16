@@ -1511,6 +1511,7 @@
   const heroHoldDish = on => { heroDishOn = on; heroCarry = on; };
   const pickDish = i => { diningDish[i].visible = false; };                 // ダイニングの お皿を 手に とる
   // お皿の ケーキを 食べる（お皿だけ のこる）。ケーキが のって いなければ なにも しない
+  const dishCake = i => diningDish[i].visible && diningDish[i].children[1].visible;   // お皿に ケーキが のって いるか
   const eatDish = async (i, ms = 700) => { const d = diningDish[i]; if (!d.visible || !d.children[1].visible) return; await wait(ms); d.children.slice(1).forEach(c => { c.visible = false; }); };
   const cakeTake = () => { slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
@@ -1773,7 +1774,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
+  Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };

@@ -747,7 +747,8 @@ const STORY = {
     async function afterRiaoLeaves(st, remark) {
       if (remark) {
         await labCut('talk');
-        await R('{子供|こども}は{謝|あやま}らないんだね。うそをついたことを{自覚|じかく}していないのかな？おっとごめん！{独|ひと}り言が入ってしまった。');
+        await R('{子供|こども}は{謝|あやま}らないんだね。うそをついたことを{自覚|じかく}していないのかな？');
+        await R('おっとごめん！{独|ひと}り言が入ってしまった。');
         await labCut(false);
         // 去っていく 子供を タップするか どうかは プレイヤー しだい（いなくなったら もう タップできない）
         const tapped = st.stopped ? false : await tapUntil(TAP.kidBody, 'タップ', st.done);
@@ -762,12 +763,15 @@ const STORY = {
           await labCut(false);
           const how = await choose(['{優|やさ}しく落ち着かせる', '同じ{態度|たいど}で言い返す']);
           if (how === '{優|やさ}しく落ち着かせる') await H('落ち着いて。小さなことでも、うそはダメだよ。それだけわかってくれればいいんだ。');
-          else await H('{意図的|いとてき}な間ちがいはうそになる！ごまかそうとすればするほど、だれもアンタのこと{信用|しんよう}しなくなるぞ！');
+          else {
+            await H('{意図的|いとてき}な間ちがいはうそになる！');
+            await H('ごまかそうとすればするほど、\nだれも君のことを{信|しん}じなくなるぞ！');
+          }
           await KA('…。なんでうそはダメなの？', 1);
           await labCut('talk');
           await R('お、リアオから{質問|しつもん}が来るとは。');
           await labCut(false);
-          const ans = await writeIn({ label: 'リアオに こたえる（なんで うそは ダメ？）', placeholder: '{例|れい}：{信|しん}じて もらえなく なるから' });
+          const ans = await writeIn({ label: 'リアオに こたえる（なんで うそは ダメ？）', placeholder: '' });
           await H(ans);
           await KA('フゥン…。ご、ごめんなさい。', 4);
           const again = riaoLeaves(true); await again.done;   // 机には もどらず 階段へ
@@ -777,15 +781,16 @@ const STORY = {
           await labCut(false);
         }
       } else await st.done;
-      // 何こ 食べるかを 書く。その 数だけ ケーキが なくなる
-      if (cakeLeft() > 0) {
-        const n = await writeIn({ number: true, min: 1, max: cakeLeft(), label: `何{個|こ}食べる？（1～${cakeLeft()}）`, placeholder: '{例|れい}：2', autoNumber: Math.min(2, cakeLeft()) });
-        await eatDish(0, 700);                                         // 手前の お皿の ケーキも 食べる
-        await eatSlices(n, 700);
+      // 何こ 食べるかを 書く。手前の お皿の 1つを ふくめた 数（5こ なら お皿の 1つ ＋ ホールケーキから 4切れ）
+      const onDish = dishCake(0) ? 1 : 0, total = cakeLeft() + onDish;
+      if (total > 0) {
+        const n = await writeIn({ number: true, min: 1, max: total, label: `何{個|こ}食べる？（1～${total}）`, placeholder: '{例|れい}：2', autoNumber: Math.min(2, total) });
+        if (onDish) await eatDish(0, 700);
+        await eatSlices(n - onDish, 700);
         await wait(600);
       }
       await H('ふぅ。美味しかったな。');
-      await say('', 'ドタバタ……。');
+      await say('', 'ガシャーン！');
       await H('今の音はなんだ？');
       await roamHouse();
     }
@@ -890,7 +895,8 @@ const STORY = {
       const keep = await choose(['星の形であることが大事', 'もらう']);
       if (keep === 'もらう') {
         await H('あぁ。{必要|ひつよう}だ。');
-        await KB('…そう。じゃあこんな{状態|じょうたい}でもわたすわよ。オーナーがリアオにわたしたのも{意味|いみ}があったんだろうし。', 1);
+        await KB('…そう。じゃあこんな{状態|じょうたい}でもわたすわよ。', 1);
+        await KB('オーナーがリアオにわたしたのも、{意味|いみ}があったんだろうし。', 1);
         // シィは 手を 血だらけに しながら かけらを 集めて、わたす
         await walkActor(kidB, -.1, -10.2, 500); lookAt(kidB, -.6, -10.2);
         await bendPut(kidB, null, 1200);
@@ -914,8 +920,8 @@ const STORY = {
       await H('そうか。行ってみるよ。');
       await KA('シィはここら{辺|へん}のことをたくさん知っているんだよ。そうだ、せっかくだしシィが{案内|あんない}する？', 2);
       await KB('え？あぁ……。', 3);
-      await KB('じゃあ、と中までだけど、{私|わたし}が{案内|あんない}するよ。', 1);
-      await H('じゃあ、お{願|ねが}いするよ。');
+      await KB('じゃあ、{私|わたし}が{案内|あんない}するよ。', 1);
+      await H('うん。');
       await toRoof();
     }
     // 書き込んだ ことばの しゅるい：'tell'（伝える）・'abuse'（ばとう）・'silent'（無言）
