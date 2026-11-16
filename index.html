@@ -17,6 +17,7 @@
     #alarmGuide { position: absolute; width: 11em; height: 11em; margin: -5.5em 0 0 -5.5em; border: none; padding: 0;
       background: transparent; cursor: pointer; z-index: 15; }
     #alarmGuide.hidden { display: none; }
+    #alarmGuide span:empty { display: none; }               /* 文字なしの ときは わっかの エフェクトだけ */
     #alarmGuide::before, #alarmGuide::after { content: ''; position: absolute; inset: 2.5em; border-radius: 50%;
       border: .5em solid rgba(255, 214, 90, .95); animation: alarmPulse 1s ease-out infinite; }
     #alarmGuide::after { animation-delay: .5s; }

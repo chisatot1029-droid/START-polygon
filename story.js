@@ -381,10 +381,7 @@ const STORY = {
     // 書き込んだ ことばへの 研究員の 相槌：「〇〇なんだね。」
     const aizuchi = t => {
       t = String(t || '').trim().replace(/[。．.！!？?、,～〜…\s]+$/u, '').replace(/(だと|と)?(思う|思います)$/u, '').replace(/(です|だよ|だね|だ|かな)$/u, '');
-      if (!t) return '';
-      if (t.length > 14) return `「${t}」って思ったんだね。`;
-      if (/い$/u.test(t) && !/(きれい|綺麗|嫌い|きらい)$/u.test(t)) return t + 'んだね。';
-      return t.replace(/な$/u, '') + 'なんだね。';
+      return t ? `「${t}」なんだね。` : '';                       // 書き込んだ ことばを 「」で かこむ
     };
 
     // ---------- ○緑が多い暖かな家の中 ----------
@@ -522,7 +519,7 @@ const STORY = {
     const feel = await writeIn({ label: 'この{子供|こども}のことを どう思う？（かんたんな ことばで）', placeholder: '{例|れい}：くいしんぼう' });
     await R('ふむふむ。なるほど。それはなんでそう思ったんだい？');
     await writeIn({ label: 'なんで そう 思った？', placeholder: '{例|れい}：2つも ほしがったから' });
-    await R(`そうだねぇ。${aizuchi(feel)}`);
+    await R(`なるほど。${aizuchi(feel)}`);
     await R('この{子供|こども}は前もって君に人数を教えたのに、1人で2つもらおうとしている。');
     await R('君は自分が食べたい数を\n考えて切ったのに、');
     await R('この子が2つ食べたらケーキの数が\n合わなくなるね。');
@@ -751,7 +748,7 @@ const STORY = {
         await R('おっとごめん！{独|ひと}り言が入ってしまった。');
         await labCut(false);
         // 去っていく 子供を タップするか どうかは プレイヤー しだい（いなくなったら もう タップできない）
-        const tapped = st.stopped ? false : await tapUntil(TAP.kidBody, 'タップ', st.done);
+        const tapped = st.stopped ? false : await tapUntil(TAP.kidBody, '', st.done);   // わっかの エフェクトだけ（文字なし）
         if (tapped) {
           st.stopped = true; sitActor(kidA, kidA.x, kidA.z, 0); lookAt(kidA, heroX(), heroZ());
           await KA('な、なんだい？', 3);
