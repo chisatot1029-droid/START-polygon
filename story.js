@@ -726,7 +726,7 @@ const STORY = {
           await H('うそをついたんだ。何か言うことはないか？');
           await KA('うそなんて大げさな！人数なんてたいしたことないだろ！間ちがえただけだ！', 1);
           await labCut('talk');
-          await R('キレてしまったか…。');
+          await R('…。');
           await labCut(false);
           const how = await choose(['{優|やさ}しく落ち着かせる', '同じ{態度|たいど}で言い返す']);
           if (how === '{優|やさ}しく落ち着かせる') await H('落ち着いて。小さなことでも、うそはダメだよ。それだけわかってくれればいいんだ。');
