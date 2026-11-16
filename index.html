@@ -255,7 +255,7 @@
     if (face && FACES[face]) { ui.face.src = FACES[face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
-    const pages = paginate(text);
+    const pages = paginate(text, opt.lines || 2);
     let page = 0;
     const faceSrc = face && FACES[face] ? FACES[face] : null;
     const show = i => { if (labWasHidden !== null) { $('labCut').classList.toggle('hidden', labWasHidden); labWasHidden = null; } hist.push({ speaker, opt, faceSrc, text: pages[i] }); histPos = -1; typeText(pages[i]); updBack(); };
@@ -325,7 +325,7 @@
   const measureCtx = document.createElement('canvas').getContext('2d');
   if (document.fonts) document.fonts.load("20px 'Enka Dot Gothic 24'", 'あ漢');   // 文の はばを はかる 前に フォントを 読みこんで おく
   const NO_LINE_START = '、。，．・：；？！ー…」』）〜～っゃゅょァィゥェォッャュョ';
-  function paginate(text) {
+  function paginate(text, per = 2) {
     const cs = getComputedStyle(ui.text);
     const maxW = (ui.text.clientWidth || 600) * .94;   // 少し 余白を もたせて 折りかえす
     measureCtx.font = `${cs.fontSize} ${cs.fontFamily}`;
@@ -343,7 +343,7 @@
       lines.push(line);
     }
     const pages = [];
-    for (let i = 0; i < lines.length; i += 2) pages.push(lines.slice(i, i + 2).join('\n'));
+    for (let i = 0; i < lines.length; i += per) pages.push(lines.slice(i, i + per).join('\n'));
     return pages.length ? pages : [''];
   }
   function typeText(text) {
@@ -393,6 +393,21 @@
     const x0 = player.x + 20, y0 = player.y - 10, x1 = 760, y1 = MON_Y + 15;
     await tween(ms, p => { thrown = { x: x0 + (x1 - x0) * p, y: y0 + (y1 - y0) * p, h: (1.1 + Math.sin(p * Math.PI) * 1.6) * CHAR, spin: p * 12 }; });
     thrown = null;
+  };
+  // 荷物を 持って バケモノに かけより、ふりおろして 当てる（投げる 以外の たおし方）
+  let swingK = 0;
+  const meleeItem = async () => {
+    const x0 = player.x, y0 = player.y, x1 = 700, y1 = MON_Y + 150;
+    player.face = Math.atan2(x1 - x0, -(y1 - y0)); player.moving = true;
+    await tween(450, p => { player.x = x0 + (x1 - x0) * p; player.y = y0 + (y1 - y0) * p; player.t += .016; });
+    player.moving = false;
+    let hit = false;
+    await tween(420, p => { swingK = Math.sin(p * Math.PI); if (p > .55 && !hit) { hit = true; shake = .4; } });
+    swingK = 0;
+    await wait(250);
+    player.face = Math.atan2(x0 - x1, -(y0 - y1)); player.moving = true;
+    await tween(500, p => { player.x = x1 + (x0 - x1) * p; player.y = y1 + (y0 - y1) * p; player.t += .016; });
+    player.moving = false; player.face = 0;
   };
   // カメラ：y は ほんものの ゲームと 同じ「画面の いちばん上の マップの 位置」
   let camTarget = null;
@@ -528,7 +543,7 @@
   Object.assign(window, { gardenSetup });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
-    police, policeWalk, throwItem, camera, follow, walkTo, resetPlayer, note, end });
+    police, policeWalk, throwItem, meleeItem, camera, follow, walkTo, resetPlayer, note, end });
 
   async function runEvent(fn) {
     mode = 'event'; player.moving = false;
@@ -1883,6 +1898,7 @@
     heroM.userData.legs.forEach((l, i) => { l.rotation.x = player.moving ? Math.sin(heroPhase + i * Math.PI) * (running ? .8 : .5) : 0; });
     heroM.userData.arms.forEach((a, i) => { a.rotation.x = player.moving ? -Math.sin(heroPhase + i * Math.PI) * (running ? .9 : .4) : 0; });
     if (thrown) heroM.userData.arms[1].rotation.x = -2.4;
+    if (swingK) heroM.userData.arms.forEach(a => { a.rotation.x = -2.8 * swingK; });
 
     // バケモノ と 人物A
     const MON = { full: 600, eat: 600, alone: 600, apart: 760, down: 760 };
