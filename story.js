@@ -19,6 +19,17 @@
 //   主人公M（心の声）は （ ） で かこむ
 // ============================================================
 
+// 書き込む 欄を 出し、書き終わったら 研究員が メモを とる（場面1と 同じ「メモメモ...」）
+//   研究員の カットが 出て いれば、メモの あと 話す すがたに もどす
+async function writeMemo(opt) {
+  const v = await writeIn(opt);
+  const lc = document.getElementById('labCut'), shown = !lc.classList.contains('hidden');
+  await labCut('memo');
+  await wait(1800);
+  await labCut(shown ? 'talk' : false);
+  return v;
+}
+
 const STORY = {
   // 場面1 の 地図（田野さんの「スターとマップ」より。100px = 1m、y は 上へ いくほど 小さい）
   //   下から：目を覚ます 部屋 → 仕切り（まんなかに 出入口）→ 植木の ある 長い 通路（バケモノの 場面）
@@ -176,7 +187,7 @@ const STORY = {
         // 研究員が どう たおすかを 聞く → 書いた 通りに たおす
         await labCut('talk');
         await say('研究員', 'これを使ってどうやっつけるんだい？');
-        const how = await writeIn({ label: 'これを 使って どう たおす？', placeholder: '{例|れい}：投げる' });
+        const how = await writeMemo({ label: 'これを 使って どう たおす？', placeholder: '{例|れい}：投げる' });
         await labCut(false);
         await say('主人公', 'えいっ！', { face: 'hero' });
         if (/投|なげ|ぶつけ|ほうり|ほうる|放|飛ば|とば/u.test(how)) await throwItem();   // 投げる 時は 投げて 追い払う
@@ -524,9 +535,9 @@ const STORY = {
     // 研究員が プレイヤーに 聞く（書き込む 欄）
     await labCut('talk');
     await R('君は、この{子供|こども}のことをどう思うかな？{簡単|かんたん}な言葉で教えてほしい。');
-    const feel = await writeIn({ label: 'この{子供|こども}のことを どう思う？（かんたんな ことばで）' });
+    const feel = await writeMemo({ label: 'この{子供|こども}のことを どう思う？（かんたんな ことばで）' });
     await R('ふむふむ。なるほど。それはなんでそう思ったんだい？');
-    await writeIn({ label: 'なんで そう 思った？' });
+    await writeMemo({ label: 'なんで そう 思った？' });
     await R(`なるほど。${aizuchi(feel)}`);
     await R('この{子供|こども}は前もって君に人数を教えたのに、1人で2つもらおうとしている。');
     if (cutN === 8) await R('君は言われた通り\n人数に合わせて切ったのに、');
@@ -711,7 +722,7 @@ const STORY = {
     async function cutByChoice() {
       const c = await choose(['8{個|こ}切る', '{好|す}きな数を切る']);
       let n = 8;
-      if (c === '{好|す}きな数を切る') n = await writeIn({ number: true, min: 2, max: 16, label: '何こに 切る？（2～16）', autoNumber: 6 });
+      if (c === '{好|す}きな数を切る') n = await writeMemo({ number: true, min: 2, max: 16, label: '何こに 切る？（2～16）', autoNumber: 6 });
       cutN = n;
       prop('badCut', false);
       await cakeGame(n);
@@ -754,12 +765,18 @@ const STORY = {
       return st;
     }
     // リアオが 去ったあと：（研究員の ひとりごと と タップ）→ 2階の 物音 → 家の 中を 自由に 歩く
-    async function afterRiaoLeaves(st, remark, three) {
+    async function afterRiaoLeaves(st, remark, three, trusted) {
       if (remark) {
         await labCut('talk');
-        await R('{子供|こども}は{謝|あやま}らないんだね。');
-        if (!three) await R('うそをついたことを\n{自覚|じかく}していないのかな？');   // ❸（…。）の ときは 言わない
-        await R('おっとごめん！{独|ひと}り言が入ってしまった。');
+        if (three && trusted) {                                         // ❸（…。）で 2つ 持って いくのを ゆるした ときは 問いかける
+          await R('この{子供|こども}がうそをついていたらどうする？');
+          await writeMemo({ label: 'この{子供|こども}が うそを ついて いたら どうする？' });
+          await R('ふむ。なるほどねぇ。');
+        } else {
+          await R('{子供|こども}は{謝|あやま}らないんだね。');
+          if (!three) await R('うそをついたことを\n{自覚|じかく}していないのかな？');   // ❸（…。）の ときは 言わない
+          await R('おっとごめん！{独|ひと}り言が入ってしまった。');
+        }
         await labCut(false);
         // 去っていく 子供を タップするか どうかは プレイヤー しだい（いなくなったら もう タップできない）
         //   ❸（…。）の ときは タップして とがめる ことは できない
@@ -780,7 +797,7 @@ const STORY = {
           await labCut('talk');
           await R('お、リアオから{質問|しつもん}が来るとは。');
           await labCut(false);
-          const ans = await writeIn({ label: 'リアオに こたえる（なんで うそは ダメ？）' });
+          const ans = await writeMemo({ label: 'リアオに こたえる（なんで うそは ダメ？）' });
           await H(ans);
           await KA('フゥン…。ご、ごめんなさい。', 4);
           const again = riaoLeaves(true); await again.done;   // 机には もどらず 階段へ
@@ -798,7 +815,7 @@ const STORY = {
       // 何こ 食べるかを 書く。手前の お皿の 1つを ふくめた 数（5こ なら お皿の 1つ ＋ ホールケーキから 4切れ）
       const onDish = dishCake(0) ? 1 : 0, total = cakeLeft() + onDish;
       if (total > 0) {
-        const n = await writeIn({ number: true, min: 1, max: total, label: `何{個|こ}食べる？（1～${total}）`, autoNumber: Math.min(2, total) });
+        const n = await writeMemo({ number: true, min: 1, max: total, label: `何{個|こ}食べる？（1～${total}）`, autoNumber: Math.min(2, total) });
         if (onDish) await eatDish(0, 700);
         await eatSlices(n - onDish, 700);
         await wait(600);
@@ -875,7 +892,7 @@ const STORY = {
       await labCut('talk');
       await R('これは君が{探|さが}していたものだね。\nでも{割|わ}れてしまったようだ。');
       await R('⟦星⟧が{必要|ひつよう}だったって{伝|つた}える？');
-      const w = await writeIn({ label: 'リアオに 何て 言う？', allowEmpty: true });
+      const w = await writeMemo({ label: 'リアオに 何て 言う？', allowEmpty: true });
       await labCut(false);
       const k = wordKind(w);
       if (k === 'tell' || k === 'blame' || k === 'question') {             // 伝えようと する 内容（責める・たずねる 内容も ふくむ）
@@ -971,7 +988,7 @@ const STORY = {
       await labCut(false);
       let st;
       if (t === '{伝|つた}える') {
-        const w = await writeIn({ label: 'リアオに {伝|つた}える' });
+        const w = await writeMemo({ label: 'リアオに {伝|つた}える' });
         await H(w);
         await KA('そっか、わかった…。', 4);
         pickDish(1); prop('kidPlates', true); prop('trayOne', true); brought = 1;   // 1つの ケーキを 持って 2階へ
@@ -1016,6 +1033,7 @@ const STORY = {
       await R('この{子供|こども}！2{個|こ}とったぞ！どうする…？');
       const c = await choose(['注意する', '{無視|むし}する']);
       await labCut(false);
+      let trusted = false;                                              // 注意した あと 信じて 2つ 持って いかせた
       if (c === '注意する') {
         await tapAt(TAP.kidHand, 'タップ');                                 // 2つ目を 取ろうと する 手を
         await KA('いてっ！', 1);
@@ -1034,6 +1052,7 @@ const STORY = {
           ok = await choose(['{信|しん}じる', '{信|しん}じない']) === '{信|しん}じる';
           await labCut(false);
         }
+        trusted = ok;
         if (ok) {                                                           // 信じた 場合
           await H('そうか。');
           await KA('うん…。じゃあ、持っていくね。', 1);
@@ -1047,7 +1066,7 @@ const STORY = {
       // リアオは ゆっくり ケーキを 持って、その場から ゆっくり 去る。主人公は 黙々と ケーキを 食べる
       pickDish(1); prop('kidPlates', true); prop(brought === 1 ? 'trayOne' : 'traySlices', true);   // お皿ごと 持って いく
       const st = riaoLeaves();
-      await afterRiaoLeaves(st, true, true);                       // どの 場合も 研究員の ひとりごとへ 合流（とがめる ことは できない）
+      await afterRiaoLeaves(st, true, true, trusted);                       // どの 場合も 研究員の ひとりごとへ 合流（とがめる ことは できない）
     }
   },
 };
