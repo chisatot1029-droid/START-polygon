@@ -72,6 +72,7 @@
     #labCut .memo::after { content: ''; position: absolute; left: 12%; top: 40%; height: .25em; background: #2a2a2a; animation: memoLine 1.2s steps(6) infinite; }
     @keyframes memoLine { from { width: 0; } to { width: 76%; } }
     #dialog.lab { left: auto; right: 3.4%; top: auto; bottom: 29%; width: 34%; height: auto; min-height: 9%; border-width: .3em; border-radius: 2.2em; padding: 1.2em 1.8em 1.4em; z-index: 7; }
+    #dialog.lab.short { width: 18.2%; }                     /* 「…。」など 短い セリフは 研究員の 枠と 同じ はば */
     #dialog.lab #speaker, #dialog.lab #face { display: none; }
     #dialog.lab #text { position: static; font-size: 1.9em; line-height: 1.7; }
     #dialog.lab #nextMark { font-size: 1.4em; right: 4%; bottom: 8%; }
@@ -257,10 +258,18 @@
     if (face && FACES[face]) { ui.face.src = FACES[face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
+    ui.dialog.classList.toggle('short', speaker === '研究員' && plainText(text).length <= 4);
+    // opt.fit：行を 分けて 書いた 文が 少し 長い ときは、折りかえさずに 文字を 少し 小さく して 1行に おさめる
+    ui.text.style.fontSize = '';
+    if (opt.fit) {
+      const cs = getComputedStyle(ui.text); measureCtx.font = `${cs.fontSize} ${cs.fontFamily}`;
+      const w = Math.max(...text.split('\n').map(r => measureCtx.measureText(plainText(r)).width)), fw = (ui.text.clientWidth || 600) - 2;
+      if (w > fw) ui.text.style.fontSize = (parseFloat(cs.fontSize) * fw / w * .97) + 'px';
+    }
     const pages = paginate(text, opt.lines || 2);
     let page = 0;
     const faceSrc = face && FACES[face] ? FACES[face] : null;
-    const show = i => { if (labWasHidden !== null) { $('labCut').classList.toggle('hidden', labWasHidden); labWasHidden = null; } hist.push({ speaker, opt, faceSrc, text: pages[i] }); histPos = -1; typeText(pages[i]); updBack(); };
+    const show = i => { if (labWasHidden !== null) { $('labCut').classList.toggle('hidden', labWasHidden); labWasHidden = null; } hist.push({ speaker, opt, faceSrc, text: pages[i], fs: ui.text.style.fontSize }); histPos = -1; typeText(pages[i]); updBack(); };
     show(0);
     advanceResolve = () => {
       if (++page < pages.length) { show(page); return; }
@@ -280,11 +289,13 @@
     const h = hist[i]; if (!h) return;
     clearInterval(typeTimer); typing = false;
     openDialog(h.speaker, h.opt); ui.dialog.classList.remove('choosing');
+    ui.dialog.classList.toggle('short', h.speaker === '研究員' && plainText(h.text).length <= 4);
     if (h.faceSrc) { ui.face.src = h.faceSrc; ui.face.classList.remove('hidden'); } else ui.face.classList.add('hidden');
     // 研究員の セリフは 研究員の カットと いっしょに 見せる
     const lc = $('labCut');
     if (live) { if (labWasHidden !== null) { lc.classList.toggle('hidden', labWasHidden); labWasHidden = null; } }
     else { if (labWasHidden === null) labWasHidden = lc.classList.contains('hidden'); lc.classList.toggle('hidden', h.speaker !== '研究員' && labWasHidden); if (h.speaker === '研究員') lc.classList.remove('hidden'); }
+    ui.text.style.fontSize = h.fs || '';
     fullText = h.text; setRuby(ui.text, h.text); ui.nextMark.classList.remove('hidden');
   }
   function goBack() {
@@ -1494,11 +1505,13 @@
   const serveSlice = async i => {
     slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft);
     const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52);
-    d.visible = true;
+    d.visible = true; d.children.forEach(c => { c.visible = true; });
     await tween(550, p => { d.position.lerpVectors(from, to, ease(p)); d.position.y += Math.sin(p * Math.PI) * .25; });
   };
   const heroHoldDish = on => { heroDishOn = on; heroCarry = on; };
   const pickDish = i => { diningDish[i].visible = false; };                 // ダイニングの お皿を 手に とる
+  // お皿の ケーキを 食べる（お皿だけ のこる）。ケーキが のって いなければ なにも しない
+  const eatDish = async (i, ms = 700) => { const d = diningDish[i]; if (!d.visible || !d.children[1].visible) return; await wait(ms); d.children.slice(1).forEach(c => { c.visible = false; }); };
   const cakeTake = () => { slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
   { const c = kidAM.userData.necklace.children[0].clone(); c.scale.setScalar(KID * 1.3); heroStar.add(c); }
@@ -1760,7 +1773,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { writeIn, tapUntil, roam, pickDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
+  Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };
