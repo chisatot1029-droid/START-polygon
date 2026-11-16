@@ -377,7 +377,7 @@ const STORY = {
     let nameA = '{子供|こども}A';
     const KA = (text, f) => say(nameA, text, { face: f && 'kidA' + f }), KB = (text, f, name = 'シィ') => say(name, text, { face: f && 'kidB' + f });
     const O = (text, face) => say('かいとう', text, { face });
-    const R = text => say('研究員', text);                       // 研究員（右下の カットの 吹き出し）
+    const R = (text, opt) => say('研究員', text, opt);                       // 研究員（右下の カットの 吹き出し）
     // 書き込んだ ことばへの 研究員の 相槌：「〇〇なんだね。」
     const aizuchi = t => {
       t = String(t || '').trim().replace(/[。．.！!？?、,～〜…\s]+$/u, '').replace(/(だと|と)?(思う|思います)$/u, '').replace(/(です|だよ|だね|だ|かな)$/u, '');
@@ -432,14 +432,14 @@ const STORY = {
     look(10.0, -11.4, 1.5, false, 'slow');
     sitActor(kidA, 4.2, -8.7, Math.PI / 2);
     await wait(900);
-    await walkPath(kidA, [[11.4, -8.9], [11.6, -13.4]], 2.6);
+    await walkPath(kidA, [[11.4, -8.9], [11.6, -13.4]], 4.6);   // 走って かけつける
     lookAt(kidA, heroX(), heroZ());
     look(12.4, -13.0, .9, false, 'slow');
     await KA('あ！お兄さんケーキ切ってくれるの？', 3);
     heroFace(kidA.x, kidA.z);
     await H('？');
     await KA('ちがうの…？', 4);
-    await H('青い子だ…。');
+    await H('⟦青い子⟧だ…。');
 
     const first = await choose(['切ってあげる', 'うそをつく']);
     let three = false;                                 // ❸「…。」を えらんだ
@@ -447,7 +447,9 @@ const STORY = {
     if (first === '切ってあげる') {
       await H('そうだよ。切ろうとしてたところ。');
       nameA = 'リアオ';
-      await KA('やった！おいら、リアオ！おいらの他に6人いるから、お兄さんの分ふくめて8人分ね！', 2);
+      await KA('やった！おいらリアオ！', 2);
+      await KA('実はさっき切ろうとしたんだけど、\nこわくてできなかったんだ。', 1);
+      await KA('おいらの他に5人いるから、\nオーナーさんとお兄さんふくめて8人分ね！', 2);
       await H('8等分か。');
       heroFace(14.72, -13.57);
       await H('（でも、お{腹|なか}が空いているからたくさん食べたい気持ちもある…。どうしよう？）');
@@ -510,8 +512,8 @@ const STORY = {
     await serveSlice(0);
     await serveSlice(1);
     await wait(400);
-    await KA('あ、あのね。おいら、2つ{欲|ほ}しいんだ。', 3);
-    await H('2つ？一人で2つ食べるのか？');
+    await KA('あ、あのね。おいら、2つ取ってもいいかな？', 3);
+    await H('2つ？一人で2つ食べるのか？\n（お{腹|なか}空いているから、\nこっちだってたくさん食べたいのに！）', { lines: 3 });
     await KA('そ、それは…。', 1);
     // 研究員が プレイヤーに 聞く（書き込む 欄）
     await labCut('talk');
@@ -520,23 +522,26 @@ const STORY = {
     await R('ふむふむ。なるほど。それはなんでそう思ったんだい？');
     await writeIn({ label: 'なんで そう 思った？', placeholder: '{例|れい}：2つも ほしがったから' });
     await R(`そうだねぇ。${aizuchi(feel)}`);
-    await R('ただ、この{子供|こども}は前もって君に人数を教えたのに、2つもらおうとしている。それに君だってお{腹|なか}が空いているのにね。');
+    await R('この{子供|こども}は前もって君に人数を教えたのに、1人で2つもらおうとしている。');
+    await R('君は自分で食べたい数を考えて切ったのに、この子が2つ食べたら人数とケーキの数があわないのにね。', { lines: 3 });
     await labCut(false);
-    await H('君の他に、かいと…じゃなくてオーナーさんとあと5人の子がいるんだろう？みんな食べれるようにちょうど8{個|こ}に切ったんだ。');
-    await H('一人で2つ食べちゃったら、食べれない子が出てくる。');
+    await H('君の他に、かいと…じゃなくてオーナーさんと\nあと5人の子がいるんだろう？');
+    await H('みんな食べられるように\nちょうど8{個|こ}分{残|のこ}るようにしたんだ。');
+    await H('1人で2つ食べたら、食べられない子が出てくる。');
     await KA('お、おいらは2{個|こ}食べないよう！', 4);
     await labCut('talk');
     await R('おや、1人では食べないようだね。');
     await labCut(false);
     await H('じゃあなんで2{個|こ}って…。');
-    await KA('…オーナーさんとおいらしか知らない{秘密|ひみつ}なんだけど、{屋根裏|やねうら}においらと同じような子がもう一人いるんだ。', 1);
-    await KA('その子に…もケーキをあげたい…。', 1);
+    await KA('オーナーさんとおいらだけの{秘密|ひみつ}なんだけど、\n{屋根裏|やねうら}に5人の他にもう一人いるんだ。', 1);
+    await KA('その子にも、ケーキをあげたい…。', 1);
     await labCut('talk');
-    await R('この{子供|こども}はうそをついていたのか。君をふくめて9人いるということ…。どうするんだい？');
+    await R('この{子供|こども}はうそをついていたのか\n君をふくめて9人いるということ…。');
+    await R('どうするんだい？');
     const give = await choose(['2{個|こ}あげる', '自分で{好|す}きな数を食べる']);
     await labCut(false);
     if (give !== '2{個|こ}あげる') { await selfish(); return; }   // このあと 製作中の 所で おわる
-    await H('そうだったのか…！じゃあ、今からわたしに行って、いっしょに食べよう。');
+    await H('そうだったのか…！\nじゃあ今からわたしに行って、いっしょに食べよう。');
     await KA('うん！ありがとう！', 2);
     // 階段へ（プレイヤーが 歩く。子供Aは 先に 階段へ）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidA, 0, 400)]);
@@ -556,7 +561,8 @@ const STORY = {
     await fadeIn(700);
     await KA('シィ～？おやつ持ってきたよ！', 1);
     await KB('やった！ありがとう。', 2);
-    await KA('いっしょに食べよう！ケーキを切ってくれたお兄さんもいっしょにいるんだけど、入っていいかな？', 1);
+    await KA('ケーキを切ってくれたお兄さんも\nいるんだけど、', 1);
+    await KA('いっしょに入っていいかな？', 1);
     await KB('いいよー！', 2);
     await openDoor('attic', 900);
 
