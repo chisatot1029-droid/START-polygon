@@ -258,7 +258,7 @@ const STORY = {
           await walkTo(2830, 500);                                          // 警察に むかって 一歩
         } else {
           await say('主人公', 'にげろっ！', { face: 'hero' });
-          await walkTo(3050, 500);                                          // 逃げようと する
+          await walkXY(400, 2930, 600);                                    // 逃げようと する（画面の 外へは 出ない）
         }
         await labCut('memo');                                                     // 研究員が メモを する 仕草
         await wait(1800);

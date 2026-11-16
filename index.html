@@ -397,6 +397,13 @@
     await tween(ms, p => { thrown = { x: x0 + (x1 - x0) * p, y: y0 + (y1 - y0) * p, h: (1.1 + Math.sin(p * Math.PI) * 1.6) * CHAR, spin: p * 12 }; });
     thrown = null;
   };
+  // 決まった 位置（x, y）へ 歩く。向きも 進む 方へ
+  const walkXY = async (x, y, ms = 600) => {
+    const x0 = player.x, y0 = player.y;
+    player.face = Math.atan2(x - x0, -(y - y0)); player.moving = true;
+    await tween(ms, p => { player.x = x0 + (x - x0) * p; player.y = y0 + (y - y0) * p; player.t += .016; });
+    player.moving = false;
+  };
   // 荷物を 持って バケモノに かけより、ふりおろして 当てる（投げる 以外の たおし方）
   let swingK = 0;
   const meleeItem = async () => {
@@ -549,7 +556,7 @@
   Object.assign(window, { gardenSetup });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
-    police, policeWalk, throwItem, meleeItem, camera, follow, walkTo, resetPlayer, note, end });
+    police, policeWalk, throwItem, meleeItem, walkXY, camera, follow, walkTo, resetPlayer, note, end });
 
   async function runEvent(fn) {
     mode = 'event'; player.moving = false;
