@@ -1403,7 +1403,7 @@
     return g;
   }
   function makeKidA() {
-    const g = new THREE.Group(), navy = flat('#1d2142'), skin = flat('#f7e3d4'), hair = flat('#f1cd4c'), shoe = flat('#cf5f58'), gold = flat('#f2c94c');
+    const g = new THREE.Group(), navy = flat('#337aff'), skin = flat('#f7e3d4'), hair = flat('#f1cd4c'), shoe = flat('#cf5f58'), gold = flat('#f2c94c');
     // からだ：せを 低く、すそは パーカーの ような 平らな ゴム（田野さんの 4面図 修正）
     const D = .14;                 // からだを 低く した ぶん、頭を 下げる
     const body = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), navy); body.scale.set(1, .98, .9); body.position.y = .56; g.add(body);
