@@ -1033,7 +1033,7 @@ const STORY = {
       await R('この{子供|こども}！2{個|こ}とったぞ！どうする…？');
       const c = await choose(['注意する', '{無視|むし}する']);
       await labCut(false);
-      let trusted = false;                                              // 注意した あと 信じて 2つ 持って いかせた
+      let trusted = c !== '注意する';                                    // 2つ 持って いかせた（無視した、または 注意した あと 信じた）
       if (c === '注意する') {
         await tapAt(TAP.kidHand, 'タップ');                                 // 2つ目を 取ろうと する 手を
         await KA('いてっ！', 1);
