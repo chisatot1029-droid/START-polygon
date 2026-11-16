@@ -206,7 +206,8 @@ const STORY = {
         await say('主人公', '？', { face: 'hero' });
         await wait(600);                                                    // すぐに 警察が 現れる
         police('police');
-        await policeWalk(0, 710, 1800);
+        centerHero(1200);                                                   // カメラは 主人公が まんなか
+        await policeWalk(0, 860, 2000);                                     // 主人公の 近くまで 来る
         await say('{警察|けいさつ}', 'おい！そこの君！\nここで{事件|じけん}が起きたと聞いたが');
         await say('{警察|けいさつ}', '何か見なかったか！？');
         await say('主人公', '（早くここを出なくては\nいけないんだ…。）', { face: 'hero' });
@@ -255,16 +256,16 @@ const STORY = {
         }
         if (act === '{戦|たたか}う') {
           await say('主人公', 'いっそ{戦|たたか}うか…！', { face: 'hero' });
-          await walkTo(2830, 500);                                          // 警察に むかって 一歩
+          await walkTo(2930, 400);                                          // 警察に むかって 一歩
         } else {
           await say('主人公', 'にげろっ！', { face: 'hero' });
-          await walkXY(400, 2930, 600);                                    // 逃げようと する（画面の 外へは 出ない）
+          await stepBack(90, 500);                                          // 少し 後ずさり（横には 動かず、画面の 外へも 出ない）
         }
         await labCut('memo');                                                     // 研究員が メモを する 仕草
         await wait(1800);
         await labCut(false);
         show('gun');                                                        // 警察が 拳銃を 突きつける
-        await say('主人公', '{拳銃|けんじゅう}！死にたくないよ！', { face: 'hero' });
+        await say('主人公', 'ピストル！死にたくないよ！', { face: 'hero' });
         await wait(2000);                                                   // 主人公が 2秒 身構える
         await say('{警察|けいさつ}', 'パンッ！');
         await fadeOut('white', 80);                                         // 発砲する
@@ -283,7 +284,7 @@ const STORY = {
         await say('主人公', 'さっきの！', { face: 'hero' });
         await say('かいとう', 'やっとわかってくれたか！', { face: 'kaitou2' });
         await say('主人公', '（でも、どういうことだ？\nおそわれていた人が、）', { face: 'hero' });
-        await say('主人公', '（{警察|けいさつ}に{変装|へんそう}して、\n今は{拳銃|けんじゅう}で{撃|う}とうとした？）', { face: 'hero' });
+        await say('主人公', '（{警察|けいさつ}に{変装|へんそう}して、\n今はピストルで{撃|う}とうとした？）', { face: 'hero' });
         await say('かいとう', 'やれやれ。もっとおどろいてくれよ。\n君はこの世界に{初|はじ}めて来たんだろう？', { face: 'kaitou3' });
         await say('かいとう', '心細いと思って、君を楽しませるために\n色々と用意したんだ！', { face: 'kaitou2' });
         await say('かいとう', '美味しい食事も、いろんな人との出会いも！\n{最後|さいご}にはとっておきのお楽しみが待っている。', { face: 'kaitou2' });

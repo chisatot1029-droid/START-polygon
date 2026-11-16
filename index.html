@@ -428,6 +428,11 @@
     return tween(ms, p => { camTarget = from + (to - from) * ease(p); });
   };
   const follow = () => { followCam = true; camTarget = null; };
+  const centerHero = (ms = 800) => camera(player.y - 600, ms);      // 主人公を 画面の まんなかに
+  const stepBack = (px = 90, ms = 500) => {                          // 前を 向いたまま 後ずさり（横には 動かない）
+    const from = player.y; player.moving = true; player.face = 0;
+    return tween(ms, p => { player.y = from + px * p; player.t += 0.008; }).then(() => { player.moving = false; });
+  };
   const walkTo = (y, ms = 800) => {
     const from = player.y; player.moving = true; player.face = 0;
     return tween(ms, p => { player.y = from + (y - from) * p; player.t += 0.016; }).then(() => { player.moving = false; });
@@ -556,7 +561,7 @@
   Object.assign(window, { gardenSetup });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
-    police, policeWalk, throwItem, meleeItem, walkXY, camera, follow, walkTo, resetPlayer, note, end });
+    police, policeWalk, throwItem, meleeItem, walkXY, centerHero, stepBack, camera, follow, walkTo, resetPlayer, note, end });
 
   async function runEvent(fn) {
     mode = 'event'; player.moving = false;
