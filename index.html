@@ -1256,6 +1256,10 @@
     shadowAll(t); homeG.add(t); }
   // 青い ラグ
   { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#141a40')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .07, -9.04); homeG.add(rug); }   // 床の でこぼこより 上に
+  // 同じ 紺色の カーペット：ダイニングテーブルの 下と、キッチンの ケーキが ある 台の 手前
+  [[0, -15.52, 4.3, 6.0], [12.75, -13.4, 1.8, 2.7]].forEach(([x, z, w, d]) => {
+    const c = new THREE.Mesh(new THREE.PlaneGeometry(w, d), flat('#141a40')); c.rotation.x = -Math.PI / 2; c.position.set(x, .07, z); homeG.add(c);
+  });
   // ダイニングテーブルと 椅子 6つ
   const TABLE = { x1: -.99, x2: .96, z1: -17.67, z2: -13.37, y: .78 * FUR + .05 };
   { const t = new THREE.Group();
@@ -1301,6 +1305,43 @@
   const knifeTaken = knifeRack.children[2];         // 手に とる ナイフ
   // 植物（緑が 多い 家）
   [[-2.6, -19.6, 1.3], [2.6, -19.6, 1.1], [-2.6, -1.0, 1.0], [2.6, -2.8, .9], [-2.6, -12.2, 1.2], [9.95, -9.6, 1.0], [8.7, -7.9, .9], [15.0, -11.6, .8]].forEach(([x, z, k]) => potPlant(homeG, x, z, k));
+  // 形や 大きさの ちがう 観葉植物
+  const plantPot = (p, r, h, color = '#b5643c') => { const pot = new THREE.Mesh(new THREE.CylinderGeometry(r, r * .75, h, 8), flat(color)); pot.position.y = h / 2; p.add(pot); };
+  const leaf = (p, geo, c, x, y, z, rx = 0, rz = 0, s = [1, 1, 1]) => { const m = new THREE.Mesh(geo, flat(c)); m.position.set(x, y, z); m.rotation.set(rx, 0, rz); m.scale.set(...s); p.add(m); return m; };
+  const PLANTS = {
+    tall(p, k) {                                  // 背の 高い 木（みきと 大きな 葉）
+      plantPot(p, .22 * k, .36 * k, '#e9e2d0');
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.03 * k, .04 * k, 1.1 * k, 5), flat('#7a5434')); trunk.position.y = .9 * k; p.add(trunk);
+      [[0, 1.5, 0, .28], [.18, 1.25, .08, .22], [-.17, 1.1, -.06, .22], [.05, 1.75, -.1, .2], [-.12, 1.4, .14, .2]].forEach(([x, y, z, r], i) =>
+        leaf(p, new THREE.IcosahedronGeometry(r * k, 0), ['#3f7a36', '#4f8f3e', '#2f6a2c'][i % 3], x * k, y * k, z * k, 0, 0, [1, .7, 1]));
+    },
+    snake(p, k) {                                 // サンスベリア（細長い 葉が 上に のびる）
+      const pot = new THREE.Mesh(new THREE.BoxGeometry(.32 * k, .3 * k, .32 * k), flat('#3d4a5c')); pot.position.y = .15 * k; p.add(pot);
+      [[-.08, .9, -.05, .12], [.06, 1.1, .04, -.1], [0, .75, .09, .05], [.1, .8, -.08, -.18], [-.1, .65, .08, .2]].forEach(([x, h, z, rz], i) =>
+        leaf(p, new THREE.BoxGeometry(.07 * k, h * k, .025 * k), i % 2 ? '#5d8f3a' : '#3b6e2e', x * k, (.3 + h / 2) * k, z * k, 0, rz));
+    },
+    bush(p, k) {                                  // 低くて 横に 広い しげみ（かご）
+      plantPot(p, .3 * k, .22 * k, '#c9a46a');
+      for (let i = 0; i < 9; i++) { const a = i * 2.4, r = (i % 3) * .1 * k; leaf(p, new THREE.DodecahedronGeometry((.13 + (i % 2) * .04) * k, 0), ['#6a9e47', '#4f8a3c', '#7fb257'][i % 3], Math.cos(a) * r, (.3 + (i % 4) * .05) * k, Math.sin(a) * r); }
+    },
+    cactus(p, k) {                                // サボテン
+      plantPot(p, .16 * k, .24 * k, '#d9825b');
+      const c = '#4d8a4a';
+      leaf(p, new THREE.CylinderGeometry(.09 * k, .1 * k, .6 * k, 7), c, 0, .54 * k, 0);
+      leaf(p, new THREE.CylinderGeometry(.045 * k, .05 * k, .22 * k, 6), c, .14 * k, .62 * k, 0, 0, -.2);
+      leaf(p, new THREE.CylinderGeometry(.04 * k, .045 * k, .18 * k, 6), c, -.13 * k, .5 * k, 0, 0, .2);
+      leaf(p, new THREE.IcosahedronGeometry(.035 * k, 0), '#f2a7c3', 0, .87 * k, 0);
+    },
+    palm(p, k) {                                  // ヤシ（放射状に ひろがる 葉）
+      plantPot(p, .2 * k, .32 * k, '#b5643c');
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.035 * k, .05 * k, .55 * k, 5), flat('#8a6a3c')); trunk.position.y = .58 * k; p.add(trunk);
+      for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2, m = leaf(p, new THREE.BoxGeometry(.09 * k, .02 * k, .5 * k), i % 2 ? '#4f8f3e' : '#6aa64a', Math.sin(a) * .2 * k, .86 * k, Math.cos(a) * .2 * k); m.rotation.set(-.5, a, 0, 'YXZ'); }
+    },
+  };
+  [['tall', -2.5, -16.0, 1.1], ['snake', 2.5, -17.2, 1.0], ['bush', 2.45, -12.4, .9], ['palm', -2.45, -5.6, 1.0], ['cactus', 2.5, -1.6, .9],
+   ['snake', -2.5, -18.4, .8], ['tall', 15.05, -8.0, 1.0], ['bush', 9.85, -12.4, .85], ['cactus', 5.0, -9.6, .8], ['palm', 13.0, -7.95, .85]].forEach(([kind, x, z, k]) => {
+    const p = new THREE.Group(); p.position.set(x, 0, z); PLANTS[kind](p, k); shadowAll(p); homeG.add(p);
+  });
   const homeLight = new THREE.PointLight('#ffd9a0', 0, 30, 0); homeLight.position.set(HOME.x + 5, 4, HOME.z - 10); scene.add(homeLight);
 
   // ---------- 屋根うら ----------
@@ -1497,7 +1538,10 @@
     const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .15, .02, 12), flat('#ffffff')); p.add(pl);
     const sl = new THREE.Mesh(wedgeGeo(.26, .16, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(-.05, .09, -.12); p.add(sl);
     const b = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#d8343c')); b.position.set(.02, .2, .05); p.add(b);
-    const sl2 = new THREE.Mesh(wedgeGeo(.26, .16, 0, Math.PI / 4), flat('#fbf6ee')); sl2.position.set(.07, .09, .02); sl2.rotation.y = 1.2; sl2.visible = false; p.add(sl2);   // 2つめの 一切れ
+    // 2つめの 一切れ（イチゴつき）：1つめに 少し かさなって お皿に おさまる
+    const sl2 = new THREE.Group(); sl2.position.set(-.03, .14, -.1); sl2.rotation.y = .45; sl2.visible = false; p.add(sl2);
+    sl2.add(new THREE.Mesh(wedgeGeo(.26, .16, 0, Math.PI / 4), flat('#fbf6ee')));
+    const b2 = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#d8343c')); b2.position.set(.06, .11, .17); sl2.add(b2);
     shadowAll(p); return p;
   }
   const DINE = [[.6, -14.45], [-.6, -14.45]];          // ダイニングの 主人公・リアオの 前
@@ -1510,7 +1554,7 @@
     slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft);
     const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52);
     if (second) {
-      const m = d.children[3], rest = new THREE.Vector3(.07, .09, .02), off = from.clone().sub(to);
+      const m = d.children[3], rest = new THREE.Vector3(-.03, .14, -.1), off = from.clone().sub(to);
       m.visible = true;
       await tween(550, p => { m.position.copy(rest).addScaledVector(off, 1 - ease(p)); m.position.y += Math.sin(p * Math.PI) * .25; });
       m.position.copy(rest); return;
@@ -1522,7 +1566,13 @@
   const pickDish = i => { diningDish[i].visible = false; };                 // ダイニングの お皿を 手に とる
   // お皿の ケーキを 食べる（お皿だけ のこる）。ケーキが のって いなければ なにも しない
   const dishCake = i => diningDish[i].visible && diningDish[i].children[1].visible;   // お皿に ケーキが のって いるか
-  const dishBack = i => { diningDish[i].children[3].visible = false; slicesLeft++; showSlices(slicesLeft); };   // お皿の 2つめを ホールケーキに もどす
+  // お皿の 2つめを ホールケーキに もどす（ケーキへ 運んで 消える）
+  const dishBack = async i => {
+    const d = diningDish[i], m = d.children[3], rest = m.position.clone();
+    const off = new THREE.Vector3(0, TABLE.y + .06, -15.52).sub(new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]));
+    await tween(600, p => { m.position.copy(rest).addScaledVector(off, ease(p)); m.position.y += Math.sin(p * Math.PI) * .25; });
+    m.visible = false; m.position.copy(rest); slicesLeft++; showSlices(slicesLeft);
+  };
   const eatDish = async (i, ms = 700) => { const d = diningDish[i]; if (!d.visible || !d.children[1].visible) return; await wait(ms); d.children.slice(1).forEach(c => { c.visible = false; }); };
   const cakeTake = () => { slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
