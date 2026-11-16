@@ -327,7 +327,7 @@ const STORY = {
         await say('主人公', 'ふふっ。うん。', { face: 'hero' });
         moonlight();                                                        // 月の光が 怪盗を 照らし、輝くような 笑顔に
         await wait(1500);                                                   // 一瞬 微笑む 主人公。次第に 顔が 暗くなる
-        await say('主人公', '（あ…。でも、\nぼくはこの世界から出たいんだった…。）', { face: 'hero' });
+        await say('主人公', '（あ…。でも、\nこの世界から出たいんだった…。）', { face: 'hero' });
         const feel = await choose(['出たいと{伝|つた}える', '出たいと{伝|つた}えない']);
         if (feel === '出たいと{伝|つた}える') {
           await say('主人公', '楽しませようとしているのは\nうれしいが、助けて{欲|ほ}しいんだ。', { face: 'hero' });
@@ -670,7 +670,7 @@ const STORY = {
     await KA('あと、お兄さんともう会えないなら、今のうちにたくさん話さなくちゃ。', 3);
     await KA('おいらはたくさん話したけど、\nシィはまだ少ししか話してないでしょ？', 3);
     await KB('あぁ…。', 3);
-    await KB('じゃあ、{私|わたし}が{案内|あんない}するよ。', 1);
+    await KB('じゃあ、わたしが{案内|あんない}するよ。', 1);
     await H('ありがとう。');
     heroFace(kidA.x, kidA.z); lookAt(kidA, heroX(), heroZ());
     await KA('お兄さん！じゃあね！', 2);
@@ -855,7 +855,7 @@ const STORY = {
       await H('さっきの物音はここから？…それは？');
       lookAt(kidA, kidB.x, kidB.z);
       await KA('{勝手|かって}に入ってきちゃダメだよ！\nシィ、だいじょうぶ？', 1);
-      await KB('うん。オーナーさんじゃなくてびっくりしちゃったけど。', 1);
+      await KB('うん。オーナーじゃなくてびっくりしちゃったけど。', 1);
       await KA('そっか。よかった。', 2);
       lookAt(kidA, heroX(), heroZ());
       await H('それで、その黄色いかけらは？');
@@ -876,7 +876,7 @@ const STORY = {
         lookAt(kidB, heroX(), heroZ());
         await KB('それは星の形をしていなきゃダメなの？', 1);
         await H('え？');
-        await KB('{粉々|こなごな}でも元は星だし、\nオーナーさんがそう言っていたなら、', 1);
+        await KB('{粉々|こなごな}でも元は星だし、\nオーナーがそう言っていたなら、', 1);
         await KB('どんな形でも{意味|いみ}があるんじゃない？', 1);
         await labCut('talk');
         await R('そうなのかなぁ？どんな思考をしているんだこの子は。もらっておく？');
@@ -910,7 +910,7 @@ const STORY = {
         await KB('…そう。', 1);
       }
       lookAt(kidB, heroX(), heroZ());
-      await KB('あなた、ここに住むわけではなくお客さんなんでしょ？次はどこかにいくの？', 1);
+      await KB('お兄さん、ここに住むわけではなくお客さんなんでしょ？次はどこかにいくの？', 1);
       const nx = await choose(['分からない', '教えて{欲|ほ}しい']);
       if (nx === '分からない') await H('分からない…。');
       else await H('次に行く所を、教えて{欲|ほ}しい。');
@@ -920,7 +920,7 @@ const STORY = {
       await H('そうか。行ってみるよ。');
       await KA('シィはここら{辺|へん}のことをたくさん知っているんだよ。そうだ、せっかくだしシィが{案内|あんない}する？', 2);
       await KB('え？あぁ……。', 3);
-      await KB('じゃあ、{私|わたし}が{案内|あんない}するよ。', 1);
+      await KB('じゃあ、わたしが{案内|あんない}するよ。', 1);
       await H('うん。');
       await toRoof();
     }
@@ -940,7 +940,7 @@ const STORY = {
       await labCut(false);
       let st;
       if (t === '{伝|つた}える') {
-        const w = await writeIn({ label: 'リアオに {伝|つた}える', placeholder: '{例|れい}：ぼくも お{腹|なか}が ペコペコなんだ' });
+        const w = await writeIn({ label: 'リアオに {伝|つた}える', placeholder: '{例|れい}：お{腹|なか}が ペコペコなんだ' });
         await H(w);
         await KA('そっか、わかった…。', 4);
         pickDish(1); prop('kidPlates', true); prop('trayOne', true); brought = 1;   // 1つの ケーキを 持って 2階へ
