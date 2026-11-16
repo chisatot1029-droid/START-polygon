@@ -36,6 +36,7 @@
     #dialog.narration #nextMark { color: #fff; right: 6%; bottom: 7%; }
     #backMark { position: absolute; right: 8.5%; bottom: 9%; font-size: 2.6em; line-height: 1; padding: 0 .2em; cursor: pointer; opacity: .55; }
     #backMark:hover { opacity: 1; }
+    .red { color: #e0242b; }
     #dialog.choosing #backMark { display: none; }
     #dialog.narration #backMark { color: #fff; right: 10%; bottom: 7%; }
     #dialog.lab #backMark { font-size: 1.4em; right: 12%; bottom: 8%; }
@@ -238,9 +239,11 @@
 
   // ルビ：文の 中の {漢字|よみ} を <ruby> に する（小4〜6で 習う 漢字）
   const RUBY_RE = /\{([^{}|]+)\|([^{}]+)\}/g;
-  const plainText = s => String(s).replace(RUBY_RE, '$1');            // はばを はかる 時は 漢字だけ
+  const plainText = s => String(s).replace(RUBY_RE, '$1').replace(/[⟦⟧]/g, '');            // はばを はかる 時は 漢字だけ
   const kanaText = s => String(s).replace(RUBY_RE, '$2');             // ルビが 使えない 所（入力らんの 見本）は よみがな
-  const rubyHTML = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]).replace(RUBY_RE, '<ruby>$1<rt>$2</rt></ruby>');
+  // ⟦ ⟧ で かこんだ 所は 赤い 文字（文字を 1つずつ 出す とちゅうで 閉じて いなくても 赤く する）
+  const rubyHTML = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]).replace(RUBY_RE, '<ruby>$1<rt>$2</rt></ruby>')
+    .replace(/⟦([^⟦⟧]*)(⟧|$)/g, '<span class="red">$1</span>').replace(/[⟦⟧]/g, '');
   const setRuby = (el, s) => { el.innerHTML = rubyHTML(s); };
   const textUnits = s => String(s).match(/\{[^{}|]+\|[^{}]+\}|[\s\S]/gu) || [];   // ルビの かたまりは 1つと して あつかう
   let advanceResolve = null, typeTimer = null, typing = false, fullText = '', chooseResolve = null;
@@ -448,8 +451,11 @@
   };
   const arriveHouse = async (how) => {
     if (how === 'follow') {                                             // かいとうは 先に 着いて 待っている。主人公が 階段を 上って くる
-      houseKaitou.x = 1.5; houseKaitou.z = 3.8; houseHero.x = -.9; houseHero.z = 12.6;
-      await walkHouse(houseHero, -.5, 5.7, 3000);
+      // かいとうも はじめは 走って 先に 着き、主人公が あとから 階段を 上って くる
+      running = true;
+      houseKaitou.x = 1.7; houseKaitou.z = 10.8; houseHero.x = -.9; houseHero.z = 13.4;
+      await Promise.all([walkHouse(houseKaitou, 1.5, 3.8, 2000), walkHouse(houseHero, -.5, 5.7, 2800)]);
+      running = false;
       return;
     }
     running = true;
