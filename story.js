@@ -297,10 +297,10 @@ const STORY = {
         hide('watch');
         await say('主人公', '時間をもどす…。\n{確|たし}かにさっきは時がもどっていた。', { face: 'hero' });
         await say('かいとう', 'ぜひこの世界を楽しんでくれ！\nさぁ。行こう！', { face: 'kaitou1' });
-        await say('主人公', 'この人は何か知っているのかもしれない。\nついていこう。', { face: 'hero' });
         // 怪盗は 主人公を 置いて 走り出す。【プレイヤーの 操作】怪盗に ついていく
         await kaitouRunAhead();
         follow();
+        await say('主人公', 'この人は何か知っているのかもしれない。\nついていこう。', { face: 'hero' });   // 動けるように なる 時に
         flags.follow = true;
         flags.run = true;                                                   // かいとうに ついていく 時も 2周目と 同じ 速さ
       },
