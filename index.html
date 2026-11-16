@@ -332,7 +332,10 @@
     const maxW = (ui.text.clientWidth || 600) * .94;   // 少し 余白を もたせて 折りかえす
     measureCtx.font = `${cs.fontSize} ${cs.fontFamily}`;
     const lines = [];
+    const fullW = (ui.text.clientWidth || 600) - 2;
     for (const raw of text.split('\n')) {
+      // 行を 分けて 書いた 文で、その 行が ウィンドウに 入る ときは そのまま 1行に する
+      if (text.includes('\n') && measureCtx.measureText(plainText(raw)).width <= fullW) { lines.push(raw); continue; }
       let line = '';
       for (const ch of textUnits(raw)) {
         if (line && measureCtx.measureText(plainText(line + ch)).width > maxW && !NO_LINE_START.includes(plainText(ch)[0])) {
