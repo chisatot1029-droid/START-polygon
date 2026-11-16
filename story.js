@@ -441,6 +441,8 @@ const STORY = {
     const first = await choose(['切ってあげる', 'うそをつく']);
     let three = false;                                 // ❸「…。」を えらんだ
     let brought = 2;                                   // リアオが 2階へ 持って いった ケーキの 数
+    let cutN = 8;                                      // ケーキを 何こに 切ったか（8 = 言われた とおり）
+    let doorCount = 0;                                 // 物音の あと 家の 外へ 出た 回数
     if (first === '切ってあげる') {
       await H('そうだよ。切ろうとしてたところ。');
       nameA = 'リアオ';
@@ -511,7 +513,8 @@ const STORY = {
     await wait(400);
     await KA('あのさ、おいら、2つ取ってもいいかな？', 3);
     await H('2つ？1人で2つ食べるのか？');
-    await H('（お{腹|なか}空いているから\nこっちだってたくさん食べたいのに。）');
+    if (cutN === 8) await H('（お{腹|なか}空いていても、人数通りに切ったのに。）');   // 言われた とおり 8こに 切った 場合
+    else await H('（お{腹|なか}空いているから\nこっちだってたくさん食べたいのに。）');
     await KA('そ、それは…。', 1);
     // 研究員が プレイヤーに 聞く（書き込む 欄）
     await labCut('talk');
@@ -521,7 +524,8 @@ const STORY = {
     await writeIn({ label: 'なんで そう 思った？', placeholder: '{例|れい}：2つも ほしがったから' });
     await R(`なるほど。${aizuchi(feel)}`);
     await R('この{子供|こども}は前もって君に人数を教えたのに、1人で2つもらおうとしている。');
-    await R('君は自分が食べたい数を\n考えて切ったのに、');
+    if (cutN === 8) await R('君は言われた通り\n人数に合わせて切ったのに、');
+    else await R('君は自分が食べたい数を\n考えて切ったのに、');
     await R('この子が2つ食べたらケーキの数が\n合わなくなるね。');
     await labCut(false);
     await H('君の他に、かいと…じゃなくてオーナーさんと\nあと5人の子がいるんだろう？');
@@ -703,6 +707,7 @@ const STORY = {
       const c = await choose(['8{個|こ}切る', '{好|す}きな数を切る']);
       let n = 8;
       if (c === '{好|す}きな数を切る') n = await writeIn({ number: true, min: 2, max: 16, label: '何こに 切る？（2～16）', placeholder: '{例|れい}：10', autoNumber: 6 });
+      cutN = n;
       prop('badCut', false);
       await cakeGame(n);
       cakeSliced(n);
@@ -735,7 +740,7 @@ const STORY = {
           else if (kidA.z > -12.05) path = [[.5, -8.4], [5.6, -8.6], [5.6, -12.4]];
           else path = [[-2.2, -12.0], [.5, -8.4], [5.6, -8.6], [5.6, -12.4]];
         }
-        await walkPath(kidA, path, .9);
+        await walkPath(kidA, path, brought === 1 ? 1.8 : .9);          // 1つだけ 持って いく ときは 早足で
         if (!st.stopped) { kidA.visible = false; look(0, -14.5, 1, false, 'slow'); }   // 2階へ 行ったら もどす
       })();
       return st;
@@ -772,6 +777,11 @@ const STORY = {
           await H(ans);
           await KA('フゥン…。ご、ごめんなさい。', 4);
           const again = riaoLeaves(true); await again.done;   // 机には もどらず 階段へ
+          if (brought === 1) {                                           // 1つだけ 持って いった ときは 引き止めても「静かになったね」
+            await labCut('talk');
+            await R('{静|しず}かになったね。');
+            await labCut(false);
+          }
         } else {
           await labCut('talk');
           await R('{静|しず}かになったね。');
@@ -800,11 +810,13 @@ const STORY = {
         setOutfit(false); gardenSetup();
         await fadeIn(600);
         await say('', 'ガチャ。');
-        await O('おや？帰るのかい？', 'kaitou1');
-        await H('！');
-        await O('星はいいのかい？まぁ、この家でなくても星を持っている子はいるからね。', 'kaitou1');
-        await H('……。');
-        await O('どうする？', 'kaitou1');
+        doorCount++;
+        if (doorCount === 1) {
+          await O('おや？もう星は手に入ったのかい？', 'kaitou1');
+          await H('！');
+          await H('……。');
+          await O('どうする？', 'kaitou1');
+        } else await O('もういいのかい？', 'kaitou1');                       // 2回目からは これだけ
         const c = await choose(['先に進む', '家にもどる']);
         if (c === '先に進む') {
           await O('そうか。じゃあ左手にあるさくから次の花道に{続|つづ}いている。行ってらっしゃい。', 'kaitou2');
@@ -833,14 +845,6 @@ const STORY = {
       look(8.6, -11.8);
       await fadeIn(700);
       await H('さっきの物音はここか？');
-      for (;;) {
-        await labCut('talk');
-        await R('入るのかい？');
-        const c = await choose(['入る', '入らない']);
-        await labCut(false);
-        if (c === '入る') break;
-        await wait(1500);                                                  // その場に 残る（しばらくして また 聞かれる）
-      }
       await openDoor('attic', 900);
       // ドアを 開けると、{粉々|こなごな}に なった 星の まわりに 二人の 子供が いた
       look(0, -10.2);
@@ -855,6 +859,7 @@ const STORY = {
       await KB('うん。オーナーじゃなくてびっくりしちゃったけど。', 1);
       await KA('そっか。よかった。', 2);
       lookAt(kidA, heroX(), heroZ());
+      await H('？');
       await H('それで、その黄色いかけらは？');
       await KA('オーナーさんからもらった星だったんだけど、\n{割|わ}っちゃった…。', 4);
       await H('星！？');
@@ -866,9 +871,13 @@ const STORY = {
       const w = await writeIn({ label: 'リアオに 何て 言う？', placeholder: '', allowEmpty: true });
       await labCut(false);
       const k = wordKind(w);
-      if (k === 'tell' || k === 'blame') {                                 // 伝えようと する 内容（責める 内容も ふくむ）
+      if (k === 'tell' || k === 'blame' || k === 'question') {             // 伝えようと する 内容（責める・たずねる 内容も ふくむ）
         await H(w);
-        if (k === 'blame') {                                               // 責められた ときは「そうだったの？」では なく あやまる
+        if (k === 'question') {                                            // たずねられた ときは とまどってから、オーナーさんに もらった 話を する
+          await KA('え…？えーと。', 1);
+          await KA('この星は、オーナーさんからもらったんだ。', 1);
+          await KA('オーナーさんは、\nだれかにわたす時が来たらわたしてねって言ってたけど。', 4, { fit: true });
+        } else if (k === 'blame') {                                               // 責められた ときは「そうだったの？」では なく あやまる
           await KA('ご、ごめんなさい…？', 4);
           await KA('{確|たし}かにオーナーさんは、\nだれかにわたす時が来たらわたしてねって言ってたけど。', 4, { fit: true });
         } else await KA('え？そうだったの…？{確|たし}かにオーナーさんは、\nだれかにわたす時が来たらわたしてねって言ってたけど。', 4, { fit: true });
@@ -943,6 +952,8 @@ const STORY = {
       if (/^(なんでもない|何でもない|なんでも ない|べつに|別に|なにも|何も|いや|ううん|大丈夫|だいじょうぶ)[。！!…\s]*$/u.test(t.trim())) return 'silent';
       if (/いいよ|大丈夫|だいじょうぶ|気にしな|きにしな|しかたな|仕方な|しょうがな|けがは|ありがとう|ごめん/u.test(t)) return 'tell';   // ゆるす・気づかう ことばは 責めて いない
       if (BLAME_RE.test(t)) return 'blame';
+      // たずねる 文：「？」で おわる、または「〜の」「〜か」「〜かな」で おわる
+      if (/[？?]\s*$/u.test(t) || /(の|か|かな|なの|っけ)[。…\s]*$/u.test(t.trim())) return 'question';
       return 'tell';
     }
     // ②自分で好きな数を食べる を えらんだ 時
