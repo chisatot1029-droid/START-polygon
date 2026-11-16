@@ -25,7 +25,7 @@ async function writeMemo(opt) {
   const v = await writeIn(opt);
   const lc = document.getElementById('labCut'), shown = !lc.classList.contains('hidden');
   await labCut('memo');
-  await wait(1800);
+  await wait(1000);
   await labCut(shown ? 'talk' : false);
   return v;
 }
@@ -272,7 +272,7 @@ const STORY = {
           await stepBack(90, 500);                                          // 少し 後ずさり（横には 動かず、画面の 外へも 出ない）
         }
         await labCut('memo');                                                     // 研究員が メモを する 仕草
-        await wait(1800);
+        await wait(1000);
         await labCut(false);
         show('gun');                                                        // 警察が 拳銃を 突きつける
         await say('主人公', 'ピストル！死にたくないよ！', { face: 'hero' });
