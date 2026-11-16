@@ -1497,6 +1497,7 @@
     const pl = new THREE.Mesh(new THREE.CylinderGeometry(.17, .15, .02, 12), flat('#ffffff')); p.add(pl);
     const sl = new THREE.Mesh(wedgeGeo(.26, .16, 0, Math.PI / 4), flat('#fbf6ee')); sl.position.set(-.05, .09, -.12); p.add(sl);
     const b = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#d8343c')); b.position.set(.02, .2, .05); p.add(b);
+    const sl2 = new THREE.Mesh(wedgeGeo(.26, .16, 0, Math.PI / 4), flat('#fbf6ee')); sl2.position.set(.07, .09, .02); sl2.rotation.y = 1.2; sl2.visible = false; p.add(sl2);   // 2つめの 一切れ
     shadowAll(p); return p;
   }
   const DINE = [[.6, -14.45], [-.6, -14.45]];          // ダイニングの 主人公・リアオの 前
@@ -1504,16 +1505,24 @@
   const heroDish = makeDish(); heroDish.visible = false; scene.add(heroDish);
   let heroDishOn = false;
   // ホールケーキから 一切れ 取って お皿へ（i：0 = 主人公、1 = リアオ）
-  const serveSlice = async i => {
+  //   second：お皿の 上に もう 1つ のせる
+  const serveSlice = async (i, second) => {
     slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft);
     const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52);
-    d.visible = true; d.children.forEach(c => { c.visible = true; });
+    if (second) {
+      const m = d.children[3], rest = new THREE.Vector3(.07, .09, .02), off = from.clone().sub(to);
+      m.visible = true;
+      await tween(550, p => { m.position.copy(rest).addScaledVector(off, 1 - ease(p)); m.position.y += Math.sin(p * Math.PI) * .25; });
+      m.position.copy(rest); return;
+    }
+    d.visible = true; d.children.forEach((c, k) => { c.visible = k < 3; });
     await tween(550, p => { d.position.lerpVectors(from, to, ease(p)); d.position.y += Math.sin(p * Math.PI) * .25; });
   };
   const heroHoldDish = on => { heroDishOn = on; heroCarry = on; };
   const pickDish = i => { diningDish[i].visible = false; };                 // ダイニングの お皿を 手に とる
   // お皿の ケーキを 食べる（お皿だけ のこる）。ケーキが のって いなければ なにも しない
   const dishCake = i => diningDish[i].visible && diningDish[i].children[1].visible;   // お皿に ケーキが のって いるか
+  const dishBack = i => { diningDish[i].children[3].visible = false; slicesLeft++; showSlices(slicesLeft); };   // お皿の 2つめを ホールケーキに もどす
   const eatDish = async (i, ms = 700) => { const d = diningDish[i]; if (!d.visible || !d.children[1].visible) return; await wait(ms); d.children.slice(1).forEach(c => { c.visible = false; }); };
   const cakeTake = () => { slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
@@ -1776,7 +1785,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
+  Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
   window.hideStar = () => { heroStar.visible = false; starFly = null; };

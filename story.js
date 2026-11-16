@@ -479,7 +479,7 @@ const STORY = {
         await KA('あ…、ごめんなさい…！', 4);
         prop('kidKnife', false);
         // リアオは 玄関から 入って 左の すみへ にげて、ふるえて 立って いる（主人公は そのまま ケーキを 切る）
-        walkPath(kidA, [[11.4, -8.9], [2.0, -8.7], [-2.3, -8.4], [-2.4, -.8]], 4.0).then(() => { lookAt(kidA, 0, -5); kidA.shiver = true; });
+        walkPath(kidA, [[11.4, -8.9], [2.0, -8.7], [-2.45, -9.0]], 4.0).then(() => { lookAt(kidA, 0, -9.0); kidA.shiver = true; });   // カーペットの 左横
         prop('heroKnife', true);
         await walkHero(13.2, -13.4, 500); heroFace(14.72, -13.57);
         three = true;
@@ -727,6 +727,7 @@ const STORY = {
       await KA('この家には、おいらの他に5人の子と、\nお兄さんとオーナーさんがいるから、', 2);
       await KA('8{個|こ}に切らなきゃ！', 2);
       await KA('まずは真ん中を切ればいいんだよね？', 2);
+      await KA('そ、それっ！', 2);
       await kidChop(700);
       prop('badCut', true);
       await KA('あ、あれ…。', 1);
@@ -747,21 +748,22 @@ const STORY = {
           else if (kidA.z > -12.05) path = [[.5, -8.4], [5.6, -8.6], [5.6, -12.4]];
           else path = [[-2.2, -12.0], [.5, -8.4], [5.6, -8.6], [5.6, -12.4]];
         }
-        await walkPath(kidA, path, brought === 1 ? 1.8 : .9);          // 1つだけ 持って いく ときは 早足で
+        await walkPath(kidA, path, 2.2);                                 // 早足で
         if (!st.stopped) { kidA.visible = false; look(0, -14.5, 1, false, 'slow'); }   // 2階へ 行ったら もどす
       })();
       return st;
     }
     // リアオが 去ったあと：（研究員の ひとりごと と タップ）→ 2階の 物音 → 家の 中を 自由に 歩く
-    async function afterRiaoLeaves(st, remark) {
+    async function afterRiaoLeaves(st, remark, three) {
       if (remark) {
         await labCut('talk');
         await R('{子供|こども}は{謝|あやま}らないんだね。');
-        await R('うそをついたことを\n{自覚|じかく}していないのかな？');
+        if (!three) await R('うそをついたことを\n{自覚|じかく}していないのかな？');   // ❸（…。）の ときは 言わない
         await R('おっとごめん！{独|ひと}り言が入ってしまった。');
         await labCut(false);
         // 去っていく 子供を タップするか どうかは プレイヤー しだい（いなくなったら もう タップできない）
-        const tapped = st.stopped ? false : await tapUntil(TAP.kidBody, '', st.done);   // わっかの エフェクトだけ（文字なし）
+        //   ❸（…。）の ときは タップして とがめる ことは できない
+        const tapped = st.stopped || three ? (await st.done, false) : await tapUntil(TAP.kidBody, '', st.done);   // わっかの エフェクトだけ（文字なし）
         if (tapped) {
           st.stopped = true; sitActor(kidA, kidA.x, kidA.z, 0); lookAt(kidA, heroX(), heroZ());
           await KA('な、なんだい？', 3);
@@ -993,21 +995,22 @@ const STORY = {
       prop('carry', false); cake('table');
       // すみで ふるえて いた リアオが テーブルへ 来る
       kidA.shiver = false; prop('tears', false);
-      if (!kidA.visible) sitActor(kidA, -2.4, -.8, Math.PI);
-      await walkPath(kidA, [[-2.3, -8.4], [-2.2, -11.6], [-1.6, -13.2]], 2.6); lookAt(kidA, 0, -15.5);
+      if (!kidA.visible) sitActor(kidA, -2.45, -9.0, Math.PI);
+      await walkPath(kidA, [[-2.3, -11.6], [-1.6, -13.2]], 2.6); lookAt(kidA, 0, -15.5);
       await KA('お、お兄さん！ケーキ切ってくれてありがとう。', 1);
       await H('うん。');
       await KA('おいらも食べていい？', 2);
       await H('うん。');
-      // 主人公は 椅子に 座り、ケーキを 食べ始める。リアオは 静かに ケーキを 2つ 手に 取る
+      // 主人公と リアオは 椅子に 座る。まずは 切った ケーキを お皿に のせて 机に おく（主人公の 前に 1つ、リアオの 前に 2つ）
+      //   主人公は まだ 食べない。リアオも ケーキを 手に 持たない
       look(0, -14.5);
-      await walkHeroPath(toChair(), 2.0); await sitHero(1.32, -14.45, 0, -14.45, -.15, 500);
-      await serveSlice(0);                                              // ケーキを お皿に のせて テーブルに おく
-      await eatDish(0, 600);
-      await walkActor(kidA, -.9, -14.4, 500); lookAt(kidA, 0, -15.5);
-      await serveSlice(1);                                              // リアオも お皿に のせる
-      // 研究員が 話す 前に、リアオは もう ケーキを 2つ 取って いる
-      await bendPut(kidA, () => { pickDish(1); cakeTake(); prop('kidPlates', true); prop('traySlices', true); }, 900);   // お皿の 1つと ホールケーキから もう 1つ
+      await Promise.all([
+        walkHeroPath(toChair(), 2.0).then(() => sitHero(1.32, -14.45, 0, -14.45, -.15, 500)),
+        walkPath(kidA, [[-2.2, -14.45], [-1.6, -14.45]], 1.6).then(() => { sitActor(kidA, -1.41, -14.45, Math.PI / 2); return sitDown(kidA, .18); }),
+      ]);
+      await serveSlice(0);
+      await serveSlice(1);
+      await serveSlice(1, true);
       await wait(400);
       await labCut('talk');
       await R('この{子供|こども}！2{個|こ}とったぞ！どうする…？');
@@ -1036,14 +1039,14 @@ const STORY = {
         } else {                                                            // 信じない 場合：1つだけ 持って いく
           await H('だめだ。');
           await KA('そっか。じゃあ、1つだけ持っていくことにするよ。', 1);
-          await bendPut(kidA, () => { prop('trayOne', true); slicesBack(1); }, 900);
+          dishBack(1);                                                     // お皿の 1つを ホールケーキに もどす
           brought = 1;
         }
       }
       // リアオは ゆっくり ケーキを 持って、その場から ゆっくり 去る。主人公は 黙々と ケーキを 食べる
+      pickDish(1); prop('kidPlates', true); prop(brought === 1 ? 'trayOne' : 'traySlices', true);   // お皿ごと 持って いく
       const st = riaoLeaves();
-      serveSlice(0).then(() => eatDish(0, 1500));                      // 主人公は もう 1つ お皿に とって 食べる
-      await afterRiaoLeaves(st, true);                             // どの 場合も 研究員の ひとりごとへ 合流
+      await afterRiaoLeaves(st, true, true);                       // どの 場合も 研究員の ひとりごとへ 合流（とがめる ことは できない）
     }
   },
 };
