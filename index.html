@@ -34,6 +34,11 @@
     #dialog.narration { left: 0; top: 0; width: 100%; height: 100%; border: none; background: rgba(0, 0, 0, .82); }
     #dialog.narration #text { left: 12%; right: 12%; top: 50%; transform: translateY(-50%); text-align: center; color: #fff; }
     #dialog.narration #nextMark { color: #fff; right: 6%; bottom: 7%; }
+    #backMark { position: absolute; right: 8.5%; bottom: 9%; font-size: 2.6em; line-height: 1; padding: 0 .2em; cursor: pointer; opacity: .55; }
+    #backMark:hover { opacity: 1; }
+    #dialog.choosing #backMark { display: none; }
+    #dialog.narration #backMark { color: #fff; right: 10%; bottom: 7%; }
+    #dialog.lab #backMark { font-size: 1.4em; right: 12%; bottom: 8%; }
     #menu.hidden { visibility: hidden; }
     #menu { transition: opacity .6s; }
     /* 研究員の カット：右下の 小さな わくに 研究員、セリフは その 上の 吹き出し */
@@ -95,6 +100,7 @@
       <div id="text"></div>
       <div id="choices"></div>
       <div id="nextMark">▶</div>
+      <div id="backMark" class="hidden" title="ひとつ前の セリフへ">◀</div>
     </div>
 
     <div id="labVeil" class="hidden"></div>
@@ -205,7 +211,7 @@
     shown = {}; done = {}; eyelid = 0;
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
-    ui.dialog.classList.add('hidden');
+    ui.dialog.classList.add('hidden'); hist.length = 0; histPos = -1; labWasHidden = null; $('backMark').classList.add('hidden');
     $('writeBox').classList.add('hidden'); writing = null; roamNoArrow = false; if ($('peekCopy')) $('peekCopy').remove();
     $('labCut').classList.add('hidden'); $('labCut').classList.remove('off'); $('labVeil').classList.add('hidden'); peeking = false;
   }
@@ -238,6 +244,7 @@
   const setRuby = (el, s) => { el.innerHTML = rubyHTML(s); };
   const textUnits = s => String(s).match(/\{[^{}|]+\|[^{}]+\}|[\s\S]/gu) || [];   // ルビの かたまりは 1つと して あつかう
   let advanceResolve = null, typeTimer = null, typing = false, fullText = '', chooseResolve = null;
+  const hist = []; let histPos = -1, labWasHidden = null;          // もどって 読める セリフ（下の「セリフを もどす」）
   let talker = null;                                                   // いま 話している 人（体を ゆっくり ゆらす）
   const say = (speaker, text, opt = {}) => new Promise(resolve => {
     openDialog(speaker, opt);
@@ -250,15 +257,47 @@
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
     const pages = paginate(text);
     let page = 0;
-    typeText(pages[0]);
+    const faceSrc = face && FACES[face] ? FACES[face] : null;
+    const show = i => { if (labWasHidden !== null) { $('labCut').classList.toggle('hidden', labWasHidden); labWasHidden = null; } hist.push({ speaker, opt, faceSrc, text: pages[i] }); histPos = -1; typeText(pages[i]); updBack(); };
+    show(0);
     advanceResolve = () => {
-      if (++page < pages.length) { typeText(pages[page]); return; }
-      advanceResolve = null; talker = null; ui.dialog.classList.add('hidden'); resolve();
+      if (++page < pages.length) { show(page); return; }
+      advanceResolve = null; talker = null; ui.dialog.classList.add('hidden'); updBack(); resolve();
     };
   });
+  // ---------- セリフを もどす ----------
+  //   選択や 行動（タップ・書き込み・歩く など）が ない ひと続きの 間だけ、前の セリフに もどって 読みなおせる
+  //   選択や 行動を したら clearBack() で それより 前には もどれなく なる
+  function updBack() {
+    const open = !ui.dialog.classList.contains('hidden') && !ui.dialog.classList.contains('choosing');
+    const can = open && hist.length >= 2 && histPos !== 0;
+    $('backMark').classList.toggle('hidden', !can);
+  }
+  function clearBack() { if (histPos >= 0) showHist(hist.length - 1, true); hist.length = 0; histPos = -1; updBack(); }
+  function showHist(i, live) {
+    const h = hist[i]; if (!h) return;
+    clearInterval(typeTimer); typing = false;
+    openDialog(h.speaker, h.opt); ui.dialog.classList.remove('choosing');
+    if (h.faceSrc) { ui.face.src = h.faceSrc; ui.face.classList.remove('hidden'); } else ui.face.classList.add('hidden');
+    // 研究員の セリフは 研究員の カットと いっしょに 見せる
+    const lc = $('labCut');
+    if (live) { if (labWasHidden !== null) { lc.classList.toggle('hidden', labWasHidden); labWasHidden = null; } }
+    else { if (labWasHidden === null) labWasHidden = lc.classList.contains('hidden'); lc.classList.toggle('hidden', h.speaker !== '研究員' && labWasHidden); if (h.speaker === '研究員') lc.classList.remove('hidden'); }
+    fullText = h.text; setRuby(ui.text, h.text); ui.nextMark.classList.remove('hidden');
+  }
+  function goBack() {
+    if (ui.dialog.classList.contains('hidden') || ui.dialog.classList.contains('choosing') || hist.length < 2) return;
+    if (histPos === -1) { if (typing) finishTyping(); histPos = hist.length - 2; }
+    else if (histPos > 0) histPos--;
+    else return;
+    showHist(histPos, false); updBack();
+  }
+  $('backMark').addEventListener('click', e => { e.stopPropagation(); goBack(); });
+  $('backMark').addEventListener('pointerdown', e => e.stopPropagation());
   const choose = (options, opt = {}) => new Promise(resolve => {
+    clearBack();
     openDialog(opt.speaker || '', opt);
-    ui.dialog.classList.add('choosing');
+    ui.dialog.classList.add('choosing'); updBack();
     ui.choices.innerHTML = '';
     ui.choices.classList.toggle('three', options.length >= 3);
     options.forEach(label => {
@@ -316,6 +355,11 @@
   function finishTyping() { clearInterval(typeTimer); typing = false; setRuby(ui.text, fullText); ui.nextMark.classList.remove('hidden'); }
   function advance() {
     if (ui.dialog.classList.contains('hidden') || ui.dialog.classList.contains('choosing')) return;
+    if (histPos >= 0) {                                          // もどって 読んでいる 時は 1つずつ 先へ
+      histPos++;
+      if (histPos >= hist.length - 1) { histPos = -1; showHist(hist.length - 1, true); } else showHist(histPos, false);
+      updBack(); return;
+    }
     if (typing) { finishTyping(); return; }
     if (advanceResolve) advanceResolve();
   }
@@ -489,7 +533,7 @@
   async function runEvent(fn) {
     mode = 'event'; player.moving = false;
     try { await fn(); } catch (e) { console.error(e); }
-    if (mode === 'event') mode = 'play';
+    if (mode === 'event') { mode = 'play'; clearBack(); }
   }
   async function startGame() { reset(); ui.title.classList.add('hidden'); await runEvent(STORY.opening); }
   function backToTitle() { reset(); mode = 'title'; ui.ending.classList.add('hidden'); ui.title.classList.remove('hidden'); }
@@ -507,6 +551,7 @@
     if (k) { keys[k] = true; e.preventDefault(); }
     if (writing) return;                                                   // 書き込み中は 文字を 打つ
     if (!e.repeat && (e.key === 'Enter' || e.key === ' ')) { if (alarmResolve) alarmResolve(); else advance(); e.preventDefault(); }
+    if (!e.repeat && (e.key === 'Backspace' || ((e.key === 'ArrowLeft' || e.key === 'ArrowUp') && mode !== 'play'))) { goBack(); }
     if (chooseResolve && /^[1-9]$/.test(e.key)) chooseResolve(Number(e.key) - 1);
   });
   addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
@@ -1514,7 +1559,7 @@
   cakeUI.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); cakeTap(); });
   addEventListener('keydown', e => { if (cakeActive && !e.repeat && (e.key === 'Enter' || e.key === ' ')) { cakeTap(); e.preventDefault(); e.stopImmediatePropagation(); } }, true);
   const cakeGame = (n = 8) => new Promise(resolve => {
-    cakeN = Math.max(2, Math.min(16, Math.round(n) || 8));
+    clearBack(); cakeN = Math.max(2, Math.min(16, Math.round(n) || 8));
     cakeUI.querySelector('#cakeMsg').textContent = `ケーキを ${cakeN}こに 切ろう！ 線が 目じるしに かさなったら タップ`;
     cakeCuts = []; cakeActive = true; cakeT0 = performance.now(); cakeResolve = resolve; cakeUI.classList.remove('hidden');
   });
@@ -1603,13 +1648,14 @@
   };
   // 目じるしを タップするまで 待つ（target：位置を かえす 関数。null なら 画面の まんなか）
   const tapAt = (target, label = 'タップ') => new Promise(resolve => {
-    guideAt = target; setRuby($('alarmGuide').querySelector('span'), label);
+    clearBack(); guideAt = target; setRuby($('alarmGuide').querySelector('span'), label);
     $('alarmGuide').classList.remove('hidden');
     alarmResolve = () => { alarmResolve = null; guideAt = null; $('alarmGuide').classList.add('hidden'); resolve(); };
   });
   // 書き込む 欄を 出して、プレイヤーが 決定するまで 待つ（number:true で 数字だけ）
   let writing = null;
   const writeIn = (opt = {}) => new Promise(resolve => {
+    clearBack();
     const box = $('writeBox'), inp = $('writeInput');
     setRuby($('writeLabel'), opt.label || 'ここに 書いてね');
     inp.type = opt.number ? 'number' : 'text'; inp.inputMode = opt.number ? 'numeric' : 'text';
@@ -1636,7 +1682,7 @@
   // 自由に 歩いて、決まった 場所に 来たら「この先に行きますか？」。はいを えらんだ 場所の 名前を かえす
   let roamNoArrow = false;
   const roam = (zones, autoGoal) => new Promise(resolve => {
-    setGoal(autoGoal); roamNoArrow = true; mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = null;
+    clearBack(); setGoal(autoGoal); roamNoArrow = true; mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = null;
     let armed = zones.map(() => true), busy = false;
     const tick = async () => {
       if (busy) return;
@@ -1667,7 +1713,7 @@
   const nearRect = (x1, z1, x2, z2, r) => Math.hypot(Math.max(x1 - heroX(), 0, heroX() - x2), Math.max(z1 - heroZ(), 0, heroZ() - z2)) < r;
   const GOAL_NEAR = { table: () => nearRect(TABLE.x1, TABLE.z1, TABLE.x2, TABLE.z2, .95) };
   const freeWalk = name => new Promise(resolve => {
-    setGoal(name); mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = GOAL_NEAR[name] || null;
+    clearBack(); setGoal(name); mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = GOAL_NEAR[name] || null;
     goalResolve = () => { goalResolve = null; goal = []; mode = 'event'; player.moving = false; resolve(); };
   });
   function reset2() {
