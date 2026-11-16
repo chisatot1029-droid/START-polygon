@@ -73,7 +73,8 @@
     #labCut .memo::after { content: ''; position: absolute; left: 12%; top: 40%; height: .25em; background: #2a2a2a; animation: memoLine 1.2s steps(6) infinite; }
     @keyframes memoLine { from { width: 0; } to { width: 76%; } }
     #dialog.lab { left: auto; right: 3.4%; top: auto; bottom: 29%; width: 34%; height: auto; min-height: 9%; border-width: .3em; border-radius: 2.2em; padding: 1.2em 1.8em 1.4em; z-index: 7; }
-    #dialog.lab.short { width: 18.2%; }                     /* 「…。」など 短い セリフは 研究員の 枠と 同じ はば */
+    #dialog.lab.short { width: auto; min-width: 18.2%; padding-right: 3.2em; }   /* 「…。」など 短い セリフは 研究員の 枠と 同じくらいの はば */
+    #dialog.lab.short #text { white-space: nowrap; }
     #dialog.lab #speaker, #dialog.lab #face { display: none; }
     #dialog.lab #text { position: static; font-size: 1.9em; line-height: 1.7; }
     #dialog.lab #nextMark { font-size: 1.4em; right: 4%; bottom: 8%; }
@@ -259,7 +260,7 @@
     if (face && FACES[face]) { ui.face.src = FACES[face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
-    ui.dialog.classList.toggle('short', speaker === '研究員' && plainText(text).length <= 4);
+    ui.dialog.classList.toggle('short', speaker === '研究員' && plainText(text).length <= 9);
     // opt.fit：行を 分けて 書いた 文が 少し 長い ときは、折りかえさずに 文字を 少し 小さく して 1行に おさめる
     ui.text.style.fontSize = '';
     if (opt.fit) {
@@ -290,7 +291,7 @@
     const h = hist[i]; if (!h) return;
     clearInterval(typeTimer); typing = false;
     openDialog(h.speaker, h.opt); ui.dialog.classList.remove('choosing');
-    ui.dialog.classList.toggle('short', h.speaker === '研究員' && plainText(h.text).length <= 4);
+    ui.dialog.classList.toggle('short', h.speaker === '研究員' && plainText(h.text).length <= 9);
     if (h.faceSrc) { ui.face.src = h.faceSrc; ui.face.classList.remove('hidden'); } else ui.face.classList.add('hidden');
     // 研究員の セリフは 研究員の カットと いっしょに 見せる
     const lc = $('labCut');
@@ -1813,6 +1814,7 @@
       const bob = a.moving ? Math.abs(Math.sin(a.t * 11)) * .06 * CHAR : 0;
       if (a.track) a.rot = Math.atan2(heroX() - a.x, heroZ() - a.z);   // その場で 主人公の ほうを むきつづける
       m.position.set(base.x + a.x * S, bob + (a.lift || 0) + stairY(a.x, a.z), base.z + a.z * S); m.rotation.set(a.lean || 0, a.rot, 0);
+      if (a.shiver) { const tt = performance.now(); m.position.x += Math.sin(tt * .07) * .025 * CHAR; m.rotation.z = Math.sin(tt * .05) * .04; }   // ふるえる
     };
     drawActor(kaitouM, KH); drawActor(kidAM, A); drawActor(kidBM, B);
     policeM.visible = monsterM.visible = captiveM.visible = false;
