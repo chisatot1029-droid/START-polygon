@@ -1215,7 +1215,7 @@
   const ATS = .5;                                   // 屋根うらは 地図の 半分の 大きさに（せまい 隠し部屋の ように）。高さは そのまま
   atticG.scale.set(ATS, 1, ATS);
   const FUR = .7;                                   // 家具の 大きさ（登場人物に あわせて 小さめ）
-  const wallMat = flat('#efe2c8'), wallTop = flat('#d9c7a5');
+  const wallMat = flat('#fdede4'), wallTop = flat('#fdede4');   // 壁：黄みの ある クリーム色
   function iWall(g, x1, z1, x2, z2, h = .95) {      // 部屋の かべ（上から 見やすい ひくめの かべ）
     const w = Math.max(.18, Math.abs(x2 - x1)), d = Math.max(.18, Math.abs(z2 - z1));
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat); m.position.set((x1 + x2) / 2, h / 2, (z1 + z2) / 2);
@@ -1271,10 +1271,10 @@
     });
     shadowAll(t); homeG.add(t); }
   // 青い ラグ
-  { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#fcc800')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .07, -9.04); homeG.add(rug); }   // 床の でこぼこより 上に
+  { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#6d3c32')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .07, -9.04); homeG.add(rug); }   // 床の でこぼこより 上に
   // 同じ 色の カーペット：キッチンの ケーキが ある 台の 手前
   [[12.75, -13.4, 1.8, 2.7]].forEach(([x, z, w, d]) => {
-    const c = new THREE.Mesh(new THREE.PlaneGeometry(w, d), flat('#fcc800')); c.rotation.x = -Math.PI / 2; c.position.set(x, .07, z); homeG.add(c);
+    const c = new THREE.Mesh(new THREE.PlaneGeometry(w, d), flat('#6d3c32')); c.rotation.x = -Math.PI / 2; c.position.set(x, .07, z); homeG.add(c);
   });
   // ダイニングテーブルと 椅子 6つ
   const TABLE = { x1: -.99, x2: .96, z1: -17.67, z2: -13.37, y: .78 * FUR + .05 };
