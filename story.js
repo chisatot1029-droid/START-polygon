@@ -405,8 +405,8 @@ const STORY = {
     const toA = () => ({ label: 'ケーキを切る場面', at: 'A' });
     const toB = () => ({ label: 'どうするか決める場面', at: 'B', cutN });
     const toC = () => ({ label: 'ケーキを食べる場面', at: 'C', cutN });
-    // 時計で 戻れる 先を 決める（今は「そうだよ（切ってあげる）」の 流れだけ。ほかの 流れは まだ 戻れない）
-    const rw = (...targets) => watchPoint(first === 'そうだよ' ? targets : null);
+    // 時計で 戻れる 先を 決める（「そうだよ」と「ちがうよ」→ 教える・代わりに切る の 流れ。「…。」の 流れは まだ 戻れない）
+    const rw = (...targets) => watchPoint(first && !three ? targets : null);
 
     if (!at) {
     // ---------- ○緑が多い暖かな家の中 ----------
