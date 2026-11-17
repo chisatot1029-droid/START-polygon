@@ -47,7 +47,12 @@
     #labVeil { position: absolute; inset: 0; z-index: 4; background: rgba(0, 0, 0, .5); }
     #labVeil.hidden, #labCut.hidden { display: none; }
     #labCut { position: absolute; right: 3.4%; bottom: 6.5%; width: 18.2%; z-index: 6; background: #fff; border: .35em solid #111; line-height: 0; }
-    #labCut img { width: 100%; display: block; }
+    /* 研究員の わくの 中：電子空間の ような 背景（右上に 正方形、左下に 横長の 長方形）と 研究員 */
+    #labCut .labScreen { position: relative; aspect-ratio: 400 / 276; overflow: hidden; }
+    #labCut .labScreen img { position: absolute; display: block; mix-blend-mode: multiply; }   /* 白い ところは すける */
+    #labCut .labBgSq { right: 1.5%; top: 4%; width: 19%; }
+    #labCut .labBgRect { left: 1%; bottom: 12%; width: 22%; }
+    #labCut .labFace { left: 50%; top: 0; height: 100%; transform: translateX(-50%); }
     /* アナログテレビが つく ように、わくの まんなかから 横に のびて、それから 縦に ひろがる */
     #labCut { animation: tvOn .7s ease-out both; transform-origin: 50% 50%; }
     @keyframes tvOn {
@@ -109,7 +114,7 @@
 
     <div id="labVeil" class="hidden"></div>
     <form id="writeBox" class="hidden" autocomplete="off"><label id="writeLabel"></label><div class="row"><input id="writeInput" type="text" maxlength="40"><button type="submit">決定</button></div></form>
-    <div id="labCut" class="hidden"><img src="assets/researcher.png" alt="研究員"><div class="memo"></div><div class="memoBubble">メモメモ...</div></div>
+    <div id="labCut" class="hidden"><div class="labScreen"><img class="labBgSq" src="assets/lab_bg_squares.png" alt=""><img class="labBgRect" src="assets/lab_bg_rects.png" alt=""><img class="labFace" src="assets/researcher1.png" alt="研究員"></div><div class="memo"></div><div class="memoBubble">メモメモ...</div></div>
 
     <button id="alarmGuide" class="hidden" aria-label="アラームを とめる"><span>タップして とめる</span></button>
 
