@@ -544,7 +544,7 @@ const STORY = {
 
     // ---------- 机に 運ぶ ----------
     await H('できた。{机|つくえ}に運ぼう。');
-    rw(toA());                                                // 時計で 戻れる：リアオが 来る ところへ
+    watchPoint([toA()]);                                      // 時計で 戻れる（どの 選択でも）：リアオが 来る ところへ
     prop('heroKnife', false); prop('carry', true); cake('carry');
     const riaoComes = kidA.visible ? walkPath(kidA, [[11.4, -8.9], [-1.9, -8.9], [-2.2, -12.9]], 2.4) : null;
     await freeWalk('table');                                  // テーブルの 近くなら どこからでも 置ける
@@ -1058,10 +1058,12 @@ const STORY = {
     // ❸ を えらんだ 時：ひとりで テーブルへ。あとから リアオが 来る
     async function threeTable() {
       await H('できた。{机|つくえ}に運ぼう。');
+      watchPoint([toA()]);                                      // 時計で 戻れる：リアオが 来る ところへ
       prop('heroKnife', false); prop('carry', true); cake('carry');
       await freeWalk('table');
       heroFace(0, -15.5);
       await tapAt(TAP.table, 'タップして おく');
+      watchPoint(null);
       prop('carry', false); cake('table');
       // すみで ふるえて いた リアオが テーブルへ 来る
       kidA.shiver = false; prop('tears', false);
