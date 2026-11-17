@@ -69,6 +69,23 @@
     .rvRewind { background: #f3eeff; text-align: center; }
     .rvNote { background: #f4f4f4; color: #666; text-align: center; font-size: 1.7em; }
     .rvEmpty { font-size: 2em; color: #777; }
+    #review .rvBtns, #survey .rvBtns { display: flex; gap: 1.6em; }
+    #review .rvBtns .menuBtn, #survey .rvBtns .menuBtn { margin-top: 0; }
+    #survey { position: absolute; inset: 0; z-index: 45; background: rgba(18, 22, 16, .92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8em; }
+    #survey .svBox { width: 80%; height: 80%; overflow-y: auto; background: #fbfaf6; border: .3em solid #111; border-radius: 1.6em; padding: 2em 3em; box-sizing: border-box; color: #222; }
+    #survey .svTitle { margin: 0 0 .3em; font-size: 3em; text-align: center; }
+    #survey .svLead { margin: 0 0 1.4em; font-size: 1.8em; text-align: center; color: #555; white-space: pre-line; }
+    .svHead { font-size: 2.1em; font-weight: bold; margin: 1.4em 0 .4em; padding-bottom: .2em; border-bottom: .1em solid #333; }
+    .svQ { margin: 0 0 1.5em; font-size: 2em; }
+    .svQ.hidden { display: none; }
+    .svQ .svQt { margin-bottom: .5em; line-height: 1.5; }
+    .svQ .svNo { display: inline-block; min-width: 2.4em; margin-right: .4em; padding: 0 .4em; border-radius: .4em; background: #2f3a2a; color: #fff; text-align: center; font-size: .85em; }
+    .svOpts { display: flex; flex-wrap: wrap; gap: .5em; }
+    .svOpt { padding: .3em 1em; border: .12em solid #999; border-radius: 2em; background: #fff; color: #444; font: inherit; font-size: .9em; cursor: pointer; }
+    .svOpt.on { border-color: #111; background: #ffd84a; color: #111; font-weight: bold; }
+    .svQ textarea { width: 100%; box-sizing: border-box; min-height: 4.2em; padding: .4em .6em; font: inherit; font-size: .95em; border: .12em solid #999; border-radius: .5em; background: #fffbe6; resize: vertical; }
+    #svResult { width: 100%; height: 70%; box-sizing: border-box; font: inherit; font-size: 1.6em; padding: .6em; border: .12em solid #999; border-radius: .5em; }
+    #survey .svMsg { margin: 0; min-height: 1.3em; font-size: 1.8em; color: #ffd84a; }
     #watchUI canvas { width: 100%; height: 100%; display: block; }
     #labCut { position: absolute; right: 3.4%; bottom: 6.5%; width: 18.2%; z-index: 6; background: #fff; border: .35em solid #111; line-height: 0; }
     /* 研究員の わくの 中：電子空間の ような 背景（右上に 正方形、左下に 横長の 長方形）と 研究員 */
@@ -190,7 +207,19 @@
         <p class="rvTitle">せんたくの ふり<ruby>返<rt>かえ</rt></ruby>り</p>
         <div id="rvList"></div>
       </div>
-      <button id="rvClose" class="menuBtn small">もどる</button>
+      <div class="rvBtns"><button id="rvClose" class="menuBtn small">もどる</button><button id="rvNext" class="menuBtn small hidden">次へ（プレイ後アンケート）</button></div>
+    </div>
+
+    <!-- 検証モードの アンケート（プレイ前・プレイ後）と、さいごの まとめ（コピーして 送ってもらう） -->
+    <div id="survey" class="hidden">
+      <div class="svBox">
+        <p class="svTitle"></p>
+        <p class="svLead"></p>
+        <div id="svList"></div>
+        <textarea id="svResult" class="hidden" readonly></textarea>
+      </div>
+      <p class="svMsg"></p>
+      <div class="rvBtns"><button id="svBack" class="menuBtn small hidden">もどる</button><button id="svCopy" class="menuBtn small hidden">コピー</button><button id="svOk" class="menuBtn small">回答する</button></div>
     </div>
 
     <div id="toast"></div>
@@ -644,7 +673,7 @@
   function vlog(item) { if (!verify) return; verify.log.push(item); saveVerify(); }
   const vmark = text => vlog({ t: 'scene', text });
   async function startGame(withVerify) {
-    verify = withVerify === true ? { log: [] } : null; saveVerify();
+    verify = withVerify && typeof withVerify === 'object' ? withVerify : withVerify === true ? { log: [] } : null; saveVerify();
     reset(); ui.title.classList.add('hidden'); vmark('場面1'); await runEvent(STORY.opening);
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -658,8 +687,129 @@
       const ctx = it.ctx && it.ctx.text ? `${it.ctx.who ? esc(it.ctx.who) + '「' : '「'}${esc(it.ctx.text)}」` : '';
       return `<div class="rvItem"><div class="rvCtx">${ctx}</div><div class="rvOpts">${it.opts.map(o => `<span class="rvOpt${o === it.pick ? ' picked' : ''}">${esc(o)}</span>`).join('')}</div></div>`;
     }).join('') : '<p class="rvEmpty">まだ 記録が ありません。</p>';
+    $('rvNext').classList.toggle('hidden', !verify);
     $('review').classList.remove('hidden'); $('review').querySelector('.rvBox').scrollTop = 0;
   }
+  // ---------- 検証モードの アンケート ----------
+  const SURVEY_PRE = [
+    { no: '1', q: '年齢', type: 'select', opts: ['10代', '20代', '30代', '40代〜'] },
+    { no: '2', q: '性別', type: 'select', opts: ['女', '男', '無回答'] },
+    { no: '3', q: 'あなたにとって「思いやり」とは、どんなことだと思いますか。', type: 'text' },
+    { no: '4', q: '顔や名前がわからない相手（ネット上の相手など）とやりとりするとき、どんな気持ちになりますか。', type: 'select', opts: ['何も思わない', 'どんな人か気になる', 'トラブルにならないように意識している', 'その他'] },
+    { no: '4（その他）', q: '（4で「その他」を選んだ人）内容を書いてください。', type: 'text', showIf: ['4', ['その他']] },
+    { no: '5', q: '幼少期（〜小学3年生）に、インターネットにつながる機器（スマホ・タブレット・ゲーム機・パソコンなど）は身近にありましたか。', type: 'select', opts: ['あり、自分も使っていた', 'あったが、自分は使っていなかった', 'なかった'] },
+    { no: '6', q: '現在、子供（〜小学3年生）と関わる機会', type: 'select', opts: ['子育て中', '仕事やアルバイトで関わる', '親戚や身内にいる', 'ない'] },
+  ];
+  const SURVEY_POST = [
+    { head: 'A　ゲーム中の感じ方' },
+    { no: 'A1', q: '主人公を自分自身のように感じた。', type: 'scale' },
+    { no: 'A2', q: '選択肢を選ぶとき、「自分ならどうするか」を考えて選んだ。', type: 'scale' },
+    { no: 'A3', q: '自分で操作して選んだことで、出来事が自分ごとに感じられた。', type: 'scale' },
+    { no: 'A4', q: '一人でプレイしたので、自分のペースで考えながら進められた。', type: 'scale' },
+    { no: 'A5', q: '研究員に質問されたとき、自分の考えを見つめ直した。', type: 'scale' },
+    { head: 'B　場面ごとの振り返り' },
+    { no: 'B1', q: '「助けて」という声を聞いたとき、相手がどんな状況なのか気になった。', type: 'scale' },
+    { no: 'B2', q: 'リアオがケーキを2つ持っていこうとしたとき、最初は理由を考えずに判断していた。', type: 'scale' },
+    { no: 'B3', q: 'リアオやシィの事情を知って、最初の印象が変わった。', type: 'scale' },
+    { no: 'B4', q: '主人公の言葉や行動が、相手の気持ちにどう影響するかを考えた。', type: 'scale' },
+    { no: 'B5', q: '時計で時間を戻せることで、自分の選択を見直そうと思った。', type: 'scale' },
+    { head: 'C　意識の変化' },
+    { no: 'C1', q: '自分の気持ちも大切にしながら、相手と関わろうと思った。', type: 'scale' },
+    { no: 'C2', q: 'ゲームを通して、自分の考え方や視野が広がったと感じる。', type: 'scale' },
+    { head: 'D　ゲームの感想' },
+    { no: 'D1', q: '一番心に残った場面と、その理由を教えてください。', type: 'text' },
+    { no: 'D2', q: 'プレイ前と比べて、自分の中で変わったと思う考え方はありますか。', type: 'text' },
+    { no: 'D3', q: 'このゲームは、子供が思いやりについて考えるきっかけになると思う。', type: 'scale' },
+    { no: 'D3（理由）', q: '（D3）そう思った理由を教えてください。', type: 'text' },
+    { head: 'E　思いやりについての考え' },
+    { no: 'E1', q: 'あなたにとって「思いやり」とは、どんなことだと思いますか。（プレイ前と同じ質問です。今の考えを自由に書いてください）', type: 'text' },
+    { no: 'E2', q: '顔や名前がわからない相手（ネット上の相手など）とやりとりするとき、どんなことに気をつけたいと思いますか。（プレイ前と同じ質問です。今の考えを自由に書いてください）', type: 'text' },
+    { no: 'E3', q: 'プレイ前と比べて、思いやりについての考えは変わりましたか。', type: 'select', opts: ['変わった', '少し変わった', '変わらない'] },
+    { no: 'E3（どう変わったか）', q: '（E3で「変わった」「少し変わった」を選んだ人）どう変わったか、一言で教えてください。', type: 'text', showIf: ['E3', ['変わった', '少し変わった']] },
+  ];
+  const SCALE = ['1 まったくあてはまらない', '2 あまりあてはまらない', '3 どちらともいえない', '4 ややあてはまる', '5 とてもあてはまる'];
+  let surveyDone = null, surveyQs = null;
+  function showSurvey(kind, onDone) {
+    surveyQs = kind === 'pre' ? SURVEY_PRE : SURVEY_POST; surveyDone = onDone;
+    const sv = $('survey'), list = $('svList');
+    sv.querySelector('.svTitle').textContent = kind === 'pre' ? '「スターと」プレイ前アンケート' : '「スターと」プレイ後アンケート';
+    sv.querySelector('.svLead').textContent = kind === 'pre' ? '正解や望ましい答えはありません。思ったとおりに答えてください。' : '思ったとおりに答えてください。\n1〜5で答える質問は、1 まったくあてはまらない〜5 とてもあてはまる から選んでください。';
+    list.innerHTML = surveyQs.map((it, i) => {
+      if (it.head) return `<div class="svHead">${esc(it.head)}</div>`;
+      const opts = it.type === 'scale' ? SCALE : it.opts;
+      const body = it.type === 'text' ? `<textarea data-i="${i}" maxlength="400"></textarea>`
+        : `<div class="svOpts">${opts.map(o => `<button type="button" class="svOpt" data-i="${i}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+      return `<div class="svQ${it.showIf ? ' hidden' : ''}" data-i="${i}"><div class="svQt"><span class="svNo">${esc(it.no.replace(/（.*$/, ''))}</span>${esc(it.q)}</div>${body}</div>`;
+    }).join('');
+    $('svResult').classList.add('hidden'); list.classList.remove('hidden');
+    $('svCopy').classList.add('hidden'); $('svBack').classList.add('hidden');
+    $('svOk').textContent = kind === 'pre' ? '回答して はじめる' : '回答する';
+    sv.querySelector('.svMsg').textContent = '';
+    sv.classList.remove('hidden'); sv.querySelector('.svBox').scrollTop = 0;
+  }
+  const svValue = i => {
+    const it = surveyQs[i], el = $('svList').querySelector(`[data-i="${i}"]`);
+    if (!el || el.classList.contains('hidden')) return null;
+    if (it.type === 'text') { const t = el.querySelector('textarea'); return t ? t.value.trim() : ''; }
+    const on = el.querySelector('.svOpt.on'); return on ? on.dataset.v : '';
+  };
+  $('svList').addEventListener('click', e => {
+    const b = e.target.closest('.svOpt'); if (!b) return;
+    b.parentNode.querySelectorAll('.svOpt').forEach(x => x.classList.toggle('on', x === b));
+    // 「その他」などを 選んだ ときだけ 出る 質問
+    surveyQs.forEach((it, i) => {
+      if (!it.showIf) return;
+      const j = surveyQs.findIndex(x => x.no === it.showIf[0]);
+      const el = $('svList').querySelector(`.svQ[data-i="${i}"]`);
+      el.classList.toggle('hidden', !it.showIf[1].includes(svValue(j)));
+    });
+  });
+  $('svOk').addEventListener('click', () => {
+    if (!surveyDone) { $('survey').classList.add('hidden'); return; }       // まとめを 見た あと：とじる
+    const answers = surveyQs.filter(it => !it.head).map(it => ({ no: it.no, q: it.q, a: svValue(surveyQs.indexOf(it)) })).filter(x => x.a !== null);
+    const blank = answers.filter(x => !x.a && !/（/.test(x.no)).length;
+    const msg = $('survey').querySelector('.svMsg');
+    if (blank && msg.dataset.warned !== '1') { msg.textContent = `まだ 答えて いない 質問が ${blank}つ あります。このまま 進む ときは もう一度 おしてください。`; msg.dataset.warned = '1'; return; }
+    msg.dataset.warned = ''; const done = surveyDone; surveyDone = null;
+    $('survey').classList.add('hidden'); done(answers);
+  });
+  // さいごの まとめ：プレイ前・ゲームの 記録・プレイ後を 1つの 文に して、コピーして もらう（表に はりつけられる ように タブ区切り）
+  function resultText() {
+    const v = verify || { log: [] }, tsv = s => String(s ?? '').replace(/[\t\r\n]+/g, ' ');
+    const lines = ['「スターと」検証の結果', '', '【プレイ前アンケート】', 'No\t質問\t回答'];
+    (v.pre || []).forEach(x => lines.push([x.no, x.q, x.a].map(tsv).join('\t')));
+    lines.push('', '【ゲームの記録】', '順番\t内容\t選んだこと・書いたこと');
+    let n = 0;
+    v.log.forEach(it => {
+      if (it.t === 'scene') lines.push(['', '―― ' + it.text, ''].map(tsv).join('\t'));
+      else if (it.t === 'choice') lines.push([++n, (it.ctx ? `${it.ctx.who}「${it.ctx.text}」` : '') + '（' + it.opts.join('／') + '）', it.pick].map(tsv).join('\t'));
+      else if (it.t === 'write') lines.push([++n, '書きこみ：' + it.label, it.value || '（何も書かなかった）'].map(tsv).join('\t'));
+      else if (it.t === 'rewind') lines.push([++n, '時計で もどった', it.to].map(tsv).join('\t'));
+      else if (it.t === 'note') lines.push([++n, it.text, ''].map(tsv).join('\t'));
+    });
+    lines.push('', '【プレイ後アンケート】', 'No\t質問\t回答');
+    (v.post || []).forEach(x => lines.push([x.no, x.q, x.a].map(tsv).join('\t')));
+    return lines.join('\n');
+  }
+  function showResult() {
+    const sv = $('survey');
+    sv.querySelector('.svTitle').textContent = 'ありがとうございました';
+    sv.querySelector('.svLead').textContent = '下の「コピー」を おして、答えを 送ってください。\n（プレイ前・プレイ後の アンケートと、ゲームで 選んだことが 入っています）';
+    $('svList').classList.add('hidden');
+    const ta = $('svResult'); ta.value = resultText(); ta.classList.remove('hidden');
+    $('svCopy').classList.remove('hidden'); $('svBack').classList.remove('hidden');
+    $('svOk').textContent = 'とじる'; surveyDone = null;
+    sv.querySelector('.svMsg').textContent = '';
+    sv.classList.remove('hidden'); sv.querySelector('.svBox').scrollTop = 0;
+  }
+  $('svCopy').addEventListener('click', () => {
+    const ta = $('svResult'), msg = $('survey').querySelector('.svMsg');
+    const fallback = () => { ta.focus(); ta.select(); msg.textContent = '文が 選ばれた ので、⌘＋C（Ctrl＋C）で コピーしてください。'; };
+    try {
+      navigator.clipboard.writeText(ta.value).then(() => { msg.textContent = 'コピーしました。'; }, fallback);
+    } catch (e) { fallback(); }
+  });
+  $('svBack').addEventListener('click', () => { $('survey').classList.add('hidden'); showReview(); });
   function backToTitle() { reset(); mode = 'title'; ui.ending.classList.add('hidden'); ui.title.classList.remove('hidden'); }
   function checkTriggers() {
     for (const t of STORY.triggers) {
@@ -671,6 +821,7 @@
 
   const KEYMAP = { ArrowLeft: 'left', a: 'left', ArrowRight: 'right', d: 'right', ArrowUp: 'up', w: 'up', ArrowDown: 'down', s: 'down' };
   addEventListener('keydown', e => {
+    if (e.target && e.target.matches && e.target.matches('input, textarea')) return;   // 入力らんで 文字を 打っている ときは ゲームの 操作に しない
     const k = KEYMAP[e.key];
     if (k) { keys[k] = true; e.preventDefault(); }
     if (writing) return;                                                   // 書き込み中は 文字を 打つ
@@ -708,7 +859,12 @@
     advance();
   });
   $('startBtn').addEventListener('click', () => startGame(false));
-  $('verifyBtn').addEventListener('click', () => startGame(true));
+  $('verifyBtn').addEventListener('click', () => showSurvey('pre', answers => startGame({ log: [], pre: answers })));
+  $('rvNext').addEventListener('click', () => {
+    $('review').classList.add('hidden');
+    if (verify && verify.post) return showResult();                     // もう 答えた ときは まとめへ
+    showSurvey('post', answers => { verify.post = answers; saveVerify(); showResult(); });
+  });
   $('reviewBtn').addEventListener('click', showReview);
   $('rvClose').addEventListener('click', () => $('review').classList.add('hidden'));
   $('againBtn').addEventListener('click', backToTitle);
