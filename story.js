@@ -38,10 +38,10 @@ const STORY = {
     floorLeft: 255, floorRight: 948,     // 通路の かべの 内がわ
     walkLeft: 300, walkRight: 905,       // 両わきに 植木が あるので 歩けるのは 少し 内がわ
     floorBottom: 5990,                   // 目を覚ます 部屋の 下の かべ
-    corridorTop: 1435,                   // ここから 上は 階段
-    stairsTop: -80, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
-    plazaTop: -1034, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
-    houseFront: -723,                    // 家の 前の 面（ドアの まんなかは x 600 あたり）
+    corridorTop: 635,                    // ここから 上は 階段（バケモノ → 迷路 → 警察 の 先）
+    stairsTop: -880, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
+    plazaTop: -1834, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
+    houseFront: -1523,                   // 家の 前の 面（ドアの まんなかは x 600 あたり）
     monsterY: 2555,                      // バケモノの 場面
     walls: [                             // 目を覚ます 部屋の 仕切り（まんなかに 出入口）
       { x1: 255, x2: 533, y1: 4713, y2: 5025 },
@@ -206,14 +206,27 @@ const STORY = {
         await say('???', '助けてもらったところ申し{訳|わけ}ないが、\n急いでるんだ！', { face: 'kaitou5' });
         await say('???', 'またいつか会えたら\n{必|かなら}ずお礼をするよ！', { face: 'kaitou5' });
         await say('???', '本当にありがとう！', { face: 'kaitou5' });
-        await captiveWalk(136, -750, 2000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る
+        await captiveWalk(136, -300, 1000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る（迷路の 手前で 消える）
         monster('none');
         await say('主人公', 'あぁ…。', { face: 'hero' });
         await say('主人公', '（というか、どうなっているんだ？\n同じことが2回も起きている…。）', { face: 'hero' });
 
-        // ---- ミニゲーム 迷路（二周目だけ）：前に 進むよう 矢印が 出る。とちゅうの 緑の とびらは 研究員の 質問に 正しく 答えると 開く ----
+        flags.afterMonster = true;
+        mazeArrow(true);                                                    // 前に 進むよう 矢印
+        follow();                                                           // 【プレイヤーが 操作】迷路の 前まで 歩く
+      },
+    },
+    {
+      // 場面1 二周目：バケモノの 場面の 先の 迷路の 前に 立った とき
+      id: 'maze',
+      y: 2330,                       // 迷路の 入口（y 2200）の 少し 手前
+      if: () => flags.loop === 2 && flags.afterMonster,
+      run: async () => {
+        // ---- ミニゲーム 迷路：とちゅうの 緑の とびらは 研究員の 質問に 正しく 答えると 開く。かべを こわして 迂回しても よい ----
         //   迷路の 先には、警察官が 待っている
-        await mazeShow();                                                   // かべが 地面から せり上がる
+        mazeArrow(false);
+        await say('主人公', '{迷路|めいろ}？行ってみる…？', { face: 'hero' });
+        mazeStart();
         const QUIZ = {
           gate1: { q: 'バケモノの色は何色だった？', opts: ['緑', '赤'], ok: '緑' },
           gate2: { q: 'さっき助けた人の目の色は何色だった？', opts: ['青', '黄色'], ok: '黄色' },
@@ -339,7 +352,7 @@ const STORY = {
     {
       // 怪盗を 追って 階段まで 来たら、暗い 通路を 抜けて 家の前へ
       id: 'house',
-      y: 1600,
+      y: 800,
       if: () => flags.follow,
       run: async () => {
         flags.follow = false;
