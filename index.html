@@ -48,7 +48,8 @@
     #labVeil.hidden, #labCut.hidden { display: none; }
     /* 左上の 時計の UI（場面2：自由に 時計を 使える）。手がきの ような 白い わくの 中に ポリゴンの 懐中時計 */
     #watchUI { position: absolute; left: 4.6%; top: 3.6%; width: 8.6%; aspect-ratio: 1.06; box-sizing: border-box; padding: .5%; z-index: 3;
-      background: #fff; border: .32em solid #111; border-radius: 16% 9% 13% 19% / 12% 17% 9% 15%; transform: rotate(-1.2deg); }
+      background: #fff; border: .32em solid #111; border-radius: 16% 9% 13% 19% / 12% 17% 9% 15%; transform: rotate(-1.2deg); cursor: pointer; }
+    #watchUI:hover { transform: rotate(-1.2deg) scale(1.05); }
     #watchUI.hidden { display: none; }
     #watchUI canvas { width: 100%; height: 100%; display: block; }
     #labCut { position: absolute; right: 3.4%; bottom: 6.5%; width: 18.2%; z-index: 6; background: #fff; border: .35em solid #111; line-height: 0; }
@@ -216,7 +217,7 @@
 
   function reset() {
     for (const k in flags) delete flags[k];
-    watchOn = false;
+    watchOn = false; watchTargets = null;
     resetPlayer();
     followCam = true;
     monsterState = 'full'; monsterDX = 0; captiveDX = 0; captiveDY = 0; eatStart = 0; thrown = null;
@@ -1050,10 +1051,44 @@
   watchScene.add(new THREE.HemisphereLight('#ffffff', '#b8b0a0', 2.2));
   { const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(1.5, 2, 3); watchScene.add(l); }
   const pocketWatch = makePocketWatch(); pocketWatch.position.y = -.08; watchScene.add(pocketWatch);
-  let watchOn = false, watchSize = 0;
+  let watchOn = false, watchSize = 0, watchTargets = null, watchBusy = false;
   const watchUI = on => { watchOn = !!on; };
+  // 時計を おして 戻れる 先（{ label, at, cutN }の ならび）。null なら 今は 戻れない
+  const watchPoint = t => { watchTargets = t && t.length ? t : null; };
+  watchEl.addEventListener('pointerdown', e => e.stopPropagation());
+  watchEl.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (watchBusy || watchEl.classList.contains('hidden')) return;
+    watchBusy = true;
+    const prevMode = mode, wb = $('writeBox'), wbShown = !wb.classList.contains('hidden');
+    mode = 'event'; player.moving = false; for (const k in keys) keys[k] = false;
+    if (wbShown) wb.classList.add('hidden');
+    try {
+      if (!watchTargets) { await say('主人公', '今{巻|ま}きもどしても{意味|いみ}ないかな…。', { face: 'hero' }); }
+      else {
+        let t = watchTargets[0];
+        if (watchTargets.length > 1) {
+          await say('主人公', 'どこまでもどろう？', { face: 'hero' });
+          const lab = await choose(watchTargets.map(x => x.label));
+          t = watchTargets.find(x => x.label === lab) || t;
+        }
+        await rewindTo(t);
+        return;
+      }
+    } catch (err) { console.error(err); }
+    if (wbShown) { wb.classList.remove('hidden'); try { $('writeInput').focus(); } catch (err) {} }
+    mode = prevMode; watchBusy = false;
+  });
+  // 時間を 戻す：画面が 白く なって、選んだ 場面から やりなおす（ページを 読みこみなおして はじめる）
+  async function rewindTo(t) {
+    const code = 'rw' + t.at + (t.cutN || '');
+    try { sessionStorage.setItem('starto.rewind', code); } catch (e) {}
+    await fadeOut('white', 900);
+    try { location.hash = code; } catch (e) {}
+    location.reload();
+  }
   function drawWatchUI(now) {
-    const show = watchOn && mode !== 'title' && mode !== 'end' && ui.dialog.classList.contains('hidden');
+    const show = watchOn && mode !== 'title' && mode !== 'end' && ui.dialog.classList.contains('hidden') && (mode === 'play' || writing || watchBusy);
     watchEl.classList.toggle('hidden', !show);
     if (!show) return;
     const w = watchCv.clientWidth, h = watchCv.clientHeight;
@@ -1916,7 +1951,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { watchUI });
+  Object.assign(window, { watchUI, watchPoint });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
@@ -2375,6 +2410,19 @@
 
   reset();
   requestAnimationFrame(loop);
+  // 時計で 戻った あと：読みこみなおした ページで、えらんだ 場面から 場面2を はじめる
+  {
+    let code = null;
+    try { code = sessionStorage.getItem('starto.rewind'); sessionStorage.removeItem('starto.rewind'); } catch (e) {}
+    if (!code && /^#rw[SABC]\d*$/.test(location.hash)) code = location.hash.slice(1);
+    if (/^#rw/.test(location.hash)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+    const m = code && code.match(/^rw([SABC])(\d*)$/);
+    if (m) {
+      reset(); ui.title.classList.add('hidden');
+      STORY.rewindTo = { at: m[1], cutN: m[2] ? Number(m[2]) : 8 };
+      runEvent(async () => { await fadeOut('white', 0); await STORY.scene2(); });
+    }
+  }
   window.__lp = { get mode() { return mode; }, get player() { return player; }, advance, get flags() { return flags; }, monster, camera, show, runEvent, get area() { return area; }, get goal() { return goal; } };
   </script>
 </body>

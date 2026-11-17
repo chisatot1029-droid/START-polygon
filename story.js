@@ -395,6 +395,19 @@ const STORY = {
       return t ? `「${t}」なんだね。` : '';                       // 書き込んだ ことばを 「」で かこむ
     };
 
+    // ---------- 時計で 戻る（場面2）----------
+    //   RW.at：'S' はじめから ／ 'A' リアオが ケーキの 前に 来る ところ ／ 'B' 研究員「どうするんだい？」 ／ 'C' 二人が 机に 着席した ところ
+    const RW = STORY.rewindTo || null; STORY.rewindTo = null;
+    const at = RW && RW.at !== 'S' ? RW.at : null;
+    let first = null, three = false, brought = 2, cutN = (RW && RW.cutN) || 8, doorCount = 0;
+    const toS = () => ({ label: '{初|はじ}めから', at: 'S' });
+    const toA = () => ({ label: 'ケーキを切る場面', at: 'A' });
+    const toB = () => ({ label: 'どうするか決める場面', at: 'B', cutN });
+    const toC = () => ({ label: 'ケーキを食べる場面', at: 'C', cutN });
+    // 時計で 戻れる 先を 決める（今は「そうだよ（切ってあげる）」の 流れだけ。ほかの 流れは まだ 戻れない）
+    const rw = (...targets) => watchPoint(first === 'そうだよ' ? targets : null);
+
+    if (!at) {
     // ---------- ○緑が多い暖かな家の中 ----------
     place('home');
     setHero(0, -1.2); heroFace(0, -5);
@@ -442,6 +455,28 @@ const STORY = {
     prop('rackKnife', false); prop('heroKnife', true);
     await freeWalk('back');
     heroFace(14.72, -13.57);
+    } else {
+      // 時計で 戻って きた：場面の 中ほどから はじめる
+      place('home'); setOutfit(true); owner.visible = false;
+      prop('rackKnife', false); prop('carry', false);
+      if (at === 'A') {                                // キッチンで ナイフを 持って ケーキの 前
+        prop('heroKnife', true);
+        setHero(13.2, -13.4); heroFace(14.72, -13.57);
+        look(12.4, -13.0, .9, true);
+      } else {                                         // 二人とも 机に 着席（ケーキは cutN こに 切って 机の 上）
+        first = 'そうだよ'; nameA = 'リアオ';
+        prop('heroKnife', false);
+        cakeSliced(cutN); cake('table');
+        sitHero(1.32, -14.45, 0, -14.45, -.15, 0);
+        sitActor(kidA, -1.41, -14.45, Math.PI / 2, .18);
+        look(0, -14.5, 1, true);
+        if (at === 'B') { await serveSlice(0); await serveSlice(1); }
+      }
+      watchUI(true);
+      await fadeIn(900);
+    }
+
+    if (at !== 'B' && at !== 'C') {
 
     // 子供A（青い子）が やってくる：カメラは ゆっくり 引いて、話しかけて きたら 寄りに もどす
     look(10.0, -11.4, 1.5, false, 'slow');
@@ -456,11 +491,7 @@ const STORY = {
     await KA('ちがうの…？', 4);
     await H('⟦青い子⟧だ…。');
 
-    const first = await choose(['そうだよ', 'ちがうよ']);
-    let three = false;                                 // ❸「…。」を えらんだ
-    let brought = 2;                                   // リアオが 2階へ 持って いった ケーキの 数
-    let cutN = 8;                                      // ケーキを 何こに 切ったか（8 = 言われた とおり）
-    let doorCount = 0;                                 // 物音の あと 家の 外へ 出た 回数
+    first = await choose(['そうだよ', 'ちがうよ']);
     if (first === 'そうだよ') {                        // 切ってあげる
       await H('そうだよ。切ろうとしてたところ。');
       nameA = 'リアオ';
@@ -512,11 +543,13 @@ const STORY = {
 
     // ---------- 机に 運ぶ ----------
     await H('できた。{机|つくえ}に運ぼう。');
+    rw(toA());                                                // 時計で 戻れる：リアオが 来る ところへ
     prop('heroKnife', false); prop('carry', true); cake('carry');
     const riaoComes = kidA.visible ? walkPath(kidA, [[11.4, -8.9], [-1.9, -8.9], [-2.2, -12.9]], 2.4) : null;
     await freeWalk('table');                                  // テーブルの 近くなら どこからでも 置ける
     heroFace(0, -15.5);
     await tapAt(TAP.table, 'タップして おく');
+    watchPoint(null);
     prop('carry', false); cake('table');
 
     // ---------- ①❶❷：ダイニングで ----------
@@ -530,6 +563,9 @@ const STORY = {
       walkHeroPath(toChair(), 2.0).then(() => sitHero(1.32, -14.45, 0, -14.45, -.15, 600)),
       walkPath(kidA, [[-2.2, -14.45], [-1.6, -14.45]], 1.6).then(() => { sitActor(kidA, -1.41, -14.45, Math.PI / 2); return sitDown(kidA, .18); }),
     ]);
+    }                                                        // ←ここまでが 'B'・'C' から 戻った ときに とばす ところ
+
+    if (at !== 'B') {
     // ケーキを 一切れずつ テーブルに 置く（ホールケーキは 6切れ のこる）
     await serveSlice(0);
     await serveSlice(1);
@@ -563,6 +599,7 @@ const STORY = {
     await KA('その子にも、ケーキをあげたい…。', 1);
     await labCut('talk');
     await R('この{子供|こども}はうそをついていたのか。\n君をふくめて9人いるということ…。');
+    } else await labCut('talk');                             // 'B'：研究員の「どうするんだい？」から
     await R('どうするんだい？');
     const give = await choose(['2{個|こ}あげる', '自分で{好|す}きな数を食べる']);
     if (give !== '2{個|こ}あげる') { await selfish(); return; }   // 研究員は 出た まま つぎの 質問へ
@@ -571,11 +608,13 @@ const STORY = {
     await KA('うん！ありがとう！', 2);
     // 階段へ（プレイヤーが 歩く。子供Aは 先に 階段へ）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidA, 0, 400)]);
+    rw(toB());                                               // 時計で 戻れる：研究員の「どうするんだい？」へ
     // 主人公は 自分の 一切れを、リアオは 自分のと シィの 分の 2切れを お盆に のせて 持つ
     pickDish(0); heroHoldDish(true);
     await bendPut(kidA, () => { pickDish(1); cakeTake(); prop('kidPlates', true); prop('traySlices', true); }, 900);
     walkPath(kidA, [[-1.9, -12.0], [0.5, -8.4], [5.6, -8.6], [5.6, -12.4]], 2.4);
     await freeWalk('stairs');
+    watchPoint(null);
     await fadeOut('black', 700);
 
     // ---------- ○登った 先の 部屋の 扉の 前 ----------
@@ -712,7 +751,9 @@ const STORY = {
         await openDoor('exit', 700);
         await walkActor(kidB, -7.7, -1.6, 700); kidB.visible = false;
       })();
+      rw(toS(), toA(), toC());                                 // 時計で 戻れる：はじめから ／ ケーキを 切る 場面 ／ ケーキを 食べる 場面
       await freeWalk('exit');
+      watchPoint(null);
       await fadeOut('black', 900);
       end('場面2 おわり\n\n（つぎは 場面3「夜空に近い屋上」）');
     }
@@ -834,7 +875,9 @@ const STORY = {
     }
     // 家の 中を 自由に 歩く。玄関ドアの 前と 2階の 階段前で「この先に行きますか？」
     async function roamHouse() {
+      rw(toB());                                               // 食べ終わって 立ち上がった：研究員の「どうするんだい？」へ 戻れる
       const where = await roam([{ name: 'door', x: 0, z: -.9, r: 1.0 }, { name: 'stairs', x: 6.3, z: -11.4, r: 1.1 }], 'stairsAny');
+      watchPoint(null);
       if (where === 'door') {
         await fadeOut('black', 600);
         // ○家の前の庭
@@ -899,7 +942,9 @@ const STORY = {
       await labCut('talk');
       await R('これは君が{探|さが}していたものだね。\nでも{割|わ}れてしまったようだ。');
       await R('⟦星⟧が{必要|ひつよう}だったって{伝|つた}える？');
+      rw(toA(), toC());                                        // 時計で 戻れる：ケーキを 切る 場面 ／ ケーキを 食べる 場面
       const w = await writeMemo({ label: 'リアオに 何て 言う？', allowEmpty: true });
+      watchPoint(null);
       await labCut(false);
       const k = wordKind(w);
       if (k === 'tell' || k === 'blame' || k === 'question') {             // 伝えようと する 内容（責める・たずねる 内容も ふくむ）
