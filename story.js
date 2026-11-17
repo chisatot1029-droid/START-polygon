@@ -884,7 +884,7 @@ const STORY = {
     // 家の 中を 自由に 歩く。玄関ドアの 前と 2階の 階段前で「この先に行きますか？」
     async function roamHouse() {
       rw3([toB()], [toE()]);                                   // 食べ終わって 立ち上がった：研究員の「どうするんだい？」（「…。」は「どうする…？」）へ 戻れる
-      const where = await roam([{ name: 'door', x: 0, z: -.9, r: 1.0 }, { name: 'stairs', x: 6.3, z: -11.4, r: 1.1 }], 'stairsAny');
+      const where = await roam([{ name: 'door', x: 0, z: -.9, r: 1.0 }, { name: 'stairs', x: 6.3, z: -11.5, r: 1.7 }], 'stairsAny');
       watchPoint(null);
       if (where === 'door') {
         await fadeOut('black', 600);

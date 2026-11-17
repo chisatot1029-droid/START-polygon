@@ -129,6 +129,7 @@
     #writeBox { position: absolute; left: 6%; bottom: 7%; width: 54%; z-index: 9; background: #fff; border: .4em solid #000; border-radius: 1.2em;
       padding: 1.4em 1.8em; display: flex; flex-direction: column; gap: 1em; box-sizing: border-box; }
     #writeBox.hidden { display: none; }
+    #writeInput::placeholder { color: #cfcfcf; opacity: 1; }   /* 例の 文字は うすく */
     #writeBox label { font-size: 1.6em; color: #3d5a2a; }
     #writeBox .row { display: flex; gap: 1em; }
     #writeBox input { flex: 1; min-width: 0; font: inherit; font-size: 2.2em; padding: .25em .5em; border: .12em solid #999; border-radius: .4em; }
@@ -695,18 +696,17 @@
     { no: '1', q: '年齢', type: 'select', opts: ['10代', '20代', '30代', '40代〜'] },
     { no: '2', q: '性別', type: 'select', opts: ['女', '男', '無回答'] },
     { no: '3', q: 'あなたにとって「思いやり」とは、どんなことだと思いますか。', type: 'text' },
-    { no: '4', q: '顔や名前がわからない相手（ネット上の相手など）とやりとりするとき、どんな気持ちになりますか。', type: 'select', opts: ['何も思わない', 'どんな人か気になる', 'トラブルにならないように意識している', 'その他'] },
+    { no: '4', q: '顔や名前がわからない相手（ネット上の相手など）とやりとりするとき、どんな気持ちになりますか。（いくつでも選べます）', type: 'multi', opts: ['何も思わない', 'どんな人か気になる', 'トラブルにならないように意識している', 'その他'] },
     { no: '4（その他）', q: '（4で「その他」を選んだ人）内容を書いてください。', type: 'text', showIf: ['4', ['その他']] },
     { no: '5', q: '幼少期（〜小学3年生）に、インターネットにつながる機器（スマホ・タブレット・ゲーム機・パソコンなど）は身近にありましたか。', type: 'select', opts: ['あり、自分も使っていた', 'あったが、自分は使っていなかった', 'なかった'] },
     { no: '6', q: '現在、子供（〜小学3年生）と関わる機会', type: 'select', opts: ['子育て中', '仕事やアルバイトで関わる', '親戚や身内にいる', 'ない'] },
   ];
   const SURVEY_POST = [
     { head: 'A　ゲーム中の感じ方' },
-    { no: 'A1', q: '主人公を自分自身のように感じた。', type: 'scale' },
-    { no: 'A2', q: '選択肢を選ぶとき、「自分ならどうするか」を考えて選んだ。', type: 'scale' },
-    { no: 'A3', q: '自分で操作して選んだことで、出来事が自分ごとに感じられた。', type: 'scale' },
-    { no: 'A4', q: '一人でプレイしたので、自分のペースで考えながら進められた。', type: 'scale' },
-    { no: 'A5', q: '研究員に質問されたとき、自分の考えを見つめ直した。', type: 'scale' },
+    { no: 'A1', q: '選択肢を選ぶとき、「自分ならどうするか」を考えて選んだ。', type: 'scale' },
+    { no: 'A2', q: '自分で操作して選んだことで、出来事が自分ごとに感じられた。', type: 'scale' },
+    { no: 'A3', q: '一人でプレイしたので、自分のペースで考えながら進められた。', type: 'scale' },
+    { no: 'A4', q: '研究員に質問されたとき、自分の考えを見つめ直した。', type: 'scale' },
     { head: 'B　場面ごとの振り返り' },
     { no: 'B1', q: '「助けて」という声を聞いたとき、相手がどんな状況なのか気になった。', type: 'scale' },
     { no: 'B2', q: 'リアオがケーキを2つ持っていこうとしたとき、最初は理由を考えずに判断していた。', type: 'scale' },
@@ -726,6 +726,9 @@
     { no: 'E2', q: '顔や名前がわからない相手（ネット上の相手など）とやりとりするとき、どんなことに気をつけたいと思いますか。（プレイ前と同じ質問です。今の考えを自由に書いてください）', type: 'text' },
     { no: 'E3', q: 'プレイ前と比べて、思いやりについての考えは変わりましたか。', type: 'select', opts: ['変わった', '少し変わった', '変わらない'] },
     { no: 'E3（どう変わったか）', q: '（E3で「変わった」「少し変わった」を選んだ人）どう変わったか、一言で教えてください。', type: 'text', showIf: ['E3', ['変わった', '少し変わった']] },
+    { head: 'F　ゲームの内容' },
+    { no: 'F1', q: '主人公が「ありがとう」を言った回数を覚えていますか？', type: 'select', opts: ['はい', 'いいえ'] },
+    { no: 'F2', q: 'リアオの目の色を覚えていますか？', type: 'select', opts: ['はい', 'いいえ'] },
   ];
   const SCALE = ['1 まったくあてはまらない', '2 あまりあてはまらない', '3 どちらともいえない', '4 ややあてはまる', '5 とてもあてはまる'];
   let surveyDone = null, surveyQs = null;
@@ -751,17 +754,18 @@
     const it = surveyQs[i], el = $('svList').querySelector(`[data-i="${i}"]`);
     if (!el || el.classList.contains('hidden')) return null;
     if (it.type === 'text') { const t = el.querySelector('textarea'); return t ? t.value.trim() : ''; }
-    const on = el.querySelector('.svOpt.on'); return on ? on.dataset.v : '';
+    const on = [...el.querySelectorAll('.svOpt.on')].map(b => b.dataset.v); return on.join('・');   // いくつでも 選べる 質問は「・」で つなぐ
   };
   $('svList').addEventListener('click', e => {
     const b = e.target.closest('.svOpt'); if (!b) return;
-    b.parentNode.querySelectorAll('.svOpt').forEach(x => x.classList.toggle('on', x === b));
+    if (surveyQs[Number(b.dataset.i)].type === 'multi') b.classList.toggle('on');           // いくつでも 選べる
+    else b.parentNode.querySelectorAll('.svOpt').forEach(x => x.classList.toggle('on', x === b));
     // 「その他」などを 選んだ ときだけ 出る 質問
     surveyQs.forEach((it, i) => {
       if (!it.showIf) return;
       const j = surveyQs.findIndex(x => x.no === it.showIf[0]);
       const el = $('svList').querySelector(`.svQ[data-i="${i}"]`);
-      el.classList.toggle('hidden', !it.showIf[1].includes(svValue(j)));
+      el.classList.toggle('hidden', !String(svValue(j) || '').split('・').some(v => it.showIf[1].includes(v)));
     });
   });
   $('svOk').addEventListener('click', () => {
@@ -2153,7 +2157,13 @@
   let goalResolve = null, goalNear = null;
   // 決まった 点で なくても、近くに 来たら 着いた ことに する 場所（テーブルの まわり なら どこからでも）
   const nearRect = (x1, z1, x2, z2, r) => Math.hypot(Math.max(x1 - heroX(), 0, heroX() - x2), Math.max(z1 - heroZ(), 0, heroZ() - z2)) < r;
-  const GOAL_NEAR = { table: () => nearRect(TABLE.x1, TABLE.z1, TABLE.x2, TABLE.z2, .95) };
+  const GOAL_NEAR = {
+    table: () => nearRect(TABLE.x1, TABLE.z1, TABLE.x2, TABLE.z2, .95),
+    // 2階への 階段：階段の 入口あたりに 来れば 上る（広めの 判定）
+    stairs: () => Math.hypot(heroX() - 6.3, heroZ() + 11.6) < 1.6 || (heroX() > 4.9 && heroX() < 7.8 && heroZ() < -10.2),
+    // 屋根裏の 片隅の ドア：ドアの 前あたりに 来れば 出る（広めの 判定）
+    exit: () => Math.hypot(heroX() + 6.3, heroZ() + 1.6) < 1.6 || (heroX() < -5.6 && heroZ() > -3.4),
+  };
   const freeWalk = name => new Promise(resolve => {
     clearBack(); setGoal(name); mode = 'play'; heroSitK = 0; focus2 = null; camK = 1; camRate = .002; goalNear = GOAL_NEAR[name] || null;
     goalResolve = () => { goalResolve = null; goal = []; mode = 'event'; player.moving = false; resolve(); };
