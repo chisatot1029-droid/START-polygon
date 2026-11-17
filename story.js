@@ -56,6 +56,7 @@ const STORY = {
   autoChoices: [
     '行かない',                              // つぎは 左の「助けに行く」
     'ヘッドホンのコード',
+    '緑', '黄色',                             // 場面1 二周目の 迷路の 質問
     '3つとなりの{街|まち}で…。', '{巻|ま}きもどす',      // 巻き戻すと 家を 答える 選択肢に もどる
     'すぐそこです。', 'にげる',
     '出たいと{伝|つた}えない',
@@ -210,6 +211,36 @@ const STORY = {
         await say('主人公', 'あぁ…。', { face: 'hero' });
         await say('主人公', '（というか、どうなっているんだ？\n同じことが2回も起きている…。）', { face: 'hero' });
 
+        // ---- 迷路（二周目だけ）：とちゅうの 扉は 研究員の 質問に 正しく 答えると 開く ----
+        await mazeShow();                                                   // かべが 地面から せり上がる
+        await say('主人公', '（な、なんだ！？\n道がふさがれた…？）', { face: 'hero' });
+        await labCut('talk');
+        await say('研究員', 'ここからは、{私|わたし}が用意した{迷路|めいろ}だよ。');
+        await say('研究員', 'とちゅうのとびらは、{質問|しつもん}に正しく\n答えると開くからね。');
+        await labCut(false);
+        const QUIZ = {
+          gate1: { q: 'バケモノの色は何色だった？', opts: ['緑', '赤'], ok: '緑' },
+          gate2: { q: 'さっき助けた人の目の色は何色だった？', opts: ['青', '黄色'], ok: '黄色' },
+        };
+        for (;;) {
+          const ev = await mazeWalk();                                      // 【プレイヤーが 操作】迷路を 歩く
+          if (ev === 'exit') break;
+          const qz = QUIZ[ev];
+          await labCut('talk');
+          await say('研究員', qz.q);
+          const a = await choose(qz.opts);
+          if (a === qz.ok) {
+            await say('研究員', '{正解|せいかい}！道を開けよう。');
+            await labCut(false);
+            await mazeOpen(ev === 'gate1' ? 1 : 2);                         // とびらが 地面に しずむ
+          } else {
+            await say('研究員', 'ざんねん。ちがうようだね。');
+            await labCut(false);
+            await stepBack(150, 600);                                       // とびらの 前から 少し 下がる（もう一度 近づくと また 聞かれる）
+          }
+        }
+        policeNearHero();                                                   // 警察は 迷路を ぬけた 主人公の 先から 来る
+
         // ---- 警察 ----
         await wait(800);                                                    // 奥の方から ドタバタと 物音
         await say('?', '…ここに…だ…がすな！');
@@ -266,7 +297,7 @@ const STORY = {
         }
         if (act === '{戦|たたか}う') {
           await say('主人公', 'いっそ{戦|たたか}うか…！', { face: 'hero' });
-          await walkTo(2930, 400);                                          // 警察に むかって 一歩
+          await stepBack(-80, 400);                                         // 警察に むかって 一歩
         } else {
           await say('主人公', 'にげろっ！', { face: 'hero' });
           await stepBack(90, 500);                                          // 少し 後ずさり（横には 動かず、画面の 外へも 出ない）

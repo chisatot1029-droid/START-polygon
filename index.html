@@ -276,6 +276,8 @@
   function reset() {
     for (const k in flags) delete flags[k];
     watchOn = false; watchTargets = null;
+    policeY0 = MON_Y - 651;
+    mazeReset();
     resetPlayer();
     followCam = true;
     monsterState = 'full'; monsterDX = 0; captiveDX = 0; captiveDY = 0; eatStart = 0; thrown = null;
@@ -486,7 +488,9 @@
   const show = name => { shown[name] = true; };
   const hide = name => { delete shown[name]; };
   const monster = state => { monsterState = state; monsterDX = 0; captiveDX = 0; captiveDY = 0; if (state === 'eat') eatStart = performance.now(); };
+  let policeY0 = 0;                                                 // 警察が 出てくる 所（reset で MON_Y - 651＝さいしょは 画面の 上の 外）
   const police = state => { if (policeState === 'none') { policeDX = 0; policeDY = 0; } policeState = state; };
+  const policeNearHero = () => { policeY0 = player.y - 1106; };      // 迷路を ぬけた あと：主人公の 先から 来る
   const policeWalk = (dx, dy, ms) => { const fx = policeDX, fy = policeDY; return tween(ms, p => { policeDX = fx + dx * p; policeDY = fy + dy * p; }); };
   const monsterWalk = (dx, ms) => { const from = monsterDX; return tween(ms, p => { monsterDX = from + dx * p; }); };
   const captiveWalk = (dx, dy, ms) => { const fx = captiveDX, fy = captiveDY; return tween(ms, p => { captiveDX = fx + dx * p; captiveDY = fy + dy * p; }); };
@@ -555,7 +559,7 @@
   // 二人とも 走る（上下に はずむ）
   const runWithKaitou = async () => {
     running = true;
-    const pyNow = MON_Y - 651 + policeDY;
+    const pyNow = policeY0 + policeDY;
     await Promise.all([policeWalk(0, SM.corridorTop - 40 - pyNow, 2600), walkTo(SM.corridorTop + 60, 2600)]);
     running = false;
   };
@@ -651,7 +655,7 @@
   // かいとうが 主人公を 置いて 先に 走り、階段の 上で 待つ
   const kaitouRunAhead = async () => {
     running = true;
-    const pyNow = MON_Y - 651 + policeDY;
+    const pyNow = policeY0 + policeDY;
     await policeWalk(0, SM.corridorTop - 260 - pyNow, 2200);
     running = false;                                                   // ふりかえって 主人公を 待つ
   };
@@ -1007,6 +1011,69 @@
   }
   addWall(MAP.left - 40, MAP.right + 40, MAP.bottom, MAP.bottom + 40, .25);
   MAP.walls.forEach(w => addWall(w.x1, w.x2, w.y1, w.y2));     // 目を覚ます 部屋の 仕切り
+
+  // ---------- 場面1 二周目の 迷路（バケモノの あと、警察に 会う 前）----------
+  //   通路の 中に 3列 × 6段。とちゅうの 2つの 扉は、研究員の 質問に 正しく 答えると 開く。形は いつも 同じ
+  //   h{段}-{列}：となりの 列（右）と つながる、v{段}-{列}：1つ北の 段と つながる、s{列}／n{列}：南／北の 出入口
+  const MZ = { cx: [MAP.left, 502, 703, MAP.right], y0: 2460, rh: 137, rows: 6 };
+  const mzYB = r => MZ.y0 - r * MZ.rh;                 // r段目の 南の はし
+  const MZ_OPEN = new Set(['s1', 'h0-0', 'v0-0', 'v0-2', 'h1-0', 'h1-1', 'v1-0', 'v1-2', 'h2-1', 'h3-0', 'h3-1', 'v3-0', 'h4-0', 'h4-1', 'v4-2', 'h5-0', 'n1']);
+  const MZ_GATES = ['v2-2', 'v4-0'];                   // 扉1（バケモノの 色）・扉2（助けた 人の 目の 色）
+  const mzG = new THREE.Group(); mzG.visible = false; scene.add(mzG);
+  const mzWalls = [];
+  const mzAdd = (x1, x2, y1, y2, gate = 0) => {
+    const m = rockBox((x2 - x1) / 100, 1.1, (y2 - y1) / 100, '#3d4a33'); m.position.set(X((x1 + x2) / 2), .55, Z((y1 + y2) / 2)); mzG.add(m);
+    if (gate) {                                         // 扉の 上に 黄色い しるし
+      const q = new THREE.Mesh(new THREE.OctahedronGeometry(.14, 0), new THREE.MeshStandardMaterial({ color: '#ffd84a', emissive: '#c79a10', emissiveIntensity: .8, flatShading: true }));
+      q.position.y = .85; m.add(q); m.userData.mark = q;
+    }
+    mzWalls.push({ x1, x2, y1, y2, mesh: m, gate, open: false });
+  };
+  { const T = 12;
+    for (let r = 0; r < MZ.rows; r++) for (let c = 0; c < 3; c++) {
+      const yb = mzYB(r), yt = mzYB(r + 1);
+      if (c < 2 && !MZ_OPEN.has(`h${r}-${c}`)) mzAdd(MZ.cx[c + 1] - T, MZ.cx[c + 1] + T, yt - T, yb + T);
+      const id = r < MZ.rows - 1 ? `v${r}-${c}` : `n${c}`, gate = MZ_GATES.indexOf(id) + 1;
+      if (gate || !MZ_OPEN.has(id)) mzAdd(MZ.cx[c], MZ.cx[c + 1], yt - T, yt + T, gate);
+    }
+    for (let c = 0; c < 3; c++) if (!MZ_OPEN.has(`s${c}`)) mzAdd(MZ.cx[c], MZ.cx[c + 1], MZ.y0 - T, MZ.y0 + T);
+  }
+  // オートで みる ときの 道すじ（正しい 道）
+  const MZ_ROUTE = [[602, 2392], [400, 2392], [400, 2255], [602, 2255], [803, 2255], [803, 2118], [803, 1981], [602, 1981], [400, 1981], [400, 1844], [400, 1707], [602, 1707], [602, 1560]];
+  let mazeOn = false, mazeResolve = null, mazeIn = {}, mazeAuto = [];
+  function mazeReset() {
+    mazeOn = false; mazeResolve = null; mazeIn = {}; mazeAuto = []; mzG.visible = false;
+    mzWalls.forEach(w => { w.open = false; w.mesh.visible = true; w.mesh.position.y = .55; w.mesh.scale.y = 1; });
+  }
+  // 迷路が 地面から せり上がる
+  async function mazeShow() {
+    mzG.visible = true; mazeOn = true; mazeAuto = MZ_ROUTE.slice(); shake = .3;
+    await tween(1200, p => { const k = ease(p); mzWalls.forEach(w => { w.mesh.scale.y = Math.max(.01, k); w.mesh.position.y = .55 * k; }); });
+  }
+  // 扉を 開ける（地面に しずむ）
+  async function mazeOpen(gate) {
+    const w = mzWalls.find(v => v.gate === gate); if (!w || w.open) return;
+    w.open = true;
+    await tween(900, p => { w.mesh.position.y = .55 - 1.3 * ease(p); });
+    w.mesh.visible = false;
+  }
+  // 迷路の 中を 歩く。扉の 前・出口に 来たら 'gate1'・'gate2'・'exit' を かえす
+  const mazeWalk = () => new Promise(resolve => {
+    clearBack(); follow(); mode = 'play';
+    mazeResolve = ev => { mazeResolve = null; mode = 'event'; player.moving = false; resolve(ev); };
+  });
+  function checkMaze() {
+    const x = player.x, y = player.y;
+    const zones = {
+      gate1: !mzWalls.find(w => w.gate === 1).open && x > MZ.cx[2] && y > mzYB(3) && y < mzYB(3) + 120,
+      gate2: !mzWalls.find(w => w.gate === 2).open && x < MZ.cx[1] && y > mzYB(5) && y < mzYB(5) + 120,
+      exit: y < mzYB(6) - 20,
+    };
+    for (const k in zones) {
+      if (zones[k] && !mazeIn[k]) { mazeIn[k] = true; if (mazeResolve) { mazeResolve(k); return; } }
+      if (!zones[k]) mazeIn[k] = false;
+    }
+  }
 
   // 階段（通路の 上の はしから 家の前の 広場まで）
   { const n = 12, len = (SM.corridorTop - SM.stairsTop) / n, rise = SM.stairsRise / n;
@@ -2178,6 +2245,7 @@
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
   Object.assign(window, { watchUI, watchPoint, vmark });
+  Object.assign(window, { mazeShow, mazeOpen, mazeWalk, policeNearHero });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
@@ -2292,6 +2360,7 @@
   function blocked(x, y) {
     if (x - HALF_W * CHAR < MAP.walkL || x + HALF_W * CHAR > MAP.walkR) return true;
     if (y > MAP.bottom - 20 || y < MAP.top + 60) return true;
+    if (mazeOn && mzWalls.some(w => !w.open && x + HALF_W > w.x1 && x - HALF_W < w.x2 && y > w.y1 && y - 20 < w.y2)) return true;   // 迷路の かべ
     return MAP.walls.some(w => x + HALF_W > w.x1 && x - HALF_W < w.x2 && y > w.y1 && y - 20 < w.y2);
   }
   function update(dt) {
@@ -2314,7 +2383,7 @@
       if (inHome && mode === 'play') updateScene2();
       player.moving = vx !== 0 || vy !== 0;
       if (player.moving) { player.t += dt * timeScale; player.face = Math.atan2(vx, -vy); }
-      if (area === 'corridor') checkTriggers();
+      if (area === 'corridor') { checkTriggers(); if (mazeResolve) checkMaze(); }
     } else if (mode === 'event' && area === 'corridor') {
       player.face += (0 - player.face) * Math.min(1, dt * 8);     // できごとの 間は 上（奥）を むく
     }
@@ -2375,7 +2444,7 @@
     for (const m of [policeM, kaitouM]) {
       const walkingP = policeDY > 0 && policeDY < 700;
       const bobP = (running ? Math.abs(Math.sin(t * 16 + 1.3)) * .24 : walkingP ? Math.abs(Math.sin(policeDY / 30)) * .08 : 0) * CHAR;
-      const py = MON_Y - 651 + policeDY;     // さいしょは 画面の 上の 外
+      const py = policeY0 + policeDY;     // さいしょは 画面の 上の 外
       m.position.set(X(606 + policeDX), bobP + groundY(py), Z(py));
       m.rotation.y = policeSpin + (running ? Math.PI : 0);
     }
@@ -2618,6 +2687,10 @@
     const t0 = performance.now();
     while (auto && mode === 'play') {
       let vx = Math.max(-1, Math.min(1, (AUTO_DOOR_X - player.x) / 80)) * 0.6, vy = -1;
+      if (area === 'corridor' && mazeOn && mazeResolve && mazeAuto.length) {           // 迷路の 中は 正しい 道すじを たどる
+        if (Math.hypot(mazeAuto[0][0] - player.x, mazeAuto[0][1] - player.y) < 30) mazeAuto.shift();
+        if (mazeAuto.length) { vx = (mazeAuto[0][0] - player.x) / 100; vy = (mazeAuto[0][1] - player.y) / 100; }
+      }
       if ((area === 'home' || area === 'attic') && goal.length) { vx = goal[0][0] - heroX(); vy = goal[0][1] - heroZ(); }   // 家の中は 矢印の 道すじを たどる
       const n = Math.hypot(vx, vy); vx /= n; vy /= n;
       autoMove = { vx, vy };
