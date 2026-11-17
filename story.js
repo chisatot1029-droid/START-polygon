@@ -38,14 +38,17 @@ const STORY = {
     floorLeft: 255, floorRight: 948,     // 通路の かべの 内がわ
     walkLeft: 300, walkRight: 905,       // 両わきに 植木が あるので 歩けるのは 少し 内がわ
     floorBottom: 5990,                   // 目を覚ます 部屋の 下の かべ
-    corridorTop: 635,                    // ここから 上は 階段（バケモノ → 迷路 → 警察 の 先）
-    stairsTop: -880, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
-    plazaTop: -1834, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
-    houseFront: -1523,                   // 家の 前の 面（ドアの まんなかは x 600 あたり）
+    corridorTop: -250,                   // ここから 上は 階段（バケモノ → 道 → 迷路 → 警察 の ずっと 先）
+    mazeSouth: 1800,                     // 迷路の 南の はし（入口）。迷路は 北へ 3列×6段
+    stairsTop: -1765, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
+    plazaTop: -2719, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
+    houseFront: -2408,                   // 家の 前の 面（ドアの まんなかは x 600 あたり）
     monsterY: 2555,                      // バケモノの 場面
     walls: [                             // 目を覚ます 部屋の 仕切り（まんなかに 出入口）
       { x1: 255, x2: 533, y1: 4713, y2: 5025 },
       { x1: 670, x2: 948, y1: 4713, y2: 5025 },
+      { x1: 255, x2: 533, y1: 2010, y2: 2110 },          // バケモノの 場面と 迷路の 間の 仕切り（まんなかに 出入口）
+      { x1: 670, x2: 948, y1: 2010, y2: 2110 },
     ],
   },
   playerStart: { x: 603, y: 5792 },
@@ -206,7 +209,8 @@ const STORY = {
         await say('???', '助けてもらったところ申し{訳|わけ}ないが、\n急いでるんだ！', { face: 'kaitou5' });
         await say('???', 'またいつか会えたら\n{必|かなら}ずお礼をするよ！', { face: 'kaitou5' });
         await say('???', '本当にありがとう！', { face: 'kaitou5' });
-        await captiveWalk(136, -300, 1000);                                  // 清らかな 笑顔で 礼を 伝え、すぐに 去る（迷路の 手前で 消える）
+        await captiveWalk(136, 0, 250);                                      // 清らかな 笑顔で 礼を 伝え、すぐに 去る
+        await captiveWalk(0, -700, 1100);                                    // 仕切りの 出入口を ぬけて 真上へ 走って いく
         monster('none');
         await say('主人公', 'あぁ…。', { face: 'hero' });
         await say('主人公', '（というか、どうなっているんだ？\n同じことが2回も起きている…。）', { face: 'hero' });
@@ -219,7 +223,7 @@ const STORY = {
     {
       // 場面1 二周目：バケモノの 場面の 先の 迷路の 前に 立った とき
       id: 'maze',
-      y: 2330,                       // 迷路の 入口（y 2200）の 少し 手前
+      y: 1930,                       // 迷路の 入口（y 1800）の 少し 手前
       if: () => flags.loop === 2 && flags.afterMonster,
       run: async () => {
         // ---- ミニゲーム 迷路：とちゅうの 緑の とびらは 研究員の 質問に 正しく 答えると 開く。かべを こわして 迂回しても よい ----
@@ -233,7 +237,7 @@ const STORY = {
         };
         for (;;) {
           const ev = await mazeWalk();                                      // 【プレイヤーが 操作】迷路を 歩く
-          if (ev === 'exit') break;
+          if (ev === 'exit') { await mazeGoalStand(); break; }           // ゴール：警察の 顔が 見える ように 立つ
           const qz = QUIZ[ev];
           await labCut('talk');
           await say('研究員', qz.q);
@@ -250,7 +254,7 @@ const STORY = {
         }
 
         // ---- 警察（迷路の 先で 待っていた）----
-        await centerHero(900);                                              // カメラは 主人公が まんなか
+        // カメラは 迷路の ゴールで 主人公と 警察の あいだに 合わせて ある（警察の 顔が 見える）
         await say('{警察|けいさつ}', 'おい！そこの君！\nこの先で{事件|じけん}が起きたと聞いたが、');
         await say('{警察|けいさつ}', '何か見なかったか！？');
         await say('主人公', '（早くこの世界から出なくては\nいけないんだ…。）', { face: 'hero' });
@@ -367,7 +371,7 @@ const STORY = {
     {
       // 怪盗を 追って 階段まで 来たら、暗い 通路を 抜けて 家の前へ
       id: 'house',
-      y: 800,
+      y: -85,
       if: () => flags.follow,
       run: async () => {
         flags.follow = false;
