@@ -297,27 +297,42 @@ const STORY = {
           hide('watch');
           await fadeIn(400);
         }
+        let fled = false;
         if (act === '{戦|たたか}う') {
+          // 戦う：バケモノの 時と 同じように 荷物を 選んで、どう 戦うかを 書く。警察は よけて ピストルを かまえる
           await say('主人公', 'いっそ{戦|たたか}うか…！', { face: 'hero' });
-          await stepBack(-80, 400);                                         // 警察に むかって 一歩
+          await choose(['カセットテープ', 'ヘッドホンの\nコード', 'リュックサック'], { speaker: '主人公の荷物' });
+          await labCut('talk');
+          await say('研究員', 'これを使ってどう{戦|たたか}うんだい？');
+          const how = await writeMemo({ label: 'これを 使って どう {戦|たたか}う？', placeholder: '{例|れい}：投げる' });
+          await labCut(false);
+          await say('主人公', 'えいっ！', { face: 'hero' });
+          await attackPolice(/投|なげ|ぶつけ|ほうり|ほうる|放|飛ば|とば/u.test(how));   // 警察は さっと よける
+          await say('{警察|けいさつ}', 'むだなていこうはやめろ！');
+          show('gun');                                                      // ピストルを かまえる
         } else {
+          // にげる：警察と 同じ 足の 速さで、迷路を 逆に もどる 追いかけっこ。入口の 手前まで にげると 入口が しまる
           await say('主人公', 'にげろっ！', { face: 'hero' });
-          await stepBack(90, 500);                                          // 少し 後ずさり（横には 動かず、画面の 外へも 出ない）
+          await labCut('memo');                                             // 研究員が メモを する 仕草
+          await wait(1000);
+          await labCut(false);
+          await policeChase();                                              // 【プレイヤーが 操作】追いつかれるまで にげる
+          await say('{警察|けいさつ}', 'にげないでくれよ！');
+          show('flowers');                                                  // ピストルでは なく すぐに 花束
+          fled = true;
         }
-        await labCut('memo');                                                     // 研究員が メモを する 仕草
-        await wait(1000);
-        await labCut(false);
-        show('gun');                                                        // 警察が 拳銃を 突きつける
-        await say('主人公', 'ピストル！死にたくないよ！', { face: 'hero' });
-        await wait(2000);                                                   // 主人公が 2秒 身構える
-        await say('{警察|けいさつ}', 'パンッ！');
-        await fadeOut('white', 80);                                         // 発砲する
-        await fadeIn(300);
-        show('flowers');                                                    // 銃弾では なく 花束が 出る
-        await wait(2000);                                                   // 2秒ほど 固まる 主人公
-        await say('主人公', '…？', { face: 'hero' });
-        await say('{警察|けいさつ}', 'おいおい。\nなんか言ってくれよ。');
-        await say('主人公', 'え？', { face: 'hero' });
+        if (!fled) {
+          await say('主人公', 'ピストル！死にたくないよ！', { face: 'hero' });
+          await wait(2000);                                                 // 主人公が 2秒 身構える
+          await say('{警察|けいさつ}', 'パンッ！');
+          await fadeOut('white', 80);                                       // 発砲する
+          await fadeIn(300);
+          show('flowers');                                                  // 銃弾では なく 花束が 出る
+          await wait(2000);                                                 // 2秒ほど 固まる 主人公
+          await say('主人公', '…？', { face: 'hero' });
+          await say('{警察|けいさつ}', 'おいおい。\nなんか言ってくれよ。');
+          await say('主人公', 'え？', { face: 'hero' });
+        } else await wait(1200);
         await say('{警察|けいさつ}', 'さっきは助けてくれてありがとう！');
         hide('gun');
         hide('flowers');

@@ -655,8 +655,17 @@
   // かいとうが 主人公を 置いて 先に 走り、階段の 上で 待つ
   const kaitouRunAhead = async () => {
     running = true;
+    if (chaseTrail) {                                                  // にげた あと：主人公が にげて きた 道を もどって 迷路を ぬける
+      const pts = chaseTrail.slice().reverse().filter((p, i, a) => i % 3 === 0 || i === a.length - 1);
+      for (const [tx, ty] of pts) {
+        const fx = 606 + policeDX, fy = policeY0 + policeDY, d = Math.hypot(tx - fx, ty - fy);
+        if (d < 5) continue;
+        await tween(d / 1.1, p => { policeDX = fx + (tx - fx) * p - 606; policeDY = fy + (ty - fy) * p - policeY0; });
+      }
+      chaseTrail = null;
+    }
     const pyNow = policeY0 + policeDY;
-    await policeWalk(0, SM.corridorTop - 260 - pyNow, 2200);
+    await policeWalk(-policeDX, SM.corridorTop - 260 - pyNow, 2200);
     running = false;                                                   // ふりかえって 主人公を 待つ
   };
   Object.assign(window, { labCut, peekChoose, unpeek, kaitouRunAhead });
@@ -1038,7 +1047,10 @@
       if (gate || !MZ_OPEN.has(id)) mzAdd(MZ.cx[c], MZ.cx[c + 1], yt - T, yt + T, gate);
     }
     for (let c = 0; c < 3; c++) if (!MZ_OPEN.has(`s${c}`)) mzAdd(MZ.cx[c], MZ.cx[c + 1], MZ.y0 - T, MZ.y0 + T);
+    // 入口を ふさぐ かべ（ふだんは ない。警察から にげて 入口の 手前まで 来ると しまる）
+    mzAdd(MZ.cx[1], MZ.cx[2], MZ.y0 - T, MZ.y0 + T); mzWalls[mzWalls.length - 1].entrance = true;
   }
+  const mzEntrance = mzWalls.find(w => w.entrance);
   // オートで みる ときの 道すじ（正しい 道）：[列, 段] → まんなかの 点
   const MZ_COLX = [400, 602, 803], mzCell = (c, r) => [MZ_COLX[c], mzYB(r) - MZ.rh / 2];
   const MZ_ROUTE = [[1, 0], [0, 0], [0, 1], [1, 1], [2, 1], [2, 2], [2, 3], [1, 3], [0, 3], [0, 4], [0, 5], [1, 5]].map(([c, r]) => mzCell(c, r)).concat([[602, mzYB(6) - 80]]);
@@ -1046,8 +1058,68 @@
   const mzGuideV = new THREE.Vector3();
   function mazeReset() {
     mazeOn = true; mazeResolve = null; mazeIn = {}; mazeAuto = []; mazeArrowOn = false; mzNear = null;
-    mzWalls.forEach(w => { w.open = false; w.mesh.visible = true; w.mesh.position.y = .55; w.mesh.scale.set(1, 1, 1); });
+    mzWalls.forEach(w => { w.open = !!w.entrance; w.mesh.visible = !w.entrance; w.mesh.position.y = .55; w.mesh.scale.set(1, 1, 1); });
+    chase = null; chaseTrail = null;
   }
+  // ---------- 警察から にげる（迷路を 逆に もどる 追いかけっこ）----------
+  //   警察は 主人公の 通った 道を 同じ 速さで 追う。入口の 手前まで にげると 入口が しまり、追いつかれたら おわり
+  let chase = null, chaseTrail = null;
+  const policeChase = () => new Promise(resolve => {
+    clearBack(); follow(); mode = 'play';
+    const px = 606 + policeDX, py = policeY0 + policeDY;
+    chase = { trail: [], px, py, face: 0, moving: false, closed: false, resolve };
+    chaseTrail = [[px, py], [player.x, player.y]];               // あとで 怪盗が 来た 道を もどる ため
+  });
+  function updateChase(dt) {
+    const c = chase; if (!c) return;
+    const last = c.trail.length ? c.trail[c.trail.length - 1] : null;
+    if (!last || Math.hypot(player.x - last[0], player.y - last[1]) > 20) { c.trail.push([player.x, player.y]); chaseTrail.push([player.x, player.y]); }
+    let budget = STORY.walkSpeed * dt * timeScale; c.moving = false;
+    while (budget > 0 && c.trail.length) {
+      const [tx, ty] = c.trail[0], dx = tx - c.px, dy = ty - c.py, d = Math.hypot(dx, dy);
+      if (d <= budget) { c.px = tx; c.py = ty; budget -= d; c.trail.shift(); }
+      else { c.px += dx / d * budget; c.py += dy / d * budget; budget = 0; }
+      c.face = Math.atan2(dx, dy); c.moving = true;
+    }
+    policeDX = c.px - 606; policeDY = c.py - policeY0;
+    // 入口の 手前まで にげたら 入口が しまる（こわした 南の かべも もとに もどる）
+    if (!c.closed && player.y > MZ.y0 - 75) {
+      c.closed = true; shake = .3;
+      mzWalls.filter(w => !w.gate && w.y1 === MZ.y0 - 12).forEach(w => {
+        w.open = false; w.mesh.visible = true; w.mesh.scale.set(1, 1, 1);
+        tween(350, p => { w.mesh.position.y = .55 * ease(p); w.mesh.scale.y = Math.max(.01, ease(p)); });
+      });
+    }
+    if (Math.hypot(player.x - c.px, player.y - c.py) < 80) {         // 追いつかれた
+      chase = null; mode = 'event'; player.moving = false;
+      player.face = Math.atan2(c.px - player.x, -(c.py - player.y));
+      c.resolve();
+    }
+  }
+  // 警察に 立ち向かう：投げる か かけよって ふりおろす。警察は さっと よける
+  const attackPolice = async throwIt => {
+    const px = 606 + policeDX, py = policeY0 + policeDY;
+    if (throwIt) {
+      const x0 = player.x + 20, y0 = player.y - 10;
+      const fly = tween(600, p => { thrown = { x: x0 + (px + 30 - x0) * p, y: y0 + (py - y0) * p, h: (1.1 + Math.sin(p * Math.PI) * 1.6) * CHAR, spin: p * 12 }; });
+      await wait(260); await policeWalk(130, 0, 220);
+      await fly; thrown = null;
+    } else {
+      const x0 = player.x, y0 = player.y, x1 = px, y1 = py + 120;
+      player.face = Math.atan2(x1 - x0, -(y1 - y0)); player.moving = true;
+      await tween(420, p => { player.x = x0 + (x1 - x0) * p; player.y = y0 + (y1 - y0) * p; player.t += .016; });
+      player.moving = false;
+      const sw = tween(420, p => { swingK = Math.sin(p * Math.PI); });
+      await wait(120); await policeWalk(130, 0, 220);                // ふりおろす 前に よける
+      await sw; swingK = 0;
+      await wait(200);
+      player.face = Math.atan2(x0 - x1, -(y0 - y1)); player.moving = true;
+      await tween(450, p => { player.x = x1 + (x0 - x1) * p; player.y = y1 + (y0 - y1) * p; player.t += .016; });
+      player.moving = false; player.face = 0;
+    }
+    await wait(250);
+    await policeWalk(-130, 0, 400);                                    // もとの 場所へ
+  };
   // 迷路に 入る ところ：迷路の 先には 警察が 待っている
   function mazeStart() {
     mazeAuto = MZ_ROUTE.slice();
@@ -2278,7 +2350,7 @@
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
   Object.assign(window, { watchUI, watchPoint, vmark });
-  Object.assign(window, { mazeStart, mazeArrow, mazeOpen, mazeWalk, policeNearHero });
+  Object.assign(window, { mazeStart, mazeArrow, mazeOpen, mazeWalk, policeNearHero, policeChase, attackPolice });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
@@ -2416,7 +2488,7 @@
       if (inHome && mode === 'play') updateScene2();
       player.moving = vx !== 0 || vy !== 0;
       if (player.moving) { player.t += dt * timeScale; player.face = Math.atan2(vx, -vy); }
-      if (area === 'corridor') { checkTriggers(); if (mazeResolve) checkMaze(); }
+      if (area === 'corridor') { checkTriggers(); if (mazeResolve) checkMaze(); if (chase) updateChase(dt); }
     } else if (mode === 'event' && area === 'corridor') {
       player.face += (0 - player.face) * Math.min(1, dt * 8);     // できごとの 間は 上（奥）を むく
     }
@@ -2475,11 +2547,11 @@
     policeM.visible = policeState === 'police';
     kaitouM.visible = policeState === 'kaitou';
     for (const m of [policeM, kaitouM]) {
-      const walkingP = policeDY > 0 && policeDY < 700;
+      const walkingP = (policeDY > 0 && policeDY < 700) || (chase && chase.moving);
       const bobP = (running ? Math.abs(Math.sin(t * 16 + 1.3)) * .24 : walkingP ? Math.abs(Math.sin(policeDY / 30)) * .08 : 0) * CHAR;
       const py = policeY0 + policeDY;     // さいしょは 画面の 上の 外
       m.position.set(X(606 + policeDX), bobP + groundY(py), Z(py));
-      m.rotation.y = policeSpin + (running ? Math.PI : 0);
+      m.rotation.y = policeSpin + (chase ? chase.face : running ? Math.PI : 0);
     }
     // けんじゅうを かまえる 時は 右うでを 前に のばす
     const aiming = !!shown.gun || !!shown.flowers;
