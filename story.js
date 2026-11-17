@@ -398,6 +398,7 @@ const STORY = {
     // ---------- 時計で 戻る（場面2）----------
     //   RW.at：'S' はじめから ／ 'A' リアオが ケーキの 前に 来る ところ ／ 'B' 研究員「どうするんだい？」 ／ 'C' 二人が 机に 着席した ところ
     const RW = STORY.rewindTo || null; STORY.rewindTo = null;
+    if (!RW) vmark('場面2');                         // 検証モードの 記録（時計で 戻った ときは 戻った 記録が 先に ある）
     const at = RW && RW.at !== 'S' ? RW.at : null;
     let first = null, three = false, brought = 2, cutN = (RW && RW.cutN) || 8, doorCount = 0;
     const toS = () => ({ label: '{初|はじ}めから', at: 'S' });

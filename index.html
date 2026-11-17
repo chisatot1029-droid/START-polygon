@@ -51,6 +51,24 @@
       background: #fff; border: .32em solid #111; border-radius: 16% 9% 13% 19% / 12% 17% 9% 15%; transform: rotate(-1.2deg); cursor: pointer; }
     #watchUI:hover { transform: rotate(-1.2deg) scale(1.05); }
     #watchUI.hidden { display: none; }
+    /* 検証モードの ふりかえり */
+    #review { position: absolute; inset: 0; z-index: 40; background: rgba(18, 22, 16, .88); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2em; }
+    #review .rvBox { width: 78%; height: 80%; overflow-y: auto; background: #fbfaf6; border: .3em solid #111; border-radius: 1.6em; padding: 2em 3em; box-sizing: border-box; }
+    #review .rvTitle { margin: 0 0 1em; font-size: 3em; text-align: center; color: #222; }
+    #rvList { display: flex; flex-direction: column; align-items: center; }
+    .rvItem { position: relative; width: 86%; box-sizing: border-box; padding: .9em 1.4em; border: .2em solid #222; border-radius: 1em; background: #fff; font-size: 2em; color: #222; }
+    .rvItem + .rvItem { margin-top: 2.2em; }
+    .rvItem + .rvItem::before { content: ''; position: absolute; left: 50%; top: -1.15em; height: 1em; border-left: .14em solid #444; }
+    .rvItem + .rvItem::after { content: ''; position: absolute; left: calc(50% - .4em); top: -.42em; border: .4em solid transparent; border-top: .45em solid #444; }
+    .rvCtx { font-size: .78em; color: #777; margin-bottom: .5em; }
+    .rvOpts { display: flex; flex-wrap: wrap; gap: .5em; justify-content: center; }
+    .rvOpt { padding: .25em .9em; border-radius: 2em; border: .12em solid #bbb; color: #aaa; }
+    .rvOpt.picked { border-color: #111; background: #ffd84a; color: #111; font-weight: bold; }
+    .rvWrite .rvVal { display: inline-block; margin-top: .2em; padding: .2em .8em; background: #eef4ff; border-radius: .5em; }
+    .rvScene { background: #2f3a2a; color: #fff; text-align: center; font-weight: bold; }
+    .rvRewind { background: #f3eeff; text-align: center; }
+    .rvNote { background: #f4f4f4; color: #666; text-align: center; font-size: 1.7em; }
+    .rvEmpty { font-size: 2em; color: #777; }
     #watchUI canvas { width: 100%; height: 100%; display: block; }
     #labCut { position: absolute; right: 3.4%; bottom: 6.5%; width: 18.2%; z-index: 6; background: #fff; border: .35em solid #111; line-height: 0; }
     /* 研究員の わくの 中：電子空間の ような 背景（右上に 正方形、左下に 横長の 長方形）と 研究員 */
@@ -128,9 +146,9 @@
     <div id="title" class="overlay">
       <div id="menu">
         <button id="startBtn" class="menuBtn">始める</button>
-        <button id="settingBtn" class="menuBtn"><ruby>設定<rt>せってい</rt></ruby></button>
         <button id="sceneBtn" class="menuBtn">場面を<ruby>選<rt>えら</rt></ruby>ぶ</button>
         <button id="autoBtn" class="menuBtn">オートで みる</button>
+        <button id="verifyBtn" class="menuBtn"><ruby>検証<rt>けんしょう</rt></ruby>モード</button>
       </div>
       <p class="howto">↑ ↓ ← → キー・ゆびで なぞる：あるく　／　クリック・タップ・Enter：すすむ・えらぶ</p>
     </div>
@@ -163,6 +181,16 @@
       <p class="endTitle">つづく</p>
       <p id="endText"></p>
       <button id="againBtn" class="menuBtn small">タイトルへ</button>
+      <button id="reviewBtn" class="menuBtn small hidden">せんたくを ふり<ruby>返<rt>かえ</rt></ruby>る</button>
+    </div>
+
+    <!-- 検証モード：えらんだ ことや 書きこんだ ことを 分岐図の ように ならべて 見かえす -->
+    <div id="review" class="hidden">
+      <div class="rvBox">
+        <p class="rvTitle">せんたくの ふり<ruby>返<rt>かえ</rt></ruby>り</p>
+        <div id="rvList"></div>
+      </div>
+      <button id="rvClose" class="menuBtn small">もどる</button>
     </div>
 
     <div id="toast"></div>
@@ -265,8 +293,10 @@
   const textUnits = s => String(s).match(/\{[^{}|]+\|[^{}]+\}|[\s\S]/gu) || [];   // ルビの かたまりは 1つと して あつかう
   let advanceResolve = null, typeTimer = null, typing = false, fullText = '', chooseResolve = null;
   const hist = []; let histPos = -1, labWasHidden = null;          // もどって 読める セリフ（下の「セリフを もどす」）
+  let lastLine = null;                                               // さいごに 出た セリフ（検証モードの 記録用）
   let talker = null;                                                   // いま 話している 人（体を ゆっくり ゆらす）
   const say = (speaker, text, opt = {}) => new Promise(resolve => {
+    lastLine = { who: plainText(speaker), text: plainText(text).replace(/\n/g, '') };
     openDialog(speaker, opt);
     talker = speaker;
     ui.dialog.classList.remove('choosing');
@@ -342,6 +372,7 @@
       b.className = 'choice'; setRuby(b, label); b.dataset.label = label;
       b.addEventListener('click', ev => {
         ev.stopPropagation(); chooseResolve = null; ui.choices.innerHTML = '';
+        vlog({ t: 'choice', ctx: lastLine, opts: options.map(o => plainText(o).replace(/\n/g, '')), pick: plainText(label).replace(/\n/g, '') });
         ui.dialog.classList.add('hidden'); resolve(label);
       });
       ui.choices.appendChild(b);
@@ -479,7 +510,7 @@
     setRuby(ui.toast, text); ui.toast.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 3500);
   };
-  const end = text => { mode = 'end'; setRuby(ui.endText, text); ui.ending.classList.remove('hidden'); };
+  const end = text => { mode = 'end'; setRuby(ui.endText, text); vlog({ t: 'scene', text: plainText(text).split('\n')[0] }); ui.ending.classList.remove('hidden'); $('reviewBtn').classList.toggle('hidden', !verify); };
 
   const walked = () => Math.hypot(player.x - STORY.playerStart.x, player.y - STORY.playerStart.y);
   // 時計に「タップして とめる」を 出して、とめるまで 待つ
@@ -605,7 +636,30 @@
     try { await fn(); } catch (e) { console.error(e); }
     if (mode === 'event') { mode = 'play'; clearBack(); }
   }
-  async function startGame() { reset(); ui.title.classList.add('hidden'); await runEvent(STORY.opening); }
+  // ---------- 検証モード：えらんだ ことや 書きこんだ ことを 記録して、最後に ふり返る ----------
+  //   時計で 戻る ときは ページを 読みこみなおすので、記録は sessionStorage に のこす
+  let verify = null;
+  try { verify = JSON.parse(sessionStorage.getItem('starto.verify') || 'null'); } catch (e) { verify = null; }
+  const saveVerify = () => { try { if (verify) sessionStorage.setItem('starto.verify', JSON.stringify(verify)); else sessionStorage.removeItem('starto.verify'); } catch (e) {} };
+  function vlog(item) { if (!verify) return; verify.log.push(item); saveVerify(); }
+  const vmark = text => vlog({ t: 'scene', text });
+  async function startGame(withVerify) {
+    verify = withVerify === true ? { log: [] } : null; saveVerify();
+    reset(); ui.title.classList.add('hidden'); vmark('場面1'); await runEvent(STORY.opening);
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function showReview() {
+    const list = $('rvList'), log = verify ? verify.log : [];
+    list.innerHTML = log.length ? log.map(it => {
+      if (it.t === 'scene') return `<div class="rvItem rvScene">${esc(it.text)}</div>`;
+      if (it.t === 'rewind') return `<div class="rvItem rvRewind">⟲ 時計で もどった → ${esc(it.to)}</div>`;
+      if (it.t === 'note') return `<div class="rvItem rvNote">${esc(it.text)}</div>`;
+      if (it.t === 'write') return `<div class="rvItem rvWrite"><div class="rvCtx">書きこみ：${esc(it.label)}</div><span class="rvVal">${esc(it.value || '（何も 書かなかった）')}</span></div>`;
+      const ctx = it.ctx && it.ctx.text ? `${it.ctx.who ? esc(it.ctx.who) + '「' : '「'}${esc(it.ctx.text)}」` : '';
+      return `<div class="rvItem"><div class="rvCtx">${ctx}</div><div class="rvOpts">${it.opts.map(o => `<span class="rvOpt${o === it.pick ? ' picked' : ''}">${esc(o)}</span>`).join('')}</div></div>`;
+    }).join('') : '<p class="rvEmpty">まだ 記録が ありません。</p>';
+    $('review').classList.remove('hidden'); $('review').querySelector('.rvBox').scrollTop = 0;
+  }
   function backToTitle() { reset(); mode = 'title'; ui.ending.classList.add('hidden'); ui.title.classList.remove('hidden'); }
   function checkTriggers() {
     for (const t of STORY.triggers) {
@@ -653,7 +707,10 @@
     if (e.target === canvas || ui.dialog.contains(e.target) || e.target.closest('button, input, #writeBox')) return;   // それぞれ 自分で うけとる
     advance();
   });
-  $('startBtn').addEventListener('click', startGame);
+  $('startBtn').addEventListener('click', () => startGame(false));
+  $('verifyBtn').addEventListener('click', () => startGame(true));
+  $('reviewBtn').addEventListener('click', showReview);
+  $('rvClose').addEventListener('click', () => $('review').classList.add('hidden'));
   $('againBtn').addEventListener('click', backToTitle);
 
   const settings = { bgm: 1, se: 1 };
@@ -664,12 +721,12 @@
     try { localStorage.setItem('starto.settings', JSON.stringify(settings)); } catch (e) {}
     showSettings();
   }));
-  $('settingBtn').addEventListener('click', () => { showSettings(); $('settings').classList.remove('hidden'); });
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
   // 場面をえらぶ
   async function startScene(n) {
     $('scenes').classList.add('hidden');
-    if (n === 1) return startGame();
+    if (n === 1) return startGame(false);
+    verify = null; saveVerify();
     reset(); ui.title.classList.add('hidden');
     await runEvent(async () => { await fadeOut('black', 0); await STORY.scene2(); });   // 家に 入った ところから
   }
@@ -1064,7 +1121,7 @@
     mode = 'event'; player.moving = false; for (const k in keys) keys[k] = false;
     if (wbShown) wb.classList.add('hidden');
     try {
-      if (!watchTargets) { await say('主人公', '今{巻|ま}きもどしても{意味|いみ}ないかな…。', { face: 'hero' }); }
+      if (!watchTargets) { vlog({ t: 'note', text: '時計を おした（今は もどれない）' }); await say('主人公', '今{巻|ま}きもどしても{意味|いみ}ないかな…。', { face: 'hero' }); }
       else {
         let t = watchTargets[0];
         if (watchTargets.length > 1) {
@@ -1082,6 +1139,7 @@
   // 時間を 戻す：画面が 白く なって、選んだ 場面から やりなおす（ページを 読みこみなおして はじめる）
   async function rewindTo(t) {
     const code = 'rw' + t.at + (t.cutN || '');
+    vlog({ t: 'rewind', to: plainText(t.label || '') || { A: 'ケーキを切る場面', B: '研究員の「どうするんだい？」', C: 'ケーキを食べる場面', S: '初めから' }[t.at] });
     try { sessionStorage.setItem('starto.rewind', code); } catch (e) {}
     await fadeOut('white', 900);
     try { location.hash = code; } catch (e) {}
@@ -1888,7 +1946,7 @@
     if (opt.number) { inp.min = opt.min; inp.max = opt.max; } else { inp.removeAttribute('min'); inp.removeAttribute('max'); }
     inp.value = ''; inp.placeholder = kanaText(opt.placeholder || '');
     box.classList.remove('hidden'); setTimeout(() => { try { inp.focus(); } catch (e) {} }, 50);
-    writing = { opt, done: v => { writing = null; box.classList.add('hidden'); inp.blur(); resolve(v); } };
+    writing = { opt, done: v => { writing = null; box.classList.add('hidden'); inp.blur(); vlog({ t: 'write', label: plainText(opt.label || ''), value: String(v ?? '') }); resolve(v); } };
   });
   $('writeBox').addEventListener('submit', e => {
     e.preventDefault(); if (!writing) return;
@@ -1951,7 +2009,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { watchUI, watchPoint });
+  Object.assign(window, { watchUI, watchPoint, vmark });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
