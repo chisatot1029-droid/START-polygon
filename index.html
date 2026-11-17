@@ -1175,7 +1175,7 @@
     mazeResolve = ev => { mzGuideOff(); mazeResolve = null; mode = 'event'; player.moving = false; resolve(ev); };
   });
   // 通路の 前に 進む 矢印は、迷路の 中では 出さない（道を 教えない）
-  function drawMazeArrows() { if (area === 'corridor' && mazeResolve) arrowG.visible = false; }
+  function drawMazeArrows() { if (area === 'corridor' && (mazeResolve || chase)) arrowG.visible = false; }   // にげる ときも 出さない
   function checkMaze() {
     const x = player.x, y = player.y;
     // 迷路の 横の かべの 近くでは タップの 目じるし（文字なし）

@@ -38,11 +38,11 @@ const STORY = {
     floorLeft: 255, floorRight: 948,     // 通路の かべの 内がわ
     walkLeft: 300, walkRight: 905,       // 両わきに 植木が あるので 歩けるのは 少し 内がわ
     floorBottom: 5990,                   // 目を覚ます 部屋の 下の かべ
-    corridorTop: -250,                   // ここから 上は 階段（バケモノ → 道 → 迷路 → 警察 の ずっと 先）
-    mazeSouth: 1800,                     // 迷路の 南の はし（入口）。迷路は 北へ 3列×6段
-    stairsTop: -1765, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
-    plazaTop: -2719, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
-    houseFront: -2408,                   // 家の 前の 面（ドアの まんなかは x 600 あたり）
+    corridorTop: -930,                   // ここから 上は 階段（バケモノ → 道 → 迷路 → 警察 の ずっと 先）
+    mazeSouth: 1120,                     // 迷路の 南の はし（入口）。迷路は 北へ 3列×6段
+    stairsTop: -2445, stairsRise: 3,       // 階段を 上りきった 所（家の前の 広場の 手前の はし）
+    plazaTop: -3399, plazaLeft: -1015, plazaRight: 1695,   // 家の前の 広場（柵の 内がわ）
+    houseFront: -3088,                   // 家の 前の 面（ドアの まんなかは x 600 あたり）
     monsterY: 2555,                      // バケモノの 場面
     walls: [                             // 目を覚ます 部屋の 仕切り（まんなかに 出入口）
       { x1: 255, x2: 533, y1: 4713, y2: 5025 },
@@ -223,7 +223,7 @@ const STORY = {
     {
       // 場面1 二周目：バケモノの 場面の 先の 迷路の 前に 立った とき
       id: 'maze',
-      y: 1930,                       // 迷路の 入口（y 1800）の 少し 手前
+      y: 1250,                       // 迷路の 入口（y 1120）の 少し 手前
       if: () => flags.loop === 2 && flags.afterMonster,
       run: async () => {
         // ---- ミニゲーム 迷路：とちゅうの 緑の とびらは 研究員の 質問に 正しく 答えると 開く。かべを こわして 迂回しても よい ----
@@ -371,7 +371,7 @@ const STORY = {
     {
       // 怪盗を 追って 階段まで 来たら、暗い 通路を 抜けて 家の前へ
       id: 'house',
-      y: -85,
+      y: -765,
       if: () => flags.follow,
       run: async () => {
         flags.follow = false;
