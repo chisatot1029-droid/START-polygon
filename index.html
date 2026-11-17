@@ -274,6 +274,7 @@
     if (face && FACES[face]) { ui.face.src = FACES[face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
     ui.face.classList.toggle('big', face === 'heroAlt');
+    ui.face.classList.toggle('kid', /^kid[AB]/.test(face || ''));
     // 研究員の 顔（opt.face：'r1'〜'r5'、なければ 研究員1）
     if (speaker === '研究員') $('labCut').querySelector('.labFace').src = LAB_FACES[opt.face] || LAB_FACES.r1;
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
@@ -311,6 +312,7 @@
     ui.dialog.classList.toggle('short', h.speaker === '研究員' && plainText(h.text).length <= 9);
     if (h.faceSrc) { ui.face.src = h.faceSrc; ui.face.classList.remove('hidden'); } else ui.face.classList.add('hidden');
     ui.face.classList.toggle('big', h.faceSrc === FACES.heroAlt);
+    ui.face.classList.toggle('kid', /face_kid[AB]/.test(h.faceSrc || ''));
     if (h.speaker === '研究員') $('labCut').querySelector('.labFace').src = LAB_FACES[h.opt && h.opt.face] || LAB_FACES.r1;
     // 研究員の セリフは 研究員の カットと いっしょに 見せる
     const lc = $('labCut');

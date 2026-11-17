@@ -86,6 +86,8 @@ button { font: inherit; cursor: pointer; }
 }
 /* 家の中の 主人公（たれ耳）の 顔は 絵が 小さめ なので 大きく 見せる */
 #face.big { transform: scale(1.35); transform-origin: 50% 55%; }
+/* リアオ・シィの 顔も 少し 大きく */
+#face.kid { transform: scale(1.2); transform-origin: 50% 55%; }
 
 #text {
   position: absolute;
