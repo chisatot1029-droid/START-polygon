@@ -84,6 +84,8 @@ button { font: inherit; cursor: pointer; }
   top: 33%;
   height: 54%;
 }
+/* 家の中の 主人公（たれ耳）の 顔は 絵が 小さめ なので 大きく 見せる */
+#face.big { transform: scale(1.35); transform-origin: 50% 55%; }
 
 #text {
   position: absolute;

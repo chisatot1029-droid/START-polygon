@@ -114,7 +114,7 @@
 
     <div id="labVeil" class="hidden"></div>
     <form id="writeBox" class="hidden" autocomplete="off"><label id="writeLabel"></label><div class="row"><input id="writeInput" type="text" maxlength="40"><button type="submit">決定</button></div></form>
-    <div id="labCut" class="hidden"><div class="labScreen"><img class="labBgSq" src="assets/lab_bg_squares.png" alt=""><img class="labBgRect" src="assets/lab_bg_rects.png" alt=""><img class="labFace" src="assets/researcher1.png" alt="研究員"></div><div class="memo"></div><div class="memoBubble">メモメモ...</div></div>
+    <div id="labCut" class="hidden"><div class="labScreen"><img class="labBgSq" src="assets/lab_bg_squares.png" alt=""><img class="labBgRect" src="assets/lab_bg_rects.png" alt=""><img class="labFace" src="assets/researcher1.png" alt="研究員"></div><div class="memo"></div><div class="memoBubble">ふむふむ…。</div></div>
 
     <button id="alarmGuide" class="hidden" aria-label="アラームを とめる"><span>タップして とめる</span></button>
 
@@ -197,6 +197,8 @@
     kidA1: 'assets/face_kidA1.png', kidA2: 'assets/face_kidA2.png', kidA3: 'assets/face_kidA3.png', kidA4: 'assets/face_kidA4.png',   // 子どもA（ふつう・にこにこ・おどろき・しょんぼり）
     kidB1: 'assets/face_kidB1.png', kidB2: 'assets/face_kidB2.png', kidB3: 'assets/face_kidB3.png',   // 子どもB（にこっ・わらう・おどろき）
   };
+  // 研究員の 顔 1〜5（右下の カット）
+  const LAB_FACES = { r1: 'assets/researcher1.png', r2: 'assets/researcher2.png', r3: 'assets/researcher3.png', r4: 'assets/researcher4.png', r5: 'assets/researcher5.png' };
   const SPEAKER_FACE = { 'バケモノ': 'monster', '{警察|けいさつ}': 'police' };   // 表情が 変わらない 人は 名前で きまる
 
   window.flags = {};
@@ -264,6 +266,9 @@
     if (face === 'hero' && outfit) face = 'heroAlt';   // 家の中では 変身した すがたの 顔
     if (face && FACES[face]) { ui.face.src = FACES[face]; ui.face.classList.remove('hidden'); }
     else ui.face.classList.add('hidden');
+    ui.face.classList.toggle('big', face === 'heroAlt');
+    // 研究員の 顔（opt.face：'r1'〜'r5'、なければ 研究員1）
+    if (speaker === '研究員') $('labCut').querySelector('.labFace').src = LAB_FACES[opt.face] || LAB_FACES.r1;
     // 長い 文は 会話ウィンドウの はばで 折りかえして、2行ずつ すすめる
     ui.dialog.classList.toggle('short', speaker === '研究員' && plainText(text).length <= 9);
     // opt.fit：行を 分けて 書いた 文が 少し 長い ときは、折りかえさずに 文字を 少し 小さく して 1行に おさめる
@@ -298,6 +303,8 @@
     openDialog(h.speaker, h.opt); ui.dialog.classList.remove('choosing');
     ui.dialog.classList.toggle('short', h.speaker === '研究員' && plainText(h.text).length <= 9);
     if (h.faceSrc) { ui.face.src = h.faceSrc; ui.face.classList.remove('hidden'); } else ui.face.classList.add('hidden');
+    ui.face.classList.toggle('big', h.faceSrc === FACES.heroAlt);
+    if (h.speaker === '研究員') $('labCut').querySelector('.labFace').src = LAB_FACES[h.opt && h.opt.face] || LAB_FACES.r1;
     // 研究員の セリフは 研究員の カットと いっしょに 見せる
     const lc = $('labCut');
     if (live) { if (labWasHidden !== null) { lc.classList.toggle('hidden', labWasHidden); labWasHidden = null; } }
