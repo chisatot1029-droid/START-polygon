@@ -1139,7 +1139,7 @@
   // 時間を 戻す：画面が 白く なって、選んだ 場面から やりなおす（ページを 読みこみなおして はじめる）
   async function rewindTo(t) {
     const code = 'rw' + t.at + (t.cutN || '');
-    vlog({ t: 'rewind', to: plainText(t.label || '') || { A: 'ケーキを切る場面', B: '研究員の「どうするんだい？」', C: 'ケーキを食べる場面', S: '初めから' }[t.at] });
+    vlog({ t: 'rewind', to: { B: '研究員の「どうするんだい？」', E: '研究員の「どうする…？」' }[t.at] || plainText(t.label || '') });
     try { sessionStorage.setItem('starto.rewind', code); } catch (e) {}
     await fadeOut('white', 900);
     try { location.hash = code; } catch (e) {}
@@ -1151,7 +1151,9 @@
     if (!show) return;
     const w = watchCv.clientWidth, h = watchCv.clientHeight;
     if (w && (w !== watchSize)) { watchRenderer.setSize(w, h, false); watchCam.aspect = w / h; watchCam.updateProjectionMatrix(); watchSize = w; }
-    pocketWatch.rotation.y = Math.sin(now / 900) * .35;
+    // 戻れる 場面では くるくる 回る（ゆれる 速さの 2.5倍）。ふだんは 左右に ゆっくり ゆれる
+    if (watchTargets) pocketWatch.rotation.y = now / 900 * 2.5;
+    else pocketWatch.rotation.y = Math.sin(now / 900) * .35;
     pocketWatch.rotation.z = Math.sin(now / 1300) * .05;
     watchRenderer.render(watchScene, watchCam);
   }
@@ -2472,9 +2474,9 @@
   {
     let code = null;
     try { code = sessionStorage.getItem('starto.rewind'); sessionStorage.removeItem('starto.rewind'); } catch (e) {}
-    if (!code && /^#rw[SABC]\d*$/.test(location.hash)) code = location.hash.slice(1);
+    if (!code && /^#rw[SABCDE]\d*$/.test(location.hash)) code = location.hash.slice(1);
     if (/^#rw/.test(location.hash)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
-    const m = code && code.match(/^rw([SABC])(\d*)$/);
+    const m = code && code.match(/^rw([SABCDE])(\d*)$/);
     if (m) {
       reset(); ui.title.classList.add('hidden');
       STORY.rewindTo = { at: m[1], cutN: m[2] ? Number(m[2]) : 8 };
