@@ -46,6 +46,11 @@
     /* 研究員の カット：右下の 小さな わくに 研究員、セリフは その 上の 吹き出し */
     #labVeil { position: absolute; inset: 0; z-index: 4; background: rgba(0, 0, 0, .5); }
     #labVeil.hidden, #labCut.hidden { display: none; }
+    /* 左上の 時計の UI（場面2：自由に 時計を 使える）。手がきの ような 白い わくの 中に ポリゴンの 懐中時計 */
+    #watchUI { position: absolute; left: 4.6%; top: 3.6%; width: 8.6%; aspect-ratio: 1.06; box-sizing: border-box; padding: .5%; z-index: 3;
+      background: #fff; border: .32em solid #111; border-radius: 16% 9% 13% 19% / 12% 17% 9% 15%; transform: rotate(-1.2deg); }
+    #watchUI.hidden { display: none; }
+    #watchUI canvas { width: 100%; height: 100%; display: block; }
     #labCut { position: absolute; right: 3.4%; bottom: 6.5%; width: 18.2%; z-index: 6; background: #fff; border: .35em solid #111; line-height: 0; }
     /* 研究員の わくの 中：電子空間の ような 背景（右上に 正方形、左下に 横長の 長方形）と 研究員 */
     #labCut .labScreen { position: relative; aspect-ratio: 400 / 276; overflow: hidden; }
@@ -102,6 +107,7 @@
     <div id="lidTop" class="lid"></div>
     <div id="lidBot" class="lid"></div>
     <div id="fade"></div>
+    <div id="watchUI" class="hidden" title="時計"><canvas></canvas></div>
 
     <div id="dialog" class="hidden">
       <div id="speaker"></div>
@@ -210,6 +216,7 @@
 
   function reset() {
     for (const k in flags) delete flags[k];
+    watchOn = false;
     resetPlayer();
     followCam = true;
     monsterState = 'full'; monsterDX = 0; captiveDX = 0; captiveDY = 0; eatStart = 0; thrown = null;
@@ -1006,12 +1013,52 @@
     shadowAll(g);
     return g;
   }
+  // 左上の UI に 出す 懐中時計（イラストを もとに した ポリゴン版）
+  //   上に 横向きの 輪と りゅうず、黒い ふちの 白い 文字盤、まんなかに 灰色の 円、上下に 矢じりの ある 針
+  function makePocketWatch() {
+    const g = new THREE.Group(), black = flat('#1b1b1b'), white = flat('#fbfbf6'), gray = flat('#8d8d8d');
+    const disc = (r, h, m, z, seg = 12) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m); c.rotation.x = Math.PI / 2; c.position.z = z; g.add(c); return c; };
+    disc(.62, .16, black, 0);                       // ふち
+    disc(.56, .18, white, 0);                       // 文字盤
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.49, .018, 3, 12), black); ring.position.z = .095; g.add(ring);   // 内がわの 線
+    disc(.21, .04, gray, .1, 8);                    // 灰色の 円
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(.035, .6, .03), black); hand.position.z = .13; g.add(hand);
+    [1, -1].forEach(s => { const tip = new THREE.Mesh(new THREE.ConeGeometry(.065, .11, 3), black); tip.position.set(0, s * .33, .13); if (s < 0) tip.rotation.z = Math.PI; g.add(tip); });
+    disc(.05, .05, black, .15, 6);                  // 針の 中心
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(.055, .07, .12, 6), black); stem.position.y = .67; g.add(stem);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .08, 8), white); crown.position.y = .77; g.add(crown);
+    const crownL = new THREE.Mesh(new THREE.TorusGeometry(.11, .022, 3, 8), black); crownL.rotation.x = Math.PI / 2; crownL.position.y = .77; g.add(crownL);
+    const bow = new THREE.Mesh(new THREE.TorusGeometry(.19, .028, 3, 10), black); bow.rotation.x = Math.PI / 2 - .35; bow.position.y = .86; g.add(bow);   // 横向きの 輪
+    return g;
+  }
   // ！マーク：赤。いつも 見ている 人の ほうを むく（Figma「claude用素材」1）
   function makeExclaim() {
     const g = new THREE.Group(), red = new THREE.MeshBasicMaterial({ color: '#d8262b' });
     const bar = new THREE.Mesh(new THREE.CylinderGeometry(.09, .045, .46, 4), red); bar.rotation.y = Math.PI / 4; bar.position.y = .36; g.add(bar);
     const dot = new THREE.Mesh(new THREE.CircleGeometry(.07, 6), red); g.add(dot);
     return g;
+  }
+
+  // ---------- 左上の 時計の UI（場面2）：小さな 画面に 懐中時計を ゆっくり ゆらして 映す。戻す しくみは まだ ----------
+  const watchEl = document.getElementById('watchUI'), watchCv = watchEl.querySelector('canvas');
+  const watchRenderer = new THREE.WebGLRenderer({ canvas: watchCv, antialias: true, alpha: true });
+  watchRenderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const watchScene = new THREE.Scene(), watchCam = new THREE.PerspectiveCamera(28, 1, .1, 20);
+  watchCam.position.set(0, .05, 3.5);
+  watchScene.add(new THREE.HemisphereLight('#ffffff', '#b8b0a0', 2.2));
+  { const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(1.5, 2, 3); watchScene.add(l); }
+  const pocketWatch = makePocketWatch(); pocketWatch.position.y = -.08; watchScene.add(pocketWatch);
+  let watchOn = false, watchSize = 0;
+  const watchUI = on => { watchOn = !!on; };
+  function drawWatchUI(now) {
+    const show = watchOn && mode !== 'title' && mode !== 'end' && ui.dialog.classList.contains('hidden');
+    watchEl.classList.toggle('hidden', !show);
+    if (!show) return;
+    const w = watchCv.clientWidth, h = watchCv.clientHeight;
+    if (w && (w !== watchSize)) { watchRenderer.setSize(w, h, false); watchCam.aspect = w / h; watchCam.updateProjectionMatrix(); watchSize = w; }
+    pocketWatch.rotation.y = Math.sin(now / 900) * .35;
+    pocketWatch.rotation.z = Math.sin(now / 1300) * .05;
+    watchRenderer.render(watchScene, watchCam);
   }
 
   const heroM = makeHero(); heroM.rotation.order = 'YXZ';
@@ -1867,6 +1914,7 @@
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
+  Object.assign(window, { watchUI });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
@@ -2197,6 +2245,7 @@
     last = now;
     update(dt);
     draw(now, dt);
+    drawWatchUI(now);
     if (cakeActive || !cakeUI.classList.contains('hidden')) drawCakeGame(now);
     requestAnimationFrame(loop);
   }
