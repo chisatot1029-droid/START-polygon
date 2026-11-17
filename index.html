@@ -1264,13 +1264,17 @@
     const top = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, .05, 10), flat('#f4efe4')); top.position.y = .5 * FUR + .1; t.add(top);
     const leg = new THREE.Mesh(new THREE.CylinderGeometry(.04, .07, .5 * FUR + .1, 6), flat('#f4efe4')); leg.position.y = (.5 * FUR + .1) / 2; t.add(leg);
     const vase = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, .22, 7), flat('#7fb7c9')); vase.position.y = .5 * FUR + .24; t.add(vase);
-    ['#f2c14e', '#e6a8d8', '#ffffff'].forEach((c, i) => { const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.06, 0), flat(c)); f.position.set((i - 1) * .07, .5 * FUR + .45, 0); t.add(f); });
+    // 花：白・ピンク・青（大きめ）
+    [['#ffffff', -.11, .5, 0], ['#f4a6c8', .1, .53, .03], ['#6f9fe0', 0, .6, -.05], ['#ffffff', .05, .47, .1], ['#f4a6c8', -.05, .46, -.1], ['#6f9fe0', -.12, .58, .08]].forEach(([c, x, y, z]) => {
+      const st = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, y - .24, 4), flat('#5e8a44')); st.position.set(x * .6, .5 * FUR + .24 + (y - .24) / 2, z * .6); t.add(st);
+      const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.085, 0), flat(c)); f.position.set(x, .5 * FUR + y, z); t.add(f);
+    });
     shadowAll(t); homeG.add(t); }
   // 青い ラグ
-  { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#141a40')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .07, -9.04); homeG.add(rug); }   // 床の でこぼこより 上に
-  // 同じ 紺色の カーペット：ダイニングテーブルの 下と、キッチンの ケーキが ある 台の 手前
-  [[0, -15.52, 4.3, 6.0], [12.75, -13.4, 1.8, 2.7]].forEach(([x, z, w, d]) => {
-    const c = new THREE.Mesh(new THREE.PlaneGeometry(w, d), flat('#141a40')); c.rotation.x = -Math.PI / 2; c.position.set(x, .07, z); homeG.add(c);
+  { const rug = new THREE.Mesh(new THREE.CircleGeometry(1, 20), flat('#fcc800')); rug.rotation.x = -Math.PI / 2; rug.scale.set(2.16, 1, 1); rug.position.set(0, .07, -9.04); homeG.add(rug); }   // 床の でこぼこより 上に
+  // 同じ 色の カーペット：キッチンの ケーキが ある 台の 手前
+  [[12.75, -13.4, 1.8, 2.7]].forEach(([x, z, w, d]) => {
+    const c = new THREE.Mesh(new THREE.PlaneGeometry(w, d), flat('#fcc800')); c.rotation.x = -Math.PI / 2; c.position.set(x, .07, z); homeG.add(c);
   });
   // ダイニングテーブルと 椅子 6つ
   const TABLE = { x1: -.99, x2: .96, z1: -17.67, z2: -13.37, y: .78 * FUR + .05 };
@@ -1350,10 +1354,26 @@
       for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2, m = leaf(p, new THREE.BoxGeometry(.09 * k, .02 * k, .5 * k), i % 2 ? '#4f8f3e' : '#6aa64a', Math.sin(a) * .2 * k, .86 * k, Math.cos(a) * .2 * k); m.rotation.set(-.5, a, 0, 'YXZ'); }
     },
   };
-  [['tall', -2.5, -16.0, 1.1], ['snake', 2.5, -17.2, 1.0], ['bush', 2.45, -12.4, .9], ['palm', -2.45, -5.6, 1.0], ['cactus', 2.5, -1.6, .9],
-   ['snake', -2.5, -18.4, .8], ['tall', 15.05, -8.0, 1.0], ['bush', 9.85, -12.4, .85], ['cactus', 5.0, -9.6, .8], ['palm', 13.0, -7.95, .85]].forEach(([kind, x, z, k]) => {
+  // 横に 長い 低木（細長い プランターに こんもりした しげみ）。rot：向き（0 = 前後に 長い、π/2 = 左右に 長い）
+  PLANTS.hedge = (p, k, len = 2.4) => {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(.38 * k, .26 * k, len), flat('#c9a46a')); box.position.y = .13 * k; p.add(box);
+    const n = Math.max(3, Math.round(len / .32));
+    for (let i = 0; i < n; i++) { const z = -len / 2 + (i + .5) * len / n; leaf(p, new THREE.DodecahedronGeometry((.2 + (i % 3) * .03) * k, 0), ['#4f8a3c', '#6a9e47', '#3f7a36'][i % 3], (i % 2 ? .04 : -.04) * k, (.36 + (i % 2) * .05) * k, z); }
+  };
+  // サボテンは 通路では なく かならず 角に おく
+  [['tall', -2.5, -16.0, 1.1], ['snake', 2.5, -17.2, 1.0], ['bush', 2.45, -12.4, .9], ['palm', -2.45, -5.6, 1.0], ['cactus', 2.65, -.5, .9],
+   ['snake', -2.5, -18.4, .8], ['tall', 15.05, -9.6, 1.0], ['bush', 9.85, -12.4, .85], ['cactus', 15.2, -7.8, .8], ['palm', 13.0, -7.95, .85]].forEach(([kind, x, z, k]) => {
     const p = new THREE.Group(); p.position.set(x, 0, z); PLANTS[kind](p, k); shadowAll(p); homeG.add(p);
   });
+  [[-2.65, -3.0, 1, 2.6, 0], [2.65, -14.6, .9, 2.0, 0], [6.6, -7.62, .85, 3.0, Math.PI / 2], [15.15, -11.4, .85, 2.0, 0]].forEach(([x, z, k, len, rot]) => {
+    const p = new THREE.Group(); p.position.set(x, 0, z); p.rotation.y = rot; PLANTS.hedge(p, k, len); shadowAll(p); homeG.add(p);
+  });
+  // テーブルの 上の 白い テーブルフラワー（ケーキを おく 場所から はなれた おくの はし）
+  { const t = new THREE.Group(); t.position.set(0, TABLE.y + .035, -17.1);
+    const vase = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .2, 8), flat('#e9eef2')); vase.position.y = .1; t.add(vase);
+    [[0, .32, 0], [.09, .28, .04], [-.09, .27, -.03], [.03, .27, -.1], [-.04, .29, .09]].forEach(([x, y, z]) => { const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.075, 0), flat('#ffffff')); f.position.set(x, y, z); t.add(f); });
+    [[.12, .22, -.05], [-.12, .21, .06]].forEach(([x, y, z]) => { const l = new THREE.Mesh(new THREE.DodecahedronGeometry(.05, 0), flat('#5e8a44')); l.position.set(x, y, z); t.add(l); });
+    shadowAll(t); homeG.add(t); }
   const homeLight = new THREE.PointLight('#ffd9a0', 0, 30, 0); homeLight.position.set(HOME.x + 5, 4, HOME.z - 10); scene.add(homeLight);
 
   // ---------- 屋根うら ----------
