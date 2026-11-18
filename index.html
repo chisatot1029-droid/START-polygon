@@ -313,7 +313,7 @@
     if (typeof repairWall === 'function') repairWall();
     houseHero = { x: -.7, z: 3.4, t: 0, moving: false }; houseKaitou = { x: .7, z: 3.2, t: 0, moving: false, visible: true };
     alarmResolve = null; $('alarmGuide').classList.add('hidden');
-    shown = {}; done = {}; eyelid = 0; if (typeof stopBgm === 'function') stopBgm(0); itemsOn = false; haveWatch = false; stars = 0;
+    shown = {}; done = {}; eyelid = 0; itemsOn = false; haveWatch = false; stars = 0;
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden'); hist.length = 0; histPos = -1; labWasHidden = null; $('backMark').classList.add('hidden');
@@ -911,55 +911,8 @@
   document.querySelectorAll('.dot').forEach(d => d.addEventListener('click', () => {
     settings[d.dataset.key] = Number(d.dataset.level);
     try { localStorage.setItem('starto.settings', JSON.stringify(settings)); } catch (e) {}
-    showSettings(); bgmVolume();
+    showSettings();
   }));
-  // ---------- BGM（はじめの ナレーションから 怪盗の「やっと助けが来たのか！」まで）----------
-  //   曲は 2小節（テンポ140）の フレーズ。2小節ごとに 重ねて 鳴らして、とぎれず くりかえす（音の 余韻は 次と 重なる）
-  var bgmCtx = null, bgmBuf = null, bgmGain = null, bgmTimer = null, bgmNext = 0, bgmSrcs = [], bgmOn = false;
-  const BGM_LOOP = 60 / 140 * 8, BGM_VOL = [.25, .5, .85];
-  const bgmVolume = () => { if (bgmGain && bgmOn) bgmGain.gain.setTargetAtTime(BGM_VOL[settings.bgm] ?? .5, bgmCtx.currentTime, .05); };
-  // 読みこみ直した ときに、前の ページの 音が 残って いたら 止める（claude.ai の 画面では 前の 音が 残る ことが ある）
-  try { if (window.__startoBgmCtx) window.__startoBgmCtx.close(); } catch (e) {}
-  window.__startoBgmCtx = null;
-  function bgmEnsure() {
-    if (!bgmCtx) { try { bgmCtx = new (window.AudioContext || window.webkitAudioContext)(); window.__startoBgmCtx = bgmCtx; } catch (e) { return; } }
-    if (bgmCtx.state === 'suspended') bgmCtx.resume();
-  }
-  addEventListener('pointerdown', bgmEnsure, true);             // さわった ときに 音を 出せるように しておく（ブラウザの きまり）
-  addEventListener('keydown', bgmEnsure, true);
-  async function startBgm() {
-    bgmEnsure(); if (!bgmCtx) return;
-    stopBgm(0);
-    bgmOn = true;
-    try { if (!bgmBuf) bgmBuf = await bgmCtx.decodeAudioData(await (await fetch('assets/bgm_opening.m4a')).arrayBuffer()); } catch (e) { console.warn('BGM', e); bgmOn = false; return; }
-    if (!bgmOn || mode === 'title') { bgmOn = false; return; }  // 読みこむ 間に 止められた／ホーム画面では 流さない
-    bgmGain = bgmCtx.createGain(); bgmGain.gain.value = BGM_VOL[settings.bgm] ?? .5; bgmGain.connect(bgmCtx.destination);
-    bgmNext = bgmCtx.currentTime + .05;
-    const g = bgmGain;
-    const tick = () => {
-      if (!bgmOn || g !== bgmGain) return;
-      while (bgmNext < bgmCtx.currentTime + .6) {
-        const src = bgmCtx.createBufferSource(); src.buffer = bgmBuf; src.connect(g); src.start(bgmNext);
-        bgmSrcs.push(src); src.onended = () => { bgmSrcs = bgmSrcs.filter(x => x !== src); };
-        bgmNext += BGM_LOOP;
-      }
-    };
-    tick(); bgmTimer = setInterval(tick, 200);
-  }
-  function stopBgm(ms = 800) {
-    bgmOn = false; clearInterval(bgmTimer); bgmTimer = null;
-    const g = bgmGain, srcs = bgmSrcs; bgmGain = null; bgmSrcs = [];
-    if (!g || !bgmCtx) return;
-    const t = bgmCtx.currentTime;
-    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + ms / 1000);
-    setTimeout(() => { srcs.forEach(x => { try { x.stop(); } catch (e) {} }); g.disconnect(); }, ms + 100);
-  }
-  // ホーム画面（タイトル）や おわりの 画面では かならず 止める
-  setInterval(() => { if (bgmOn && (mode === 'title' || mode === 'end')) stopBgm(300); }, 250);
-  // ページが 消える とき（読みこみ直し・とじる）は 音を 止める（音の しくみは こわさない）
-  addEventListener('pagehide', () => stopBgm(0));
-  addEventListener('beforeunload', () => stopBgm(0));
-  Object.assign(window, { startBgm, stopBgm });
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
   // 場面をえらぶ
   async function startScene(n) {
