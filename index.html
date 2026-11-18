@@ -46,11 +46,10 @@
     /* 研究員の カット：右下の 小さな わくに 研究員、セリフは その 上の 吹き出し */
     #labVeil { position: absolute; inset: 0; z-index: 4; background: rgba(0, 0, 0, .5); }
     #labVeil.hidden, #labCut.hidden { display: none; }
-    /* 左上の 時計の UI（場面2：自由に 時計を 使える）。手がきの ような 白い わくの 中に ポリゴンの 懐中時計 */
-    #watchUI { position: absolute; left: 4.6%; top: 3.6%; width: 8.6%; aspect-ratio: 1.06; box-sizing: border-box; padding: .5%; z-index: 3;
-      background: #fff; border: .32em solid #111; border-radius: 16% 9% 13% 19% / 12% 17% 9% 15%; transform: rotate(-1.2deg); cursor: pointer; }
-    #watchUI:hover { transform: rotate(-1.2deg) scale(1.05); }
-    #watchUI.hidden { display: none; }
+    /* もちものの 時計（場面1の 2周目から 入る）。ポリゴンの 懐中時計。場面2で 自由に 使える ときは おせる */
+    #watchUI { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; }
+    #watchUI.usable { pointer-events: auto; cursor: pointer; transition: transform .15s; }
+    #watchUI.usable:hover { transform: scale(1.08); }
     /* 右下の もちもの と 集めた 星の 数 */
     #itemUI { position: absolute; right: .6%; bottom: 2.2%; width: 9.2%; z-index: 3; pointer-events: none; }
     #itemUI.hidden { display: none; }
@@ -60,7 +59,7 @@
     #itemUI .itemSlots { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; }
     #itemUI .itemSlot { width: 56%; aspect-ratio: 1; border-radius: 50%; background: #e6e6e6; display: flex; align-items: center; justify-content: center; }
     #itemUI .itemSlot.hidden { visibility: hidden; }
-    #itemUI .itemSlot svg { width: 66%; height: 66%; }
+    #itemUI .starCount.hidden { visibility: hidden; }
     #itemUI .starCount { display: flex; align-items: center; justify-content: center; gap: .5em; margin-top: 1.2em; color: #fff; font-size: 1.9em; }
     #itemUI .starCount svg { width: 1.9em; height: 1.9em; }
     /* 検証モードの ふりかえり */
@@ -156,16 +155,14 @@
     <div id="lidTop" class="lid"></div>
     <div id="lidBot" class="lid"></div>
     <div id="fade"></div>
-    <div id="watchUI" class="hidden" title="時計"><canvas></canvas></div>
     <div id="itemUI" class="hidden">
       <div class="itemBox">
         <div class="itemTitle">もちもの</div>
         <div class="itemSlots">
-          <div class="itemSlot hidden" id="itemWatch" title="時計"><svg viewBox="0 0 40 40" fill="none" stroke="#333" stroke-width="2.6" stroke-linecap="round">
-            <rect x="17" y="3" width="6" height="5" rx="1.5" fill="#333" stroke="none"/><circle cx="20" cy="23" r="13"/><path d="M20 23V15M20 23l5.5 3.5"/></svg></div>
+          <div class="itemSlot hidden" id="itemWatch"><div id="watchUI" title="時計"><canvas></canvas></div></div>
         </div>
       </div>
-      <div class="starCount"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 1.8l3 7.1 7.6.6-5.8 5 1.8 7.5L12 18l-6.6 4 1.8-7.5-5.8-5 7.6-.6z"/></svg><span id="starNum">0/3</span></div>
+      <div class="starCount hidden" id="starCount"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 1.8l3 7.1 7.6.6-5.8 5 1.8 7.5L12 18l-6.6 4 1.8-7.5-5.8-5 7.6-.6z"/></svg><span id="starNum">0/3</span></div>
     </div>
 
     <div id="dialog" class="hidden">
@@ -291,7 +288,8 @@
   window.flags = {};
   let mode = 'title';
   // もちもの：時計を 持っているか、集めた 星の 数（3つ 集める）
-  let haveWatch = false, stars = 0;
+  let itemsOn = false, haveWatch = false, stars = 0;
+  const showItems = () => { itemsOn = true; };                 // 目を 覚ましてから 出す
   const getWatch = () => { haveWatch = true; };
   const addStar = (n = 1) => { stars = Math.min(3, stars + n); };
   let timeScale = 1;
@@ -312,7 +310,7 @@
     if (typeof repairWall === 'function') repairWall();
     houseHero = { x: -.7, z: 3.4, t: 0, moving: false }; houseKaitou = { x: .7, z: 3.2, t: 0, moving: false, visible: true };
     alarmResolve = null; $('alarmGuide').classList.add('hidden');
-    shown = {}; done = {}; eyelid = 0; haveWatch = false; stars = 0;
+    shown = {}; done = {}; eyelid = 0; itemsOn = false; haveWatch = false; stars = 0;
     if (typeof reset2 === 'function') reset2();
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden'); hist.length = 0; histPos = -1; labWasHidden = null; $('backMark').classList.add('hidden');
@@ -692,7 +690,7 @@
     running = false;                                                   // ふりかえって 主人公を 待つ
   };
   Object.assign(window, { labCut, peekChoose, unpeek, kaitouRunAhead });
-  Object.assign(window, { gardenSetup, getWatch, addStar });
+  Object.assign(window, { gardenSetup, showItems, getWatch, addStar });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
     police, policeWalk, throwItem, meleeItem, walkXY, centerHero, stepBack, camera, follow, walkTo, resetPlayer, note, end });
@@ -1500,7 +1498,7 @@
   watchEl.addEventListener('pointerdown', e => e.stopPropagation());
   watchEl.addEventListener('click', async e => {
     e.stopPropagation();
-    if (watchBusy || watchEl.classList.contains('hidden')) return;
+    if (watchBusy || !watchEl.classList.contains('usable')) return;
     watchBusy = true;
     const prevMode = mode, wb = $('writeBox'), wbShown = !wb.classList.contains('hidden');
     mode = 'event'; player.moving = false; for (const k in keys) keys[k] = false;
@@ -1532,13 +1530,16 @@
   }
   function drawItemUI() {
     const el = document.getElementById('itemUI');
-    el.classList.toggle('hidden', mode === 'title' || mode === 'end');
+    el.classList.toggle('hidden', !itemsOn || mode === 'title' || mode === 'end');
     document.getElementById('itemWatch').classList.toggle('hidden', !haveWatch);
+    document.getElementById('starCount').classList.toggle('hidden', !watchOn);   // 星の 数は 場面2で 自由に 動けるように なってから
     const t = stars + '/3', n = document.getElementById('starNum'); if (n.textContent !== t) n.textContent = t;
   }
   function drawWatchUI(now) {
-    const show = watchOn && mode !== 'title' && mode !== 'end' && ui.dialog.classList.contains('hidden') && (mode === 'play' || writing || watchBusy);
-    watchEl.classList.toggle('hidden', !show);
+    // もちものに 時計が あれば 映す。おせるのは 場面2で 自由に 動ける とき（または 書きこみ中）だけ
+    const show = itemsOn && haveWatch && mode !== 'title' && mode !== 'end';
+    const usable = show && watchOn && ui.dialog.classList.contains('hidden') && (mode === 'play' || writing || watchBusy);
+    watchEl.classList.toggle('usable', usable);
     if (!show) return;
     const w = watchCv.clientWidth, h = watchCv.clientHeight;
     if (w && (w !== watchSize)) { watchRenderer.setSize(w, h, false); watchCam.aspect = w / h; watchCam.updateProjectionMatrix(); watchSize = w; }
