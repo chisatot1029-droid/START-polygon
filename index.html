@@ -513,7 +513,7 @@
   };
   const show = name => { shown[name] = true; };
   const hide = name => { delete shown[name]; };
-  const monster = state => { monsterState = state; monsterDX = 0; captiveDX = 0; captiveDY = 0; if (state === 'eat') eatStart = performance.now(); };
+  const monster = state => { monsterState = state; monsterDX = 0; captiveDX = 0; captiveDY = 0; if (state === 'eat') { eatStart = performance.now(); sePlay('chew'); } };
   let policeY0 = 0;                                                 // 警察が 出てくる 所（reset で MON_Y - 651＝さいしょは 画面の 上の 外）
   const police = state => { if (policeState === 'none') { policeDX = 0; policeDY = 0; } policeState = state; };
   const policeNearHero = () => { policeY0 = player.y - 1106; };      // 迷路を ぬけた あと：主人公の 先から 来る
@@ -915,9 +915,9 @@
     showSettings();
   }));
   // ---------- 効果音（SE）：決まった ところで 鳴らす。セッティングの SE volume で 音量 ----------
-  //   ナレーションの 文字が 出る 間：キーボードの 音 ／ 主人公が 歩く・走る：足音（4歩ぶんを じゅんばんに）
+  //   ナレーションの 文字が 出る 間：キーボードの 音 ／ 主人公が 歩く・走る：足音（4歩ぶんを じゅんばんに） ／ バケモノが 怪盗を 食べる：咀嚼
   var seCtx = null, seGain = null; const seBuf = {}, SE_VOL = [.35, .7, 1];
-  const SE_FILES = { keys: 'assets/se_keyboard.m4a', step: 'assets/se_step.m4a' };
+  const SE_FILES = { keys: 'assets/se_keyboard.m4a', step: 'assets/se_step.m4a', chew: 'assets/se_chew.m4a' };
   function seEnsure() {
     if (!seCtx) { try { seCtx = new (window.AudioContext || window.webkitAudioContext)(); seGain = seCtx.createGain(); seGain.connect(seCtx.destination); } catch (e) { return; } }
     if (seCtx.state === 'suspended') seCtx.resume();
