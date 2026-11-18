@@ -433,6 +433,8 @@
     options.forEach(label => {
       const b = document.createElement('button');
       b.className = 'choice'; setRuby(b, label); b.dataset.label = label;
+      // 1行が 長い 選択肢は、ボタンに おさまる ように 文字を 少し 小さく
+      if (Math.max(...plainText(label).split('\n').map(r => r.length)) > 10) b.classList.add('long');
       b.addEventListener('click', ev => {
         ev.stopPropagation(); chooseResolve = null; ui.choices.innerHTML = '';
         vlog({ t: 'choice', ctx: lastLine, opts: options.map(o => plainText(o).replace(/\n/g, '')), pick: plainText(label).replace(/\n/g, '') });

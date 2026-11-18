@@ -142,6 +142,7 @@ button { font: inherit; cursor: pointer; }
 }
 .choice:hover, .choice.hover { background: #3d5a2a; }
 #choices.three .choice { font-size: 2.4em; min-height: 52%; margin-top: 3%; }
+.choice.long { font-size: 2.3em; }
 
 /* ---------- タイトル（Figma：灰緑の丸 と 白いボタン） ---------- */
 .overlay {
