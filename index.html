@@ -929,7 +929,7 @@
     stopBgm(0);
     bgmOn = true;
     try { if (!bgmBuf) bgmBuf = await bgmCtx.decodeAudioData(await (await fetch('assets/bgm_opening.m4a')).arrayBuffer()); } catch (e) { console.warn('BGM', e); bgmOn = false; return; }
-    if (!bgmOn) return;                                         // 読みこむ 間に 止められた
+    if (!bgmOn || mode === 'title') { bgmOn = false; return; }  // 読みこむ 間に 止められた／ホーム画面では 流さない
     bgmGain = bgmCtx.createGain(); bgmGain.gain.value = BGM_VOL[settings.bgm] ?? .5; bgmGain.connect(bgmCtx.destination);
     bgmNext = bgmCtx.currentTime + .05;
     const g = bgmGain;
@@ -951,6 +951,10 @@
     g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + ms / 1000);
     setTimeout(() => { srcs.forEach(x => { try { x.stop(); } catch (e) {} }); g.disconnect(); }, ms + 100);
   }
+  // ホーム画面（タイトル）や おわりの 画面では かならず 止める。ページを とじる・かくす ときも 止める
+  setInterval(() => { if (bgmOn && (mode === 'title' || mode === 'end')) stopBgm(300); }, 250);
+  document.addEventListener('visibilitychange', () => { if (!bgmCtx) return; if (document.hidden) bgmCtx.suspend(); else if (bgmOn) bgmCtx.resume(); });
+  addEventListener('pagehide', () => { stopBgm(0); if (bgmCtx) { try { bgmCtx.close(); } catch (e) {} bgmCtx = null; } });
   Object.assign(window, { startBgm, stopBgm });
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
   // 場面をえらぶ
