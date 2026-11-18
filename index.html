@@ -924,14 +924,15 @@
     seGain.gain.value = SE_VOL[settings.se] ?? .7;
     for (const k in SE_FILES) if (!(k in seBuf)) {
       seBuf[k] = null;
-      fetch(SE_FILES[k]).then(r => r.arrayBuffer()).then(b => seCtx.decodeAudioData(b)).then(d => { seBuf[k] = d; }).catch(e => console.warn('SE', k, e));
+      fetch(SE_FILES[k]).then(r => r.arrayBuffer()).then(b => seCtx.decodeAudioData(b)).then(d => { seBuf[k] = d; if (k === 'keys' && typing && talker === 'ナレーション' && !seKeySrc) seKeysStart(); }).catch(e => console.warn('SE', k, e));
     }
   }
-  addEventListener('pointerdown', seEnsure, true);            // さわった ときに 音を 出せるように しておく（ブラウザの きまり）
-  addEventListener('keydown', seEnsure, true);
+  // さわった ときに 音を 出せるように しておく（ブラウザの きまり）。claude.ai の 画面でも とどく ように いくつかの 合図で
+  for (const ev of ['pointerdown', 'mousedown', 'touchstart', 'click', 'keydown']) addEventListener(ev, seEnsure, true);
   // 鳴らす：offset 秒 から dur 秒（vol は 0〜1）。鳴らした 音を 返す
   function sePlay(name, offset = 0, dur, vol = 1) {
-    if (!seCtx || !seBuf[name] || seCtx.state !== 'running') return null;
+    seEnsure();                                                  // まだ 準備が できて いなければ ここで 準備する
+    if (!seCtx || !seBuf[name]) return null;
     const src = seCtx.createBufferSource(), g = seCtx.createGain(); g.gain.value = vol;
     src.buffer = seBuf[name]; src.connect(g); g.connect(seGain);
     src.start(0, offset, dur); src._g = g; return src;
@@ -939,7 +940,7 @@
   // ナレーションの キーボードの 音（文字が 出おわったら 止める）
   let seKeySrc = null;
   function seKeysStart() {
-    seKeysStop();
+    seKeysStop(); seEnsure();
     const b = seBuf.keys; if (!b) return;
     seKeySrc = sePlay('keys', Math.random() * Math.max(0, b.duration - 6), undefined, .8);
   }
