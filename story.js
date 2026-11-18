@@ -154,6 +154,7 @@ const STORY = {
         show('ring');
         await say('時計', 'ピピピピッ。');
         await say('主人公', 'あれ？⟦時計⟧なんて持っていたか？', { face: 'hero' });
+        getWatch();                                                         // もちものに 時計が 入る
         await stopAlarm();                                                  // 止めるように さそう エフェクト
         hide('ring');
         await wait(300);
@@ -436,6 +437,7 @@ const STORY = {
   // ============================================================
   scene2: async () => {
     const H = (text, opt) => say('主人公', text, { face: 'hero', ...opt });
+    getWatch();                                                            // 場面2では 時計を 持っている（時計で 戻った ときも）
     // 子供A（青い子）は 名前を 名のるまで「子供A」、名のった あとは「リアオ」。子供B は「シィ」
     //   KA(セリフ, 顔の番号) … 顔は 子供Aの アイコン 1〜4、KB は 子供Bの アイコン 1〜3
     let nameA = '{子供|こども}A';
@@ -763,7 +765,7 @@ const STORY = {
     await H('ありがとう。');
     await wait(700);                                                       // 主人公が 見えてから 渡す
     await giveStar();
-    note('⟦星⟧を 1つ 手に いれた！');
+    note('⟦星⟧を 1つ 手に いれた！'); addStar();
     await wait(600);
     hideStar();                                                            // 受け取ったら しまう
     await KA('また会えたらいいね。', 2);
@@ -1054,7 +1056,7 @@ const STORY = {
         await bendPut(kidB, null, 1200);
         lookAt(kidB, heroX(), heroZ());
         await giveShards();
-        note('⟦星⟧の かけらを 手に いれた！');
+        note('⟦星⟧の かけらを 手に いれた！'); addStar();
         await wait(600);
       } else {
         await H('いや。“⟦星⟧”が{必要|ひつよう}なんだ。\nくだけたものはいらないよ。');
