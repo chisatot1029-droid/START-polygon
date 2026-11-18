@@ -135,14 +135,13 @@ button { font: inherit; cursor: pointer; }
   color: #fff;
   border: none;
   border-radius: 0.8em;
-  font-size: 3em;
+  font-size: 2.3em;                 /* 選択肢は ぜんぶ 同じ 大きさ */
   line-height: 1.15;
   padding: 0.2em 0.3em;
   white-space: pre-line;
 }
 .choice:hover, .choice.hover { background: #3d5a2a; }
-#choices.three .choice { font-size: 2.4em; min-height: 52%; margin-top: 3%; }
-.choice.long { font-size: 2.3em; }
+#choices.three .choice { min-height: 52%; margin-top: 3%; }
 
 /* ---------- タイトル（Figma：灰緑の丸 と 白いボタン） ---------- */
 .overlay {
