@@ -951,10 +951,8 @@
     g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + ms / 1000);
     setTimeout(() => { srcs.forEach(x => { try { x.stop(); } catch (e) {} }); g.disconnect(); }, ms + 100);
   }
-  // ホーム画面（タイトル）や おわりの 画面では かならず 止める。ページを とじる・かくす ときも 止める
+  // ホーム画面（タイトル）や おわりの 画面では かならず 止める
   setInterval(() => { if (bgmOn && (mode === 'title' || mode === 'end')) stopBgm(300); }, 250);
-  document.addEventListener('visibilitychange', () => { if (!bgmCtx) return; if (document.hidden) bgmCtx.suspend(); else if (bgmOn) bgmCtx.resume(); });
-  addEventListener('pagehide', () => { stopBgm(0); if (bgmCtx) { try { bgmCtx.close(); } catch (e) {} bgmCtx = null; } });
   Object.assign(window, { startBgm, stopBgm });
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
   // 場面をえらぶ
