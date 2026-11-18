@@ -368,6 +368,7 @@
     ui.dialog.classList.toggle('short', speaker === '研究員' && plainText(text).length <= 9);
     // opt.fit：行を 分けて 書いた 文が 少し 長い ときは、折りかえさずに 文字を 少し 小さく して 1行に おさめる
     ui.text.style.fontSize = '';
+    if (opt.scale) ui.text.style.fontSize = (parseFloat(getComputedStyle(ui.text).fontSize) * opt.scale) + 'px';   // 文字の 大きさを かえる（.5 で 半分）
     if (opt.fit) {
       const cs = getComputedStyle(ui.text); measureCtx.font = `${cs.fontSize} ${cs.fontFamily}`;
       const w = Math.max(...text.split('\n').map(r => measureCtx.measureText(plainText(r)).width)), fw = (ui.text.clientWidth || 600) - 2;
@@ -1546,6 +1547,11 @@
     // 戻れる 場面では くるくる 回る（ゆれる 速さの 2.5倍）。ふだんは 左右に ゆっくり ゆれる
     if (watchTargets) pocketWatch.rotation.y = now / 900 * 2.5;
     else pocketWatch.rotation.y = Math.sin(now / 900) * .35;
+    // 戻れる 場面では、アラームが 鳴って いるように 大きく ふるえる（もちものの わくから はみ出るか はみ出ないか くらい）
+    if (watchTargets) {
+      const tt = now / 1000, ring = (tt % 1) < .45, k = ring ? Math.sin(tt * 28) : 0;
+      watchEl.style.transform = `translate(${k * 7}%, ${-Math.abs(k) * 8}%) rotate(${k * 14}deg) scale(1.6)`;
+    } else watchEl.style.transform = '';
     pocketWatch.rotation.z = Math.sin(now / 1300) * .05;
     watchRenderer.render(watchScene, watchCam);
   }
@@ -2403,13 +2409,18 @@
   function reset2() {
     setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
     Object.assign(doors, { back: 0, attic: 0, exit: 0 });
-    for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0, track: false });
+    for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0, track: false, spin: 0, form: null });
     for (const k of ['tears', 'kidKnife', 'kidPlates', 'necklace', 'heroKnife', 'badCut']) prop(k, false);
     prop('traySlices', true);
     prop('rackKnife', true); cake('counter'); cakeReset(); atticPlates(0); shardG.visible = false; heroStar.visible = false; kidChopK = 0;
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
-  Object.assign(window, { watchUI, watchPoint, vmark });
+  // かいとうが 体を 一周 まわして リアオの すがたに 変わる（警察 → かいとう と 同じ 動き）
+  const ownerMorph = async () => {
+    await tween(1600, p => { KH.spin = ease(p) * Math.PI * 2; if (p > .5) KH.form = 'kidA'; });
+    KH.spin = 0; KH.form = 'kidA';
+  };
+  Object.assign(window, { watchUI, watchPoint, vmark, ownerMorph });
   Object.assign(window, { mazeStart, mazeArrow, mazeOpen, mazeWalk, mazeGoalStand, policeNearHero, policeChase, attackPolice });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
@@ -2450,8 +2461,12 @@
       if (a.track) a.rot = Math.atan2(heroX() - a.x, heroZ() - a.z);   // その場で 主人公の ほうを むきつづける
       m.position.set(base.x + a.x * S, bob + (a.lift || 0) + stairY(a.x, a.z), base.z + a.z * S); m.rotation.set(a.lean || 0, a.rot, 0);
       if (a.shiver) { const tt = performance.now(); m.position.x += Math.sin(tt * .07) * .025 * CHAR; m.rotation.z = Math.sin(tt * .05) * .04; }   // ふるえる
+      if (a.spin) m.rotation.y += a.spin;                                  // 変身で くるっと 回る
     };
-    drawActor(kaitouM, KH); drawActor(kidAM, A); drawActor(kidBM, B);
+    // かいとうが リアオに 変身して いる 間は、リアオの すがたで 歩く（本物の リアオは まだ 出て いない）
+    const ownerAsKid = KH.form === 'kidA' && !A.visible;
+    drawActor(kaitouM, ownerAsKid ? { visible: false } : KH); drawActor(kidAM, A); drawActor(kidBM, B);
+    if (ownerAsKid) drawActor(kidAM, KH);
     policeM.visible = monsterM.visible = captiveM.visible = false;
     // 子どもAの ナイフ（ふりかぶって 切る）・なみだ
     const kn = kidAM.userData.knife;

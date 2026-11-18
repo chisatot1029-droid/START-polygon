@@ -320,6 +320,7 @@ const STORY = {
         } else {
           // にげる：警察と 同じ 足の 速さで、迷路を 逆に もどる 追いかけっこ。入口の 手前まで にげると 入口が しまる
           await say('主人公', 'にげろっ！', { face: 'hero' });
+          await say('主人公', '今までの道を{戻|もど}ってにげよう！', { face: 'hero' });
           await labCut('memo');                                             // 研究員が メモを する 仕草
           await wait(1000);
           await labCut(false);
@@ -493,6 +494,9 @@ const STORY = {
     await O('いいかい？', 'kaitou1');
     await H('うん。');
     await O('ありがとう。', 'kaitou2');
+    await O('青い子はたしかこんな子だったかな、、、', 'kaitou1');
+    await ownerMorph();                              // かいとうが リアオの すがたに 変身する
+    await wait(400);
     await O('じゃあ、早速で悪いが、\nぼくは用事があるから{失礼|しつれい}するね！', 'kaitou5');
     // 怪盗は 奥の 裏口から 去る（主人公が 歩けるように なるまで カメラは そのまま）
     //   怪盗が 主人公の 前から はなれたら、歩いている とちゅうで 主人公が 話しはじめる
@@ -554,7 +558,9 @@ const STORY = {
     await walkPath(kidA, [[11.4, -8.9], [11.6, -13.4]], 4.6);   // 走って かけつける
     lookAt(kidA, heroX(), heroZ());
     look(12.4, -13.0, .9, false, 'slow');
-    await KA('あ！お兄さんケーキ切ってくれるの？', 3);
+    await KA('お、ケーキを食べるんだね。', 3);
+    await KA('{間違|まちが}えた！', 1, { scale: .5 });               // 小さい 文字で
+    await KA('お兄さんがケーキ切ってくれるの？', 3);
     heroFace(kidA.x, kidA.z);
     await H('？');
     await KA('ちがうの…？', 4);
