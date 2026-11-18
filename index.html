@@ -918,8 +918,11 @@
   var bgmCtx = null, bgmBuf = null, bgmGain = null, bgmTimer = null, bgmNext = 0, bgmSrcs = [], bgmOn = false;
   const BGM_LOOP = 60 / 140 * 8, BGM_VOL = [.25, .5, .85];
   const bgmVolume = () => { if (bgmGain && bgmOn) bgmGain.gain.setTargetAtTime(BGM_VOL[settings.bgm] ?? .5, bgmCtx.currentTime, .05); };
+  // 読みこみ直した ときに、前の ページの 音が 残って いたら 止める（claude.ai の 画面では 前の 音が 残る ことが ある）
+  try { if (window.__startoBgmCtx) window.__startoBgmCtx.close(); } catch (e) {}
+  window.__startoBgmCtx = null;
   function bgmEnsure() {
-    if (!bgmCtx) { try { bgmCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; } }
+    if (!bgmCtx) { try { bgmCtx = new (window.AudioContext || window.webkitAudioContext)(); window.__startoBgmCtx = bgmCtx; } catch (e) { return; } }
     if (bgmCtx.state === 'suspended') bgmCtx.resume();
   }
   addEventListener('pointerdown', bgmEnsure, true);             // さわった ときに 音を 出せるように しておく（ブラウザの きまり）
@@ -953,6 +956,9 @@
   }
   // ホーム画面（タイトル）や おわりの 画面では かならず 止める
   setInterval(() => { if (bgmOn && (mode === 'title' || mode === 'end')) stopBgm(300); }, 250);
+  // ページが 消える とき（読みこみ直し・とじる）は 音を 止める（音の しくみは こわさない）
+  addEventListener('pagehide', () => stopBgm(0));
+  addEventListener('beforeunload', () => stopBgm(0));
   Object.assign(window, { startBgm, stopBgm });
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
   // 場面をえらぶ
