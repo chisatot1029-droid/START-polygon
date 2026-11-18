@@ -398,7 +398,7 @@
   function clearBack() { if (histPos >= 0) showHist(hist.length - 1, true); hist.length = 0; histPos = -1; updBack(); }
   function showHist(i, live) {
     const h = hist[i]; if (!h) return;
-    clearInterval(typeTimer); typing = false; seKeysStop();
+    clearInterval(typeTimer); typing = false;
     openDialog(h.speaker, h.opt); ui.dialog.classList.remove('choosing');
     ui.dialog.classList.toggle('short', h.speaker === '研究員' && plainText(h.text).length <= 9);
     if (h.faceSrc) { ui.face.src = h.faceSrc; ui.face.classList.remove('hidden'); } else ui.face.classList.add('hidden');
@@ -481,10 +481,9 @@
     clearInterval(typeTimer);
     const chars = textUnits(text); let n = 0;
     fullText = text; typing = true; ui.text.textContent = ''; ui.nextMark.classList.add('hidden');
-    if (talker === 'ナレーション' && chars.length) seKeysStart(); else seKeysStop();   // ナレーションは キーボードの 音
     typeTimer = setInterval(() => { n++; setRuby(ui.text, chars.slice(0, n).join('')); if (n >= chars.length) finishTyping(); }, 40 / timeScale);
   }
-  function finishTyping() { clearInterval(typeTimer); typing = false; seKeysStop(); setRuby(ui.text, fullText); ui.nextMark.classList.remove('hidden'); }
+  function finishTyping() { clearInterval(typeTimer); typing = false; setRuby(ui.text, fullText); ui.nextMark.classList.remove('hidden'); }
   function advance() {
     if (ui.dialog.classList.contains('hidden') || ui.dialog.classList.contains('choosing')) return;
     if (histPos >= 0) {                                          // もどって 読んでいる 時は 1つずつ 先へ
@@ -513,7 +512,7 @@
   };
   const show = name => { shown[name] = true; };
   const hide = name => { delete shown[name]; };
-  const monster = state => { monsterState = state; monsterDX = 0; captiveDX = 0; captiveDY = 0; if (state === 'eat') { eatStart = performance.now(); sePlay('chew'); } };
+  const monster = state => { monsterState = state; monsterDX = 0; captiveDX = 0; captiveDY = 0; if (state === 'eat') eatStart = performance.now(); };
   let policeY0 = 0;                                                 // 警察が 出てくる 所（reset で MON_Y - 651＝さいしょは 画面の 上の 外）
   const police = state => { if (policeState === 'none') { policeDX = 0; policeDY = 0; } policeState = state; };
   const policeNearHero = () => { policeY0 = player.y - 1106; };      // 迷路を ぬけた あと：主人公の 先から 来る
@@ -914,43 +913,6 @@
     try { localStorage.setItem('starto.settings', JSON.stringify(settings)); } catch (e) {}
     showSettings();
   }));
-  // ---------- 効果音（SE）：決まった ところで 鳴らす。セッティングの SE volume で 音量 ----------
-  //   ナレーションの 文字が 出る 間：キーボードの 音 ／ 主人公が 歩く・走る：足音（4歩ぶんを じゅんばんに） ／ バケモノが 怪盗を 食べる：咀嚼
-  var seCtx = null, seGain = null; const seBuf = {}, SE_VOL = [.35, .7, 1];
-  const SE_FILES = { keys: 'assets/se_keyboard.m4a', step: 'assets/se_step.m4a', chew: 'assets/se_chew.m4a' };
-  function seEnsure() {
-    if (!seCtx) { try { seCtx = new (window.AudioContext || window.webkitAudioContext)(); seGain = seCtx.createGain(); seGain.connect(seCtx.destination); } catch (e) { return; } }
-    if (seCtx.state === 'suspended') seCtx.resume();
-    seGain.gain.value = SE_VOL[settings.se] ?? .7;
-    for (const k in SE_FILES) if (!(k in seBuf)) {
-      seBuf[k] = null;
-      fetch(SE_FILES[k]).then(r => r.arrayBuffer()).then(b => seCtx.decodeAudioData(b)).then(d => { seBuf[k] = d; if (k === 'keys' && typing && talker === 'ナレーション' && !seKeySrc) seKeysStart(); }).catch(e => console.warn('SE', k, e));
-    }
-  }
-  // さわった ときに 音を 出せるように しておく（ブラウザの きまり）。claude.ai の 画面でも とどく ように いくつかの 合図で
-  for (const ev of ['pointerdown', 'mousedown', 'touchstart', 'click', 'keydown']) addEventListener(ev, seEnsure, true);
-  // 鳴らす：offset 秒 から dur 秒（vol は 0〜1）。鳴らした 音を 返す
-  function sePlay(name, offset = 0, dur, vol = 1) {
-    seEnsure();                                                  // まだ 準備が できて いなければ ここで 準備する
-    if (!seCtx || !seBuf[name]) return null;
-    const src = seCtx.createBufferSource(), g = seCtx.createGain(); g.gain.value = vol;
-    src.buffer = seBuf[name]; src.connect(g); g.connect(seGain);
-    src.start(0, offset, dur); src._g = g; return src;
-  }
-  // ナレーションの キーボードの 音（文字が 出おわったら 止める）
-  let seKeySrc = null;
-  function seKeysStart() {
-    seKeysStop(); seEnsure();
-    const b = seBuf.keys; if (!b) return;
-    seKeySrc = sePlay('keys', Math.random() * Math.max(0, b.duration - 6), undefined, .8);
-  }
-  function seKeysStop() {
-    const s = seKeySrc; seKeySrc = null; if (!s || !seCtx) return;
-    const t = seCtx.currentTime; s._g.gain.setValueAtTime(s._g.gain.value, t); s._g.gain.linearRampToValueAtTime(0, t + .06);
-    try { s.stop(t + .08); } catch (e) {}
-  }
-  let seStepN = 0;
-  const seStep = () => { sePlay('step', (seStepN++ % 4) * .5, .34, running ? .9 : .6); };   // 走る ときは 少し 大きく
   $('backBtn').addEventListener('click', () => $('settings').classList.add('hidden'));
   // 場面をえらぶ
   async function startScene(n) {
@@ -2664,14 +2626,11 @@
     '???': [captiveM, kaitouM, policeM], 'かいとう': [kaitouM, policeM, captiveM], '{警察|けいさつ}': [policeM],
     '{子供|こども}A': [kidAM], 'リアオ': [kidAM], 'シィ': [kidBM], 'バケモノ': [monsterM], '2人': [kidAM, kidBM],
   };
-  let heroStepI = 0;
   function draw(now, dt) {
     const t = now / 1000;
     // 主人公
     const runK = running ? 16 : 11, runH = (running ? .22 : (flags.run ? .12 : .06)) * CHAR;     // 走る 時は 大きく はずむ
     const heroPhase = running ? t * runK : player.t * runK;
-    // 足音：足が 地面に つく たびに（主人公が 歩く・走る とき）
-    { const si = Math.floor(heroPhase / Math.PI); if (si !== heroStepI) { heroStepI = si; if ((player.moving || running) && mode !== 'title') seStep(); } }
     heroM.position.set(X(player.x), (player.moving ? Math.abs(Math.sin(heroPhase)) * runH : 0) + groundY(player.y), Z(player.y));
     heroM.rotation.y = -player.face; heroM.rotation.x = 0;
     heroM.userData.legs.forEach((l, i) => { l.rotation.x = player.moving ? Math.sin(heroPhase + i * Math.PI) * (running ? .8 : .5) : 0; });
