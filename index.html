@@ -162,10 +162,7 @@
         <div class="itemTitle">もちもの</div>
         <div class="itemSlots">
           <div class="itemSlot hidden" id="itemWatch"><div id="watchUI" title="時計"><canvas></canvas></div></div>
-          <div class="itemSlot gone" id="itemKnife" title="ナイフ"><svg viewBox="0 0 40 40"><g transform="rotate(-45 20 20)">
-            <path d="M17.6 3.5 C22.6 6 23 13.5 22.4 22 L17.6 22 Z" fill="#e3e8ec" stroke="#222" stroke-width="1.6" stroke-linejoin="round"/>
-            <rect x="15.6" y="21.6" width="8.8" height="2.6" rx="1" fill="#555" stroke="#222" stroke-width="1.2"/>
-            <rect x="17.3" y="24" width="5.4" height="12.5" rx="1.8" fill="#6b4a32" stroke="#222" stroke-width="1.4"/></g></svg></div>
+          <div class="itemSlot gone" id="itemKnife" title="ナイフ"><canvas id="knifeCv" style="width:100%;height:100%;display:block"></canvas></div>
         </div>
       </div>
       <div class="starCount hidden" id="starCount"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 1.8l3 7.1 7.6.6-5.8 5 1.8 7.5L12 18l-6.6 4 1.8-7.5-5.8-5 7.6-.6z"/></svg><span id="starNum">0/3</span></div>
@@ -1501,6 +1498,33 @@
   watchScene.add(new THREE.HemisphereLight('#ffffff', '#b8b0a0', 2.2));
   { const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(1.5, 2, 3); watchScene.add(l); }
   const pocketWatch = makePocketWatch(); pocketWatch.position.y = -.08; watchScene.add(pocketWatch);
+  // もちものの ナイフ（時計と 同じ ように ポリゴンで、ゆっくり ゆれる）
+  const knifeCv = document.getElementById('knifeCv');
+  const knifeRenderer = new THREE.WebGLRenderer({ canvas: knifeCv, antialias: true, alpha: true });
+  knifeRenderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const knifeScene = new THREE.Scene(), knifeCam = new THREE.PerspectiveCamera(28, 1, .1, 20);
+  knifeCam.position.set(0, 0, 3.5);
+  knifeScene.add(new THREE.HemisphereLight('#ffffff', '#b8b0a0', 2.2));
+  { const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(1.5, 2, 3); knifeScene.add(l); }
+  const iconKnife = new THREE.Group();
+  {
+    const sh = new THREE.Shape(); sh.moveTo(-.09, 0); sh.lineTo(.1, 0); sh.lineTo(.1, .42); sh.quadraticCurveTo(.06, .78, -.09, .9); sh.lineTo(-.09, 0);   // 刃（先が とがる）
+    const blade = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: .03, bevelEnabled: false, curveSegments: 3 }), new THREE.MeshStandardMaterial({ color: '#dfe5ea', metalness: .3, roughness: .35, flatShading: true }));
+    blade.position.z = -.015; iconKnife.add(blade);
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(.28, .05, .08), new THREE.MeshStandardMaterial({ color: '#555', flatShading: true })); guard.position.y = -.02; iconKnife.add(guard);
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(.065, .075, .42, 6), new THREE.MeshStandardMaterial({ color: '#6b4a32', flatShading: true })); handle.position.y = -.25; iconKnife.add(handle);
+    iconKnife.children.forEach(m => { m.position.y -= .2; });
+    iconKnife.rotation.z = -Math.PI / 4;
+  }
+  knifeScene.add(iconKnife);
+  let knifeSize = 0;
+  function drawKnifeUI(now) {
+    if (document.getElementById('itemKnife').classList.contains('gone') || document.getElementById('itemUI').classList.contains('hidden')) return;
+    const w = knifeCv.clientWidth, h = knifeCv.clientHeight;
+    if (w && w !== knifeSize) { knifeRenderer.setSize(w, h, false); knifeCam.aspect = w / h; knifeCam.updateProjectionMatrix(); knifeSize = w; }
+    iconKnife.rotation.y = Math.sin(now / 900) * .5;
+    knifeRenderer.render(knifeScene, knifeCam);
+  }
   let watchOn = false, watchSize = 0, watchTargets = null, watchBusy = false;
   const watchUI = on => { watchOn = !!on; };
   // 時計を おして 戻れる 先（{ label, at, cutN }の ならび）。null なら 今は 戻れない
@@ -2576,6 +2600,17 @@
         if (mode !== 'play') break;
       }
       if (inHome && mode === 'play') updateScene2();
+      // 警察から にげる 時は、迷路の 通路の まんなかを 通る（かべに かくれて 姿が 見えなく ならない ように）
+      if (chase && area === 'corridor' && (vx || vy) && player.y < MZ.y0 && player.y > mzYB(MZ.rows)) {
+        const pull = Math.min(1, dt * timeScale * 10);
+        if (Math.abs(vy) >= Math.abs(vx)) {
+          const cx = MZ_COLX.reduce((b, c) => Math.abs(c - player.x) < Math.abs(b - player.x) ? c : b), nx = player.x + (cx - player.x) * pull;
+          if (!blocked(nx, player.y)) player.x = nx;
+        } else {
+          const r = Math.max(0, Math.min(MZ.rows - 1, Math.floor((MZ.y0 - player.y) / MZ.rh))), cy = mzYB(r) - MZ.rh / 2, ny = player.y + (cy - player.y) * pull;
+          if (!blocked(player.x, ny)) player.y = ny;
+        }
+      }
       player.moving = vx !== 0 || vy !== 0;
       if (player.moving) { player.t += dt * timeScale; player.face = Math.atan2(vx, -vy); }
       if (area === 'corridor') { checkTriggers(); if (mazeResolve) checkMaze(); if (chase) updateChase(dt); }
@@ -2773,7 +2808,7 @@
     update(dt);
     draw(now, dt);
     drawMazeArrows(now);
-    drawWatchUI(now); drawItemUI();
+    drawWatchUI(now); drawItemUI(); drawKnifeUI(now);
     if (cakeActive || !cakeUI.classList.contains('hidden')) drawCakeGame(now);
     requestAnimationFrame(loop);
   }
