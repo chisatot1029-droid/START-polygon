@@ -492,13 +492,18 @@ const STORY = {
     await O('ありがとう。', 'kaitou2');
     await O('じゃあ、早速で悪いが、\nぼくは用事があるから{失礼|しつれい}するね！', 'kaitou5');
     // 怪盗は 奥の 裏口から 去る（主人公が 歩けるように なるまで カメラは そのまま）
-    await walkPath(owner, [[0, -6.7], [-2.1, -9.5], [-2.1, -18.8], [0, -19.6]], 4.2);
-    await openDoor('back', 300);
-    await walkActor(owner, 0, -20.6, 300); owner.visible = false;
+    //   怪盗が 主人公の 前から はなれたら、歩いている とちゅうで 主人公が 話しはじめる
+    const leave = (async () => {
+      await walkPath(owner, [[0, -6.7], [-2.1, -9.5], [-2.1, -18.8], [0, -19.6]], 4.2);
+      await openDoor('back', 300);
+      await walkActor(owner, 0, -20.6, 300); owner.visible = false;
+    })();
+    await wait(1100);
     await H('いそがしい人だな…。');
     await H('でも、{確|たし}かにワケありかも。');
     await H('他に行くあてもなかったし\n帰る{方法|ほうほう}すら知らなかったし');
     await H('これからがんばってだっしゅつするんだ。');
+    await leave;
     watchUI(true);                                   // ここから 左上に 時計の UI（自由に 使える。戻す しくみは まだ）
 
     // ---------- ケーキの 前へ（プレイヤーが 歩く） ----------

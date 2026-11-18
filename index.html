@@ -477,12 +477,9 @@
   const fadeIn = (ms = 600) => { ui.fade.style.transition = `opacity ${ms / timeScale}ms`; ui.fade.style.opacity = 0; return wait(ms); };
   const blink = async () => {
     eyelid = 1; ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
-    await tween(900, p => { eyelid = 1 - ease(p) * 0.55; });
-    await tween(250, p => { eyelid = 0.45 + p * 0.55; });
-    await wait(200);
-    await tween(700, p => { eyelid = 1 - ease(p) * 0.8; });
-    await tween(200, p => { eyelid = 0.2 + p * 0.8; });
-    await tween(600, p => { eyelid = 1 - ease(p); });
+    // まばたきは しないで、ゆっくり 目を 開く
+    await wait(400);
+    await tween(2800, p => { eyelid = 1 - ease(p); });
     eyelid = 0;
   };
   const show = name => { shown[name] = true; };
