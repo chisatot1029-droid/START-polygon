@@ -994,9 +994,13 @@
   }
   // 左の かべ：バケモノが こわす 所だけ べつの かたまり
   // 迷路の 横の かべ（左右とも）は べつの かたまり：近づくと タップで こわせて、外がわの 道から 警察の ところへ 迂回できる
-  const MZ_SIDE = { y1: SM.mazeSouth - 822 - 90, y2: SM.mazeSouth };      // こわせる かべの はんい（迷路の 北の はしより 少し 先まで）
+  //   こわせるのは 迷路の 前（南）の 横の かべだけ。こわすと 外がわの 道が あらわれ、迷路の 北の はしの 先で 通路に もどれる
+  const MZ_N = SM.mazeSouth - 822;                                     // 迷路の 北の はし
+  const MZ_SIDE = { y1: MZ_N - 90, y2: SM.mazeSouth + 260, pre: SM.mazeSouth };   // 外がわの 道の はんい／こわせる かべは pre〜y2
   addWall(MAP.left - 40, MAP.left, MAP.top, MZ_SIDE.y1);
-  const sideWallL = addWall(MAP.left - 40, MAP.left, MZ_SIDE.y1, MZ_SIDE.y2);
+  const sideGapL = addWall(MAP.left - 40, MAP.left, MZ_SIDE.y1, MZ_N);           // 迷路の 先の 出口（こわすと いっしょに ひらく）
+  addWall(MAP.left - 40, MAP.left, MZ_N, MZ_SIDE.pre);                            // 迷路の 横は そのまま
+  const sideWallL = addWall(MAP.left - 40, MAP.left, MZ_SIDE.pre, MZ_SIDE.y2);   // 迷路の 前の 横の かべ（こわせる）
   addWall(MAP.left - 40, MAP.left, MZ_SIDE.y2, MON_Y - 105);
   const breakableWall = addWall(MAP.left - 40, MAP.left, MON_Y - 105, MON_Y + 115);
   addWall(MAP.left - 40, MAP.left, MON_Y + 115, MAP.bottom + 40);
@@ -1011,7 +1015,9 @@
   }
   // 右の かべ：2周目に バケモノが こわす 所だけ べつの かたまり
   addWall(MAP.right, MAP.right + 40, MAP.top, MZ_SIDE.y1);
-  const sideWallR = addWall(MAP.right, MAP.right + 40, MZ_SIDE.y1, MZ_SIDE.y2);
+  const sideGapR = addWall(MAP.right, MAP.right + 40, MZ_SIDE.y1, MZ_N);
+  addWall(MAP.right, MAP.right + 40, MZ_N, MZ_SIDE.pre);
+  const sideWallR = addWall(MAP.right, MAP.right + 40, MZ_SIDE.pre, MZ_SIDE.y2);
   addWall(MAP.right, MAP.right + 40, MZ_SIDE.y2, MON_Y - 105);
   // こわした あとに 見える 外がわの 道（左右）
   const sidePathL = new THREE.Mesh(new THREE.PlaneGeometry(1.6, (MZ_SIDE.y2 - MZ_SIDE.y1) / 100), flat('#d9d6b4'));
@@ -1069,7 +1075,7 @@
   function mazeReset() {
     mazeOn = true; mazeResolve = null; mazeIn = {}; mazeAuto = []; mazeArrowOn = false; mzNear = null;
     sideOpen = { L: false, R: false }; policeFaceOv = null;
-    [sideWallL, sideWallR].forEach(m => { m.visible = true; m.scale.set(1, 1, 1); m.position.y = .55; }); sidePathL.visible = sidePathR.visible = false;
+    [sideWallL, sideWallR, sideGapL, sideGapR].forEach(m => { m.visible = true; m.scale.set(1, 1, 1); m.position.y = .55; }); sidePathL.visible = sidePathR.visible = false;
     mzWalls.forEach(w => { w.open = !!w.entrance; w.mesh.visible = !w.entrance; w.mesh.position.y = .55; w.mesh.scale.set(1, 1, 1); });
     chase = null; chaseTrail = null;
   }
@@ -1086,7 +1092,7 @@
     const c = chase; if (!c) return;
     const last = c.trail.length ? c.trail[c.trail.length - 1] : null;
     if (!last || Math.hypot(player.x - last[0], player.y - last[1]) > 20) { c.trail.push([player.x, player.y]); chaseTrail.push([player.x, player.y]); }
-    let budget = STORY.walkSpeed * dt * timeScale; c.moving = false;
+    let budget = (flags.run ? STORY.runSpeed : STORY.walkSpeed) * dt * timeScale; c.moving = false;   // 主人公と 同じ 速さ
     while (budget > 0 && c.trail.length) {
       const [tx, ty] = c.trail[0], dx = tx - c.px, dy = ty - c.py, d = Math.hypot(dx, dy);
       if (d <= budget) { c.px = tx; c.py = ty; budget -= d; c.trail.shift(); }
@@ -1151,7 +1157,8 @@
     if (sideOpen[side]) return;
     sideOpen[side] = true; shake = .45;
     vlog({ t: 'note', text: `迷路の ${side === 'L' ? '左' : '右'}の かべを こわした` });
-    const m = side === 'L' ? sideWallL : sideWallR; (side === 'L' ? sidePathL : sidePathR).visible = true;
+    const m = side === 'L' ? sideWallL : sideWallR, g = side === 'L' ? sideGapL : sideGapR; (side === 'L' ? sidePathL : sidePathR).visible = true;
+    g.visible = false;                                                    // 迷路の 先で 通路に もどる 出口
     const h0 = m.position.y;
     await tween(420, p => { const k = 1 - ease(p); m.scale.y = Math.max(.01, k); m.position.y = h0 * k; });
     m.visible = false;
@@ -1179,7 +1186,7 @@
   function checkMaze() {
     const x = player.x, y = player.y;
     // 迷路の 横の かべの 近くでは タップの 目じるし（文字なし）
-    const inRows = y < MZ.y0 - 20 && y > mzYB(MZ.rows) - 60;
+    const inRows = y > MZ.y0 + 20 && y < MZ_SIDE.y2 - 20;                // 迷路の 前の 横の かべの 近くだけ（迷路の 中は こわせない）
     const near = inRows && x < MAP.walkL + 40 && !sideOpen.L ? 'L' : inRows && x > MAP.walkR - 40 && !sideOpen.R ? 'R' : null;
     if (near !== mzNear) {
       mzGuideOff();
@@ -1215,7 +1222,7 @@
   // 通路の 両わきの 植木（地図「移動の道」：右の 画像の ように サイドに 植木を 生やす）
   { const leaf = ['#4f7a3a', '#5e8a44', '#3f6b33', '#6b9450'];
     for (let y = 4640, i = 0; y > SM.corridorTop + 60; y -= 210 + (i % 3) * 40, i++) {
-      if (y < MZ.y0 + 60 && y > mzYB(MZ.rows) - 60) continue;            // 迷路の ところには 植木を おかない
+      if (y < MZ.y0 + 300 && y > mzYB(MZ.rows) - 60) continue;           // 迷路と その 前（こわせる かべ）には 植木を おかない
       if (SM.walls.some(w => y > w.y1 - 40 && y < w.y2 + 40)) continue; // 仕切りの ところにも おかない
       for (const [x, side] of [[MAP.left + 26, -1], [MAP.right - 26, 1]]) {
         const g = new THREE.Group(); g.position.set(X(x), 0, Z(y + (side > 0 ? 90 : 0)));
@@ -2487,8 +2494,9 @@
   const HALF_W = 34;
   function blocked(x, y) {
     const inSide = y > MZ_SIDE.y1 + 25 && y < MZ_SIDE.y2 - 15;            // こわした 横の かべの 外がわの 道
-    if (x - HALF_W * CHAR < MAP.walkL && !(sideOpen.L && inSide && x - HALF_W * CHAR > MAP.left - 160)) return true;
-    if (x + HALF_W * CHAR > MAP.walkR && !(sideOpen.R && inSide && x + HALF_W * CHAR < MAP.right + 160)) return true;
+    const byMaze = y > MZ_N - 10 && y < MZ_SIDE.pre + 25;                  // 迷路の 横は かべが のこって いる
+    if (x - HALF_W * CHAR < MAP.walkL && !(sideOpen.L && inSide && x - HALF_W * CHAR > MAP.left - 160 && (!byMaze || x + HALF_W * CHAR < MAP.left - 40))) return true;
+    if (x + HALF_W * CHAR > MAP.walkR && !(sideOpen.R && inSide && x + HALF_W * CHAR < MAP.right + 160 && (!byMaze || x - HALF_W * CHAR > MAP.right + 40))) return true;
     if (y > MAP.bottom - 20 || y < MAP.top + 60) return true;
     if (mazeOn && mzWalls.some(w => !w.open && x + HALF_W > w.x1 && x - HALF_W < w.x2 && y > w.y1 && y - 20 < w.y2)) return true;   // 迷路の かべ
     return MAP.walls.some(w => x + HALF_W > w.x1 && x - HALF_W < w.x2 && y > w.y1 && y - 20 < w.y2);

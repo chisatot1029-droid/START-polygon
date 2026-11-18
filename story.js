@@ -216,6 +216,7 @@ const STORY = {
         await say('主人公', '（というか、どうなっているんだ？\n同じことが2回も起きている…。）', { face: 'hero' });
 
         flags.afterMonster = true;
+        flags.run = true;                                                   // 迷路まで・迷路の 中も 走る（バケモノの 前と 同じ 速さ）
         mazeArrow(true);                                                    // 前に 進むよう 矢印
         follow();                                                           // 【プレイヤーが 操作】迷路の 前まで 歩く
       },
