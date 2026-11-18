@@ -319,8 +319,7 @@ const STORY = {
           show('gun');                                                      // ピストルを かまえる
         } else {
           // にげる：警察と 同じ 足の 速さで、迷路を 逆に もどる 追いかけっこ。入口の 手前まで にげると 入口が しまる
-          await say('主人公', 'にげろっ！', { face: 'hero' });
-          await say('主人公', '今までの道を{戻|もど}ってにげよう！', { face: 'hero' });
+          await say('主人公', '{逃|に}げろっ！今までの道を{戻|もど}るしかない！', { face: 'hero' });
           await labCut('memo');                                             // 研究員が メモを する 仕草
           await wait(1000);
           await labCut(false);
@@ -364,6 +363,7 @@ const STORY = {
         hide('watch');
         await say('主人公', '時間をもどす…。\n{確|たし}かにさっきは時がもどっていた。', { face: 'hero' });
         await say('かいとう', 'ぜひこの世界を楽しんでくれ！\nさぁ。行こう！', { face: 'kaitou1' });
+        if (fled) await mazeSink();                                         // にげた ときは 迷路が 地面に しずんで なくなる
         // 怪盗は 主人公を 置いて 走り出す。【プレイヤーの 操作】怪盗に ついていく
         await kaitouRunAhead();
         follow();
@@ -495,8 +495,10 @@ const STORY = {
     await H('うん。');
     await O('ありがとう。', 'kaitou2');
     await O('青い子はたしかこんな子だったかな、、、', 'kaitou1');
-    await ownerMorph();                              // かいとうが リアオの すがたに 変身する
-    await wait(400);
+    await ownerMorph();                              // かいとうが リアオの すがたに 変身して 見せて、
+    await wait(900);
+    await ownerMorph(null);                          // すぐに かいとうの すがたに もどる
+    await wait(300);
     await O('じゃあ、早速で悪いが、\nぼくは用事があるから{失礼|しつれい}するね！', 'kaitou5');
     // 怪盗は 奥の 裏口から 去る（主人公が 歩けるように なるまで カメラは そのまま）
     //   怪盗が 主人公の 前から はなれたら、歩いている とちゅうで 主人公が 話しはじめる
@@ -559,7 +561,7 @@ const STORY = {
     lookAt(kidA, heroX(), heroZ());
     look(12.4, -13.0, .9, false, 'slow');
     await KA('お、ケーキを食べるんだね。', 3);
-    await KA('{間違|まちが}えた！', 1, { scale: .5 });               // 小さい 文字で
+    await KA('{間違|まちが}えた！', 1, { scale: .75 });               // 小さい 文字で
     await KA('お兄さんがケーキ切ってくれるの？', 3);
     heroFace(kidA.x, kidA.z);
     await H('？');

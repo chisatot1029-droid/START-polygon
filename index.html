@@ -53,12 +53,14 @@
     /* 右下の もちもの と 集めた 星の 数 */
     #itemUI { position: absolute; right: .6%; bottom: 2.2%; width: 9.2%; z-index: 3; pointer-events: none; }
     #itemUI.hidden { display: none; }
-    #itemUI .itemBox { box-sizing: border-box; width: 100%; aspect-ratio: 1.05; padding: .8em .6em; background: rgba(214, 214, 214, .82); border: .25em solid #222;
+    #itemUI .itemBox { box-sizing: border-box; width: 100%; padding: .8em .6em 1.1em; background: rgba(214, 214, 214, .82); border: .25em solid #222;
       display: flex; flex-direction: column; align-items: center; }
     #itemUI .itemTitle { font-size: 1.95em; color: #222; letter-spacing: .05em; }
-    #itemUI .itemSlots { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; }
+    #itemUI .itemSlots { width: 100%; margin-top: .7em; display: flex; flex-direction: column; align-items: center; gap: .9em; }   /* もちものが 増えると わくが 下へ のびる */
     #itemUI .itemSlot { width: 56%; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
     #itemUI .itemSlot.hidden { visibility: hidden; }
+    #itemUI .itemSlot.gone { display: none; }
+    #itemUI .itemSlot svg { width: 86%; height: 86%; }
     #itemUI .starCount.hidden { visibility: hidden; }
     #itemUI .starCount { display: flex; align-items: center; justify-content: center; gap: .5em; margin-top: 1.2em; color: #fff; font-size: 1.9em; }
     #itemUI .starCount svg { width: 1.9em; height: 1.9em; }
@@ -160,6 +162,10 @@
         <div class="itemTitle">もちもの</div>
         <div class="itemSlots">
           <div class="itemSlot hidden" id="itemWatch"><div id="watchUI" title="時計"><canvas></canvas></div></div>
+          <div class="itemSlot gone" id="itemKnife" title="ナイフ"><svg viewBox="0 0 40 40"><g transform="rotate(-45 20 20)">
+            <path d="M17.6 3.5 C22.6 6 23 13.5 22.4 22 L17.6 22 Z" fill="#e3e8ec" stroke="#222" stroke-width="1.6" stroke-linejoin="round"/>
+            <rect x="15.6" y="21.6" width="8.8" height="2.6" rx="1" fill="#555" stroke="#222" stroke-width="1.2"/>
+            <rect x="17.3" y="24" width="5.4" height="12.5" rx="1.8" fill="#6b4a32" stroke="#222" stroke-width="1.4"/></g></svg></div>
         </div>
       </div>
       <div class="starCount hidden" id="starCount"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 1.8l3 7.1 7.6.6-5.8 5 1.8 7.5L12 18l-6.6 4 1.8-7.5-5.8-5 7.6-.6z"/></svg><span id="starNum">0/3</span></div>
@@ -677,17 +683,11 @@
   // かいとうが 主人公を 置いて 先に 走り、階段の 上で 待つ
   const kaitouRunAhead = async () => {
     running = true; policeFaceOv = null;
-    if (chaseTrail) {                                                  // にげた あと：主人公が にげて きた 道を もどって 迷路を ぬける
-      const pts = chaseTrail.slice().reverse().filter((p, i, a) => i % 3 === 0 || i === a.length - 1);
-      for (const [tx, ty] of pts) {
-        const fx = 606 + policeDX, fy = policeY0 + policeDY, d = Math.hypot(tx - fx, ty - fy);
-        if (d < 5) continue;
-        await tween(d / 1.1, p => { policeDX = fx + (tx - fx) * p - 606; policeDY = fy + (ty - fy) * p - policeY0; });
-      }
-      chaseTrail = null;
-    }
     const pyNow = policeY0 + policeDY;
-    await policeWalk(-policeDX, SM.corridorTop - 260 - pyNow, 2200);
+    if (chaseTrail) {                                                  // にげた あと：迷路は もう ない ので、まっすぐ 上へ
+      chaseTrail = null;
+      await policeWalk(0, SM.corridorTop - 260 - pyNow, Math.max(1500, (pyNow - SM.corridorTop + 260) / 1.1));
+    } else await policeWalk(-policeDX, SM.corridorTop - 260 - pyNow, 2200);
     running = false;                                                   // ふりかえって 主人公を 待つ
   };
   Object.assign(window, { labCut, peekChoose, unpeek, kaitouRunAhead });
@@ -1174,6 +1174,15 @@
     await tween(900, p => { w.mesh.position.y = .55 - 1.3 * ease(p); });
     w.mesh.visible = false;
   }
+  // 迷路を ぜんぶ 地面に しずめて なくす（警察から にげた あと、怪盗が「さぁ。行こう！」と 言った あと）
+  async function mazeSink() {
+    shake = .35;
+    const ws = mzWalls.filter(w => w.mesh.visible);
+    mzWalls.forEach(w => { w.open = true; });
+    await tween(1400, p => { ws.forEach(w => { w.mesh.position.y = .55 - 1.3 * ease(p); }); });
+    ws.forEach(w => { w.mesh.visible = false; });
+    mazeOn = false;
+  }
   // 迷路の 横の かべを こわす（バケモノの ように）。外がわの 道が 見える
   async function mazeBreak(side) {
     if (sideOpen[side]) return;
@@ -1533,6 +1542,7 @@
     const el = document.getElementById('itemUI');
     el.classList.toggle('hidden', !itemsOn || mode === 'title' || mode === 'end');
     document.getElementById('itemWatch').classList.toggle('hidden', !haveWatch);
+    document.getElementById('itemKnife').classList.toggle('gone', !(knifeHeld && area === 'home'));
     document.getElementById('starCount').classList.toggle('hidden', !watchOn);   // 星の 数は 場面2で 自由に 動けるように なってから
     const t = stars + '/3', n = document.getElementById('starNum'); if (n.textContent !== t) n.textContent = t;
   }
@@ -2151,6 +2161,7 @@
   const cakeTake = () => { slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft); };         // ホールケーキから 一切れ とる
   const heroStar = new THREE.Group(); heroStar.visible = false; scene.add(heroStar);
   { const c = kidAM.userData.necklace.children[0].clone(); c.scale.setScalar(KID * 1.3); heroStar.add(c); }
+  let knifeHeld = false;                                   // 主人公が ナイフを 持って いる（もちものに 出す）
   const heroKnife = new THREE.Mesh(new THREE.BoxGeometry(.04, .3, .015), flat('#dfe5ea')); heroKnife.visible = false; scene.add(heroKnife);
 
   // ---------- 場面2の 登場人物の 位置（m） ----------
@@ -2286,7 +2297,7 @@
   const prop = (name, on) => {
     const u = kidAM.userData;
     ({ tears: () => { u.tears.visible = on; }, kidKnife: () => { u.knife.visible = on; }, kidPlates: () => { u.plates.visible = on; }, traySlices: () => { u.plates.userData.slices.forEach(m => { m.visible = on; }); }, trayOne: () => { u.plates.userData.slices.forEach((m, i) => { m.visible = on ? i < 2 : true; }); },
-       necklace: () => { u.necklace.visible = on; }, heroKnife: () => { heroKnife.visible = on; }, rackKnife: () => { knifeTaken.visible = on; },
+       necklace: () => { u.necklace.visible = on; }, heroKnife: () => { heroKnife.visible = on; knifeHeld = on; }, rackKnife: () => { knifeTaken.visible = on; },
        badCut: () => { badCut.visible = on; }, carry: () => { heroCarry = on; } })[name]();
   };
   const cake = state => { cakeState = state; };
@@ -2407,7 +2418,7 @@
     goalResolve = () => { goalResolve = null; goal = []; mode = 'event'; player.moving = false; resolve(); };
   });
   function reset2() {
-    setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
+    knifeHeld = false; setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
     Object.assign(doors, { back: 0, attic: 0, exit: 0 });
     for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0, track: false, spin: 0, form: null });
     for (const k of ['tears', 'kidKnife', 'kidPlates', 'necklace', 'heroKnife', 'badCut']) prop(k, false);
@@ -2416,12 +2427,13 @@
     cakeUI.classList.add('hidden'); cakeActive = false;
   }
   // かいとうが 体を 一周 まわして リアオの すがたに 変わる（警察 → かいとう と 同じ 動き）
-  const ownerMorph = async () => {
-    await tween(1600, p => { KH.spin = ease(p) * Math.PI * 2; if (p > .5) KH.form = 'kidA'; });
-    KH.spin = 0; KH.form = 'kidA';
+  //   ownerMorph() で リアオに、ownerMorph(null) で かいとうに もどる
+  const ownerMorph = async (form = 'kidA') => {
+    await tween(1600, p => { KH.spin = ease(p) * Math.PI * 2; if (p > .5) KH.form = form; });
+    KH.spin = 0; KH.form = form;
   };
   Object.assign(window, { watchUI, watchPoint, vmark, ownerMorph });
-  Object.assign(window, { mazeStart, mazeArrow, mazeOpen, mazeWalk, mazeGoalStand, policeNearHero, policeChase, attackPolice });
+  Object.assign(window, { mazeSink, mazeStart, mazeArrow, mazeOpen, mazeWalk, mazeGoalStand, policeNearHero, policeChase, attackPolice });
   Object.assign(window, { writeIn, tapUntil, roam, pickDish, eatDish, dishCake, dishBack, cakeTake, serveSlice, heroHoldDish, showPlate, takePlate, showStar, cakeReset, cakeSliced, setOutfit, look, sitHero, sitActor, sitDown, bendPut, prop, cake, eatSlices, atticPlates, eatPlates, kidChop, sleep, giveStar,
     tapAt, TAP, freeWalk, openDoor, cakeGame, walkActor, walkPath, walkHero, walkHeroPath, setHero, heroFace, lookAt,
     kidA: A, kidB: B, owner: KH });
