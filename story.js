@@ -528,6 +528,7 @@ const STORY = {
     await H('これからがんばってだっしゅつするんだ。');
     await leave;
     watchUI(true);                                   // ここから もちものの 時計が おせる。集めた 星の 数も 出す
+    photoTap(true);                                  // ここから 棚の 写真立てを タップ できる
 
     // ---------- ケーキの 前へ（プレイヤーが 歩く） ----------
     await freeWalk('cake');
@@ -560,7 +561,7 @@ const STORY = {
         if (at === 'B') { await serveSlice(0); await serveSlice(1); }
         if (at === 'E') { await serveSlice(0); await serveSlice(1); await serveSlice(1, true); }
       }
-      watchUI(true);
+      watchUI(true); photoTap(true);
       await fadeIn(900);
       if (three) { await threeTable(at); return; }     // 「…。」の 流れの とちゅうから
     }
@@ -636,7 +637,7 @@ const STORY = {
     // ---------- 机に 運ぶ ----------
     await H('できた。{机|つくえ}に運ぼう。');
     watchPoint([toA()]);                                      // 時計で 戻れる（どの 選択でも）：リアオが 来る ところへ
-    await askRewind('table');                                 // 主人公の 問いかけ（大丈夫／巻き戻す）
+    askRewindLater('table');                                  // 歩き はじめて 2秒 たったら 主人公の 問いかけ（大丈夫／巻き戻す）
     prop('heroKnife', false); prop('carry', true); cake('carry');
     const riaoComes = kidA.visible ? walkPath(kidA, [[11.4, -8.9], [-1.9, -8.9], [-2.2, -14.1]], 2.4) : null;
     await freeWalk('table');                                  // テーブルの 近くなら どこからでも 置ける
@@ -702,7 +703,7 @@ const STORY = {
     // 階段へ（プレイヤーが 歩く。子供Aは 先に 階段へ）
     await Promise.all([sitHero(null, 0, 0, 0, 0, 400), sitDown(kidA, 0, 400)]);
     rw(toB());                                               // 時計で 戻れる：研究員の「どうするんだい？」へ
-    await askRewind('give');
+    askRewindLater('give');                                  // 歩き はじめて 2秒 たったら 問いかけ
     // 主人公は 自分の 一切れを、リアオは 自分のと シィの 分の 2切れを お盆に のせて 持つ
     pickDish(0); heroHoldDish(true);
     await bendPut(kidA, () => { pickDish(1); cakeTake(); prop('kidPlates', true); prop('traySlices', true); }, 900);
@@ -846,7 +847,7 @@ const STORY = {
         await walkActor(kidB, -7.7, -1.6, 700); kidB.visible = false;
       })();
       rw3([toS(), toA(), toC()], [toS(), toA(), toD()]);       // 時計で 戻れる：はじめから ／ ケーキを 切る 場面 ／ ケーキを 食べる 場面
-      await askRewind('exit');
+      askRewindLater('exit');
       await freeWalk('exit');
       watchPoint(null);
       await fadeOut('black', 900);
@@ -971,7 +972,7 @@ const STORY = {
     // 家の 中を 自由に 歩く。玄関ドアの 前と 2階の 階段前で「この先に行きますか？」
     async function roamHouse() {
       rw3([toB()], [toE()]);                                   // 食べ終わって 立ち上がった：研究員の「どうするんだい？」（「…。」は「どうする…？」）へ 戻れる
-      await askRewind('roam');                                 // 庭から もどった ときは もう 聞かない
+      askRewindLater('roam');                                  // 歩き はじめて 2秒 たったら（庭から もどった ときは もう 聞かない）
       const where = await roam([{ name: 'door', x: 0, z: -.9, r: 1.0 }, { name: 'stairs', x: 6.3, z: -11.5, r: 1.7 }], 'stairsAny');
       watchPoint(null);
       if (where === 'door') {
@@ -1156,7 +1157,7 @@ const STORY = {
       if (!from) {
       await H('できた。{机|つくえ}に運ぼう。');
       watchPoint([toA()]);                                      // 時計で 戻れる：リアオが 来る ところへ
-      await askRewind('table3');
+      askRewindLater('table3');
       prop('heroKnife', false); prop('carry', true); cake('carry');
       await freeWalk('table');
       heroFace(0, -16.7);

@@ -1588,6 +1588,23 @@
     await new Promise(() => {});                                       // ページを 読みこみ なおすので ここで 止まる
   }
   window.askRewind = askRewind;
+  // 主人公が 歩き はじめて 2秒 たったら 問いかける（それまでに 着いたら 聞かない）
+  function askRewindLater(key) {
+    (async () => {
+      let t0 = null;
+      for (;;) {
+        await new Promise(r => setTimeout(r, 100));
+        if (!watchTargets) return;                                     // 戻れる 場面が おわった
+        if (t0 === null) { if (mode === 'play' && player.moving) t0 = performance.now(); continue; }
+        if (mode !== 'play') return;                                   // 着いた（歩く 場面が おわった）
+        if (performance.now() - t0 >= 2000 / timeScale) break;
+      }
+      mode = 'event'; player.moving = false; for (const k in keys) keys[k] = false;
+      await askRewind(key);
+      if (mode === 'event') mode = 'play';                             // 大丈夫：そのまま 歩きつづける
+    })();
+  }
+  window.askRewindLater = askRewindLater;
   // 時間を 戻す：画面が 白く なって、選んだ 場面から やりなおす（ページを 読みこみなおして はじめる）
   async function rewindTo(t) {
     const code = 'rw' + t.at + (t.cutN || '');
@@ -2003,9 +2020,11 @@
     const fr = new THREE.Group(); fr.position.set(len / 2 - .45, h + .08, -dep / 2 + .1); fr.rotation.x = -.12;
     const frame = new THREE.Mesh(new THREE.BoxGeometry(.62, .24, .03), flat('#1e1e1e')); frame.position.y = .12; fr.add(frame);
     const pic = new THREE.Mesh(new THREE.BoxGeometry(.54, .17, .01), flat('#ffffff')); pic.position.set(0, .12, .018); fr.add(pic);
-    ['#f08a8a', '#f2c46d', '#9fd87f', '#7fc4e8', '#b48ae0', '#f29ad0'].forEach((c, i) => { const dot = new THREE.Mesh(new THREE.CircleGeometry(.04, 8), flat(c)); dot.position.set(-.21 + i * .084, .12 + (i % 2 ? .02 : -.02), .025); fr.add(dot); });
+    ['#f08a8a', '#f2c46d', '#9fd87f', '#7fc4e8', '#3f6fd8', '#b48ae0', '#f29ad0', '#2a2a2a'].forEach((c, i) => { const dot = new THREE.Mesh(new THREE.CircleGeometry(.032, 8), flat(c)); dot.position.set(-.224 + i * .064, .12 + (i % 2 ? .02 : -.02), .025); fr.add(dot); });   // 7人の 子供と かいとう
     t.add(fr);
     shadowAll(t); homeG.add(t); }
+  // 棚の 上の 写真立ての 前で タップできる（「がんばってだっしゅつするんだ」の あとから）
+  const PHOTO = { x: SIDEBOARD.x - SIDEBOARD.dep / 2 + .1, z: SIDEBOARD.z - (SIDEBOARD.len / 2 - .45), y: SIDEBOARD.h + .25 };
   // テーブルの 上の 白い テーブルフラワー（ケーキを おく 場所から はなれた おくの はし）
   { const t = new THREE.Group(); t.position.set(0, TABLE.y + .035, -17.1 + DZ);
     const vase = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .2, 8), flat('#e9eef2')); vase.position.y = .1; t.add(vase);
@@ -2505,7 +2524,7 @@
     goalResolve = () => { goalResolve = null; goal = []; mode = 'event'; player.moving = false; resolve(); };
   });
   function reset2() {
-    knifeHeld = false; setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
+    knifeHeld = false; photoOn = false; setOutfit(false); camK = camKCur = 1; camRate = .002; heroSitK = 0; heroDishOn = false; diningDish.forEach(d => { d.visible = false; }); heroCarry = false; heroSleep = 0; focus2 = null; starFly = null; goal = []; goalResolve = null;
     Object.assign(doors, { back: 0, attic: 0, exit: 0 });
     for (const a of [A, B, KH]) Object.assign(a, { visible: false, moving: false, lift: 0, rot: 0, track: false, spin: 0, form: null });
     for (const k of ['tears', 'kidKnife', 'kidPlates', 'necklace', 'heroKnife', 'badCut']) prop(k, false);
@@ -2620,6 +2639,26 @@
     homeLight.position.set(camL.x, 3.5, camL.z); atticLight.position.set(camL.x, 3.5, camL.z);
     moonSpot.intensity = 0; houseLamp.intensity = 0;
   }
+  // 写真立ての 前に 来たら タップの 目じるし（「がんばってだっしゅつするんだ」の あとだけ）
+  let photoOn = false, photoNear = false;
+  const photoV = new THREE.Vector3(), photoFn = () => photoV.set(HOME.x + PHOTO.x, PHOTO.y, HOME.z + PHOTO.z);
+  window.photoTap = on => { photoOn = !!on; };
+  function photoGuideOff() { if (guideAt === photoFn) { alarmResolve = null; guideAt = null; $('alarmGuide').classList.add('hidden'); } photoNear = false; }
+  function checkPhoto() {
+    const near = photoOn && area === 'home' && mode === 'play' && Math.hypot(heroX() - (PHOTO.x + .55), heroZ() - PHOTO.z) < .9;
+    if (near === photoNear) return;
+    if (!near) { photoGuideOff(); return; }
+    if (alarmResolve) return;                                          // ほかの タップが 出て いる
+    photoNear = true; guideAt = photoFn; setRuby($('alarmGuide').querySelector('span'), 'タップ'); $('alarmGuide').classList.remove('hidden');
+    alarmResolve = async () => {
+      photoGuideOff();
+      mode = 'event'; player.moving = false; for (const k in keys) keys[k] = false;
+      player.face = Math.atan2(PHOTO.x - heroX(), -(PHOTO.z - heroZ()));
+      await say('主人公', '7人の{子供|こども}と{怪盗|かいとう}が{写|うつ}った{写真|しゃしん}だ。', { face: 'hero' });
+      await say('主人公', '青い子と{怪盗|かいとう}だけ目の色が同じだ…。', { face: 'hero' });
+      if (mode === 'event') mode = 'play';
+    };
+  }
   function updateScene2() {
     // 矢印の 道すじ：近くに 来たら 次の 点へ。さいごの 点に 着いたら おわり
     if (!goal.length) return;
@@ -2646,6 +2685,7 @@
     return MAP.walls.some(w => x + HALF_W > w.x1 && x - HALF_W < w.x2 && y > w.y1 && y - 20 < w.y2);
   }
   function update(dt) {
+    if (photoOn || photoNear) checkPhoto();                              // 写真立ての タップ（歩いて いない ときは 消す）
     if (mode === 'play') {
       let vx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), vy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
       if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
