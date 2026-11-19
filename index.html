@@ -1866,15 +1866,16 @@
   [[12.75, -13.4, 1.8, 2.7]].forEach(([x, z, w, d]) => {
     const c = new THREE.Mesh(new THREE.PlaneGeometry(w, d), flat('#6d3c32')); c.rotation.x = -Math.PI / 2; c.position.set(x, .07, z); homeG.add(c);
   });
-  // ダイニングテーブルと 椅子 6つ
-  const TABLE = { x1: -.99, x2: .96, z1: -17.67, z2: -13.37, y: .78 * FUR + .05 };
+  // ダイニングテーブルと 椅子 6つ（DZ だけ 奥へ。テーブルの まわりの 位置は みな DZ を 足して ある）
+  const DZ = -1.2;
+  const TABLE = { x1: -.99, x2: .96, z1: -17.67 + DZ, z2: -13.37 + DZ, y: .78 * FUR + .05 };
   { const t = new THREE.Group();
     const top = new THREE.Mesh(new THREE.BoxGeometry(TABLE.x2 - TABLE.x1, .07, TABLE.z2 - TABLE.z1), flat('#9a6b42')); top.position.set((TABLE.x1 + TABLE.x2) / 2, TABLE.y, (TABLE.z1 + TABLE.z2) / 2); t.add(top);
     for (const [x, z] of [[TABLE.x1 + .12, TABLE.z1 + .12], [TABLE.x2 - .12, TABLE.z1 + .12], [TABLE.x1 + .12, TABLE.z2 - .12], [TABLE.x2 - .12, TABLE.z2 - .12]]) {
       const l = new THREE.Mesh(new THREE.BoxGeometry(.08, TABLE.y, .08), flat('#7a5434')); l.position.set(x, TABLE.y / 2, z); t.add(l);
     }
     shadowAll(t); homeG.add(t); }
-  const CHAIRS = [[-1.41, -16.75, 1], [-1.41, -15.6, 1], [-1.41, -14.45, 1], [1.32, -16.75, -1], [1.32, -15.6, -1], [1.32, -14.45, -1]];   // x, z, 向き（1 = 右を むく）
+  const CHAIRS = [[-1.41, -16.75, 1], [-1.41, -15.6, 1], [-1.41, -14.45, 1], [1.32, -16.75, -1], [1.32, -15.6, -1], [1.32, -14.45, -1]].map(([x, z, s]) => [x, z + DZ, s]);   // x, z, 向き（1 = 右を むく）
   for (const [x, z, s] of CHAIRS) {
     const c = new THREE.Group(); c.position.set(x, 0, z);
     const seat = new THREE.Mesh(new THREE.BoxGeometry(.42, .05, .42), flat('#b88a5c')); seat.position.y = .45 * FUR; c.add(seat);
@@ -1958,8 +1959,34 @@
   [[-2.65, -3.0, 1, 2.6, 0], [2.65, -14.6, .9, 2.0, 0], [6.6, -7.62, .85, 3.0, Math.PI / 2], [15.15, -11.4, .85, 2.0, 0]].forEach(([x, z, k, len, rot]) => {
     const p = new THREE.Group(); p.position.set(x, 0, z); p.rotation.y = rot; PLANTS.hedge(p, k, len); shadowAll(p); homeG.add(p);
   });
+  // 手前 左の かべぎわの 低い 棚（引き出しが 5つ。上に 白い 花の 花瓶と、カラフルな 絵の 額）
+  const SIDEBOARD = { x: -2.82, z: -13.9, len: 2.2, dep: .44, h: .5 * FUR };
+  { const t = new THREE.Group(); t.position.set(SIDEBOARD.x, 0, SIDEBOARD.z); t.rotation.y = Math.PI / 2;   // 前（引き出し）が 部屋の まんなかを むく
+    const { len, dep, h } = SIDEBOARD;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(len, h, dep), flat('#5a3520')); body.position.y = h / 2 + .04; t.add(body);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(len + .06, .04, dep + .04), flat('#4a2a18')); top.position.y = h + .06; t.add(top);
+    for (const x of [-len / 2 + .08, len / 2 - .08]) { const l = new THREE.Mesh(new THREE.BoxGeometry(.06, .06, dep - .04), flat('#3e2414')); l.position.set(x, .03, 0); t.add(l); }
+    const dw = (len - .1) / 5;
+    for (let i = 0; i < 5; i++) {
+      const x = -len / 2 + .05 + dw * (i + .5);
+      const d = new THREE.Mesh(new THREE.BoxGeometry(dw - .03, h - .1, .02), flat('#6b4128')); d.position.set(x, h / 2 + .04, dep / 2 + .005); t.add(d);
+      const k = new THREE.Mesh(new THREE.SphereGeometry(.018, 6, 4), flat('#2a1a10')); k.position.set(x, h / 2 + .06, dep / 2 + .025); t.add(k);
+    }
+    // 花瓶（白）と 白い 花
+    const v = new THREE.Group(); v.position.set(-len / 2 + .35, h + .08, 0);
+    const vase = new THREE.Mesh(new THREE.CylinderGeometry(.05, .09, .2, 7), flat('#f2f2f0')); vase.position.y = .1; v.add(vase);
+    [[0, .3, 0], [.07, .27, .03], [-.07, .26, -.03], [.02, .25, -.07]].forEach(([x, y, z]) => { const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.055, 0), flat('#ffffff')); f.position.set(x, y, z); v.add(f); });
+    [[.08, .2, -.04], [-.08, .19, .05]].forEach(([x, y, z]) => { const l = new THREE.Mesh(new THREE.DodecahedronGeometry(.04, 0), flat('#5e8a44')); l.position.set(x, y, z); v.add(l); });
+    t.add(v);
+    // 額（黒い ふちに、白地の カラフルな 丸）
+    const fr = new THREE.Group(); fr.position.set(len / 2 - .45, h + .08, -dep / 2 + .1); fr.rotation.x = -.12;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(.62, .24, .03), flat('#1e1e1e')); frame.position.y = .12; fr.add(frame);
+    const pic = new THREE.Mesh(new THREE.BoxGeometry(.54, .17, .01), flat('#ffffff')); pic.position.set(0, .12, .018); fr.add(pic);
+    ['#f08a8a', '#f2c46d', '#9fd87f', '#7fc4e8', '#b48ae0', '#f29ad0'].forEach((c, i) => { const dot = new THREE.Mesh(new THREE.CircleGeometry(.04, 8), flat(c)); dot.position.set(-.21 + i * .084, .12 + (i % 2 ? .02 : -.02), .025); fr.add(dot); });
+    t.add(fr);
+    shadowAll(t); homeG.add(t); }
   // テーブルの 上の 白い テーブルフラワー（ケーキを おく 場所から はなれた おくの はし）
-  { const t = new THREE.Group(); t.position.set(0, TABLE.y + .035, -17.1);
+  { const t = new THREE.Group(); t.position.set(0, TABLE.y + .035, -17.1 + DZ);
     const vase = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .2, 8), flat('#e9eef2')); vase.position.y = .1; t.add(vase);
     [[0, .32, 0], [.09, .28, .04], [-.09, .27, -.03], [.03, .27, -.1], [-.04, .29, .09]].forEach(([x, y, z]) => { const f = new THREE.Mesh(new THREE.IcosahedronGeometry(.075, 0), flat('#ffffff')); f.position.set(x, y, z); t.add(f); });
     [[.12, .22, -.05], [-.12, .21, .06]].forEach(([x, y, z]) => { const l = new THREE.Mesh(new THREE.DodecahedronGeometry(.05, 0), flat('#5e8a44')); l.position.set(x, y, z); t.add(l); });
@@ -2166,7 +2193,7 @@
     const b2 = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), flat('#d8343c')); b2.position.set(.06, .11, .17); sl2.add(b2);
     shadowAll(p); return p;
   }
-  const DINE = [[.6, -14.45], [-.6, -14.45]];          // ダイニングの 主人公・リアオの 前
+  const DINE = [[.6, -14.45 + DZ], [-.6, -14.45 + DZ]];          // ダイニングの 主人公・リアオの 前
   const diningDish = DINE.map(([x, z]) => { const d = makeDish(); d.position.set(x, TABLE.y + .045, z); d.visible = false; homeG.add(d); return d; });
   const heroDish = makeDish(); heroDish.visible = false; scene.add(heroDish);
   let heroDishOn = false;
@@ -2174,7 +2201,7 @@
   //   second：お皿の 上に もう 1つ のせる
   const serveSlice = async (i, second) => {
     slicesLeft = Math.max(0, slicesLeft - 1); showSlices(slicesLeft);
-    const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52);
+    const d = diningDish[i], to = new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]), from = new THREE.Vector3(0, TABLE.y + .06, -15.52 + DZ);
     if (second) {
       const m = d.children[3], rest = new THREE.Vector3(-.03, .14, -.1), off = from.clone().sub(to);
       m.visible = true;
@@ -2191,7 +2218,7 @@
   // お皿の 2つめを ホールケーキに もどす（ケーキへ 運んで 消える）
   const dishBack = async i => {
     const d = diningDish[i], m = d.children[3], rest = m.position.clone();
-    const off = new THREE.Vector3(0, TABLE.y + .06, -15.52).sub(new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]));
+    const off = new THREE.Vector3(0, TABLE.y + .06, -15.52 + DZ).sub(new THREE.Vector3(DINE[i][0], TABLE.y + .045, DINE[i][1]));
     await tween(600, p => { m.position.copy(rest).addScaledVector(off, ease(p)); m.position.y += Math.sin(p * Math.PI) * .25; });
     m.visible = false; m.position.copy(rest); slicesLeft++; showSlices(slicesLeft);
   };
@@ -2230,7 +2257,7 @@
     cake: [[0, -4.6], [0, -8.7], [11.6, -8.7], [13.2, -13.4]],
     knife: [[12.9, -14.4]],
     back: [[13.2, -13.4]],
-    table: [[11.6, -8.7], [1.9, -8.7], [1.9, -12.9]],
+    table: [[11.6, -8.7], [1.9, -8.7], [1.9, -12.9 + DZ]],
     stairs: [[1.9, -12.0], [1.9, -8.8], [6.3, -8.8], [6.3, -12.6]],
     stairsAny: [[0, -4.6], [0, -8.7], [1.9, -8.8], [6.3, -8.8], [6.3, -12.6]],   // 玄関からでも ダイニングからでも 階段へ（オート用）
     exit: [[3.3, -3.7], [-5.3, -3.7], [-6.2, -1.6], [-7.7, -1.6]],   // 屋根うらの 片隅の 扉から 屋上へ
@@ -2240,6 +2267,7 @@
   // 1階で 歩ける ところ（かべ・家具を よける）
   const HOME_WALK = [[-2.75, -19.85, 2.75, -.25], [2.0, -9.8, 15.3, -7.7], [9.6, -16.55, 15.3, -7.7], [4.95, -13.2, 7.75, -9.0]];   // さいごは 2階への 階段
   const HOME_BLOCK = [[-3.2, -7.65, -.4, -5.8], [.4, -7.65, 3.2, -5.8], [TABLE.x1 - .25, TABLE.z1 - .25, TABLE.x2 + .25, TABLE.z2 + .25],
+    [SIDEBOARD.x - SIDEBOARD.dep / 2 - .2, SIDEBOARD.z - SIDEBOARD.len / 2 - .15, -2.4, SIDEBOARD.z + SIDEBOARD.len / 2 + .15],   // 手前 左の 低い 棚
     [9.38, -16.9, 14.0, -14.67], [13.56, -16.9, 15.6, -12.24], [13.4, -9.4, 15.6, -7.4], [1.6, -5.9, 2.6, -4.9]];
   // 屋根うらで 歩ける ところ（地図の 単位）：部屋と、片隅の 扉の 外
   const ATTIC_WALK = [[-6.3, -12.5, 6.3, -.45], [-8.4, -2.3, -6.0, -.9]];
@@ -2435,7 +2463,7 @@
   const TAP = {
     kidBody: () => tmpV2.set(kidAM.position.x, .45 * KID * 1.6, kidAM.position.z),
     knife: () => tmpV2.set(HOME.x + KNIFE.x, KNIFE.y, HOME.z + KNIFE.z),
-    table: () => tmpV2.set(HOME.x, TABLE.y + .2, HOME.z - 15.52),
+    table: () => tmpV2.set(HOME.x, TABLE.y + .2, HOME.z - 15.52 + DZ),
     kidHand: () => tmpV2.set(kidAM.position.x + Math.sin(A.rot) * .25, .55 * KID, kidAM.position.z + Math.cos(A.rot) * .25),
   };
   const tmpV2 = new THREE.Vector3();
@@ -2532,7 +2560,7 @@
     // ケーキ
     if (cakeState === 'carry') cakeG.position.set(heroM.position.x + fx * .4, .58, heroM.position.z + fz * .4);
     else if (cakeState === 'counter') cakeG.position.set(HOME.x + 14.72, COUNTER_H + .05, HOME.z - 13.57);
-    else if (cakeState === 'table') cakeG.position.set(HOME.x, TABLE.y + .04, HOME.z - 15.52);
+    else if (cakeState === 'table') cakeG.position.set(HOME.x, TABLE.y + .04, HOME.z - 15.52 + DZ);
     heroDish.visible = heroDishOn && (area === 'home' || area === 'attic');
     if (heroDishOn) heroDish.position.set(heroM.position.x + fx * .3, heroM.position.y + .48, heroM.position.z + fz * .3);
     cakeG.visible = area === 'home' && cakeState !== 'hidden';

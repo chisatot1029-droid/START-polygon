@@ -554,9 +554,9 @@ const STORY = {
         first = at === 'D' || at === 'E' ? 'ちがうよ' : 'そうだよ'; nameA = 'リアオ'; three = at === 'D' || at === 'E';
         prop('heroKnife', false);
         cakeSliced(cutN); cake('table');
-        sitHero(1.32, -14.45, 0, -14.45, -.15, 0);
-        sitActor(kidA, -1.41, -14.45, Math.PI / 2, .18);
-        look(0, -14.5, 1, true);
+        sitHero(1.32, -15.65, 0, -15.65, -.15, 0);
+        sitActor(kidA, -1.41, -15.65, Math.PI / 2, .18);
+        look(0, -15.7, 1, true);
         if (at === 'B') { await serveSlice(0); await serveSlice(1); }
         if (at === 'E') { await serveSlice(0); await serveSlice(1); await serveSlice(1, true); }
       }
@@ -637,9 +637,9 @@ const STORY = {
     await H('できた。{机|つくえ}に運ぼう。');
     watchPoint([toA()]);                                      // 時計で 戻れる（どの 選択でも）：リアオが 来る ところへ
     prop('heroKnife', false); prop('carry', true); cake('carry');
-    const riaoComes = kidA.visible ? walkPath(kidA, [[11.4, -8.9], [-1.9, -8.9], [-2.2, -12.9]], 2.4) : null;
+    const riaoComes = kidA.visible ? walkPath(kidA, [[11.4, -8.9], [-1.9, -8.9], [-2.2, -14.1]], 2.4) : null;
     await freeWalk('table');                                  // テーブルの 近くなら どこからでも 置ける
-    heroFace(0, -15.5);
+    heroFace(0, -16.7);
     await tapAt(TAP.table, 'タップして おく');
     watchPoint(null);
     prop('carry', false); cake('table');
@@ -650,10 +650,10 @@ const STORY = {
     await KA('お兄さんありがとう！すごくきれいに切ってある！', 2);
     await H('うん。');
     // 主人公と リアオは 椅子に 座る
-    look(0, -14.5);
+    look(0, -15.7);
     await Promise.all([
-      walkHeroPath(toChair(), 2.0).then(() => sitHero(1.32, -14.45, 0, -14.45, -.15, 600)),
-      walkPath(kidA, [[-2.2, -14.45], [-1.6, -14.45]], 1.6).then(() => { sitActor(kidA, -1.41, -14.45, Math.PI / 2); return sitDown(kidA, .18); }),
+      walkHeroPath(toChair(), 2.0).then(() => sitHero(1.32, -15.65, 0, -15.65, -.15, 600)),
+      walkPath(kidA, [[-2.2, -15.65], [-1.6, -15.65]], 1.6).then(() => { sitActor(kidA, -1.41, -15.65, Math.PI / 2); return sitDown(kidA, .18); }),
     ]);
     }                                                        // ←ここまでが 'B'・'C' から 戻った ときに とばす ところ
 
@@ -854,8 +854,8 @@ const STORY = {
     // テーブルの どこに いても、テーブルを まわりこんで 主人公の 椅子（右の 手前から 3つ目）へ
     function toChair() {
       const pts = [], x = heroX(), z = heroZ();
-      if (z < -12.9) { const side = x < 0 ? -2.3 : 2.3; pts.push([side, z], [side, -12.7]); }
-      pts.push([2.2, -12.7], [2.2, -14.45], [1.75, -14.45]);
+      if (z < -14.1) { const side = x < 0 ? -2.3 : 2.3; pts.push([side, z], [side, -13.9]); }
+      pts.push([2.2, -13.9], [2.2, -15.65], [1.75, -15.65]);
       return pts;
     }
     // 何こに 切るか えらんで、その 数の ケーキを 切る ミニゲーム（❶8個切る ❷好きな数を切る）
@@ -900,7 +900,7 @@ const STORY = {
           else path = [[-2.2, -12.0], [.5, -8.4], [5.6, -8.6], [5.6, -12.4]];
         }
         await walkPath(kidA, path, 2.2);                                 // 早足で
-        if (!st.stopped) { kidA.visible = false; look(0, -14.5, 1, false, 'slow'); }   // 2階へ 行ったら もどす
+        if (!st.stopped) { kidA.visible = false; look(0, -15.7, 1, false, 'slow'); }   // 2階へ 行ったら もどす
       })();
       return st;
     }
@@ -1153,24 +1153,24 @@ const STORY = {
       watchPoint([toA()]);                                      // 時計で 戻れる：リアオが 来る ところへ
       prop('heroKnife', false); prop('carry', true); cake('carry');
       await freeWalk('table');
-      heroFace(0, -15.5);
+      heroFace(0, -16.7);
       await tapAt(TAP.table, 'タップして おく');
       watchPoint(null);
       prop('carry', false); cake('table');
       // すみで ふるえて いた リアオが テーブルへ 来る
       kidA.shiver = false; prop('tears', false);
       if (!kidA.visible) sitActor(kidA, -2.45, -9.0, Math.PI);
-      await walkPath(kidA, [[-2.3, -11.6], [-1.6, -13.2]], 2.6); lookAt(kidA, 0, -15.5);
+      await walkPath(kidA, [[-2.3, -12.8], [-1.6, -14.4]], 2.6); lookAt(kidA, 0, -16.7);
       await KA('お、お兄さん！ケーキ切ってくれてありがとう。', 1);
       await H('うん。');
       await KA('おいらも食べていい？', 2);
       await H('うん。');
       // 主人公と リアオは 椅子に 座る。まずは 切った ケーキを お皿に のせて 机に おく（主人公の 前に 1つ、リアオの 前に 2つ）
       //   主人公は まだ 食べない。リアオも ケーキを 手に 持たない
-      look(0, -14.5);
+      look(0, -15.7);
       await Promise.all([
-        walkHeroPath(toChair(), 2.0).then(() => sitHero(1.32, -14.45, 0, -14.45, -.15, 500)),
-        walkPath(kidA, [[-2.2, -14.45], [-1.6, -14.45]], 1.6).then(() => { sitActor(kidA, -1.41, -14.45, Math.PI / 2); return sitDown(kidA, .18); }),
+        walkHeroPath(toChair(), 2.0).then(() => sitHero(1.32, -15.65, 0, -15.65, -.15, 500)),
+        walkPath(kidA, [[-2.2, -15.65], [-1.6, -15.65]], 1.6).then(() => { sitActor(kidA, -1.41, -15.65, Math.PI / 2); return sitDown(kidA, .18); }),
       ]);
       }                                                          // ←ここまで 'D'・'E' から 戻った ときは とばす
       if (from !== 'E') {
