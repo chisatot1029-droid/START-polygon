@@ -1932,7 +1932,7 @@
     }); }
   const knifeTaken = knifeRack.children[2];         // 手に とる ナイフ
   // 植物（緑が 多い 家）
-  [[-2.6, -19.6, 1.3], [2.6, -19.6, 1.1], [-2.6, -1.0, 1.0], [2.6, -2.8, .9], [-2.6, -12.2, 1.2], [9.95, -9.6, 1.0], [8.7, -7.9, .9], [15.0, -11.6, .8]].forEach(([x, z, k]) => potPlant(homeG, x, z, k));
+  [[-2.6, -19.6, 1.3], [2.6, -19.6, 1.1], [-2.6, -1.0, 1.0], [2.6, -2.8, .9], [-2.6, -11.45, 1.2], [9.95, -9.6, 1.0], [8.7, -7.9, .9], [15.0, -11.6, .8]].forEach(([x, z, k]) => potPlant(homeG, x, z, k));
   // 形や 大きさの ちがう 観葉植物
   const plantPot = (p, r, h, color = '#b5643c') => { const pot = new THREE.Mesh(new THREE.CylinderGeometry(r, r * .75, h, 8), flat(color)); pot.position.y = h / 2; p.add(pot); };
   const leaf = (p, geo, c, x, y, z, rx = 0, rz = 0, s = [1, 1, 1]) => { const m = new THREE.Mesh(geo, flat(c)); m.position.set(x, y, z); m.rotation.set(rx, 0, rz); m.scale.set(...s); p.add(m); return m; };
@@ -1981,7 +1981,7 @@
     const p = new THREE.Group(); p.position.set(x, 0, z); p.rotation.y = rot; PLANTS.hedge(p, k, len); shadowAll(p); homeG.add(p);
   });
   // 手前 左の かべぎわの 低い 棚（引き出しが 5つ。上に 白い 花の 花瓶と、カラフルな 絵の 額）
-  const SIDEBOARD = { x: -2.82, z: -13.9, len: 2.2, dep: .44, h: .5 * FUR };
+  const SIDEBOARD = { x: -2.82, z: -12.95, len: 2.2, dep: .44, h: .5 * FUR };   // 手前の 鉢植えと ならべて 置く
   { const t = new THREE.Group(); t.position.set(SIDEBOARD.x, 0, SIDEBOARD.z); t.rotation.y = Math.PI / 2;   // 前（引き出し）が 部屋の まんなかを むく
     const { len, dep, h } = SIDEBOARD;
     const body = new THREE.Mesh(new THREE.BoxGeometry(len, h, dep), flat('#5a3520')); body.position.y = h / 2 + .04; t.add(body);
