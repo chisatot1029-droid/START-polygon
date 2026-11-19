@@ -14,6 +14,12 @@
     #lidTop { top: 0; } #lidBot { bottom: 0; }
     #screen.auto #lpBadge { display: none; }
     /* アラームを 止めるように さそう エフェクト */
+    /* カウントダウン（警察から にげる 前の 3・2・1）：画面の まんなかに 大きく */
+    #countdown { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; pointer-events: none;
+      font-size: 22em; color: #fff; -webkit-text-stroke: .025em #111; text-shadow: 0 .03em 0 #111, 0 .05em .08em rgba(0,0,0,.45); }
+    #countdown.hidden { display: none; }
+    #countdown span { display: inline-block; animation: cdPop .9s ease-out both; }
+    @keyframes cdPop { 0% { transform: scale(1.8); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 80% { transform: scale(.95); opacity: 1; } 100% { transform: scale(.8); opacity: 0; } }
     #alarmGuide { position: absolute; width: 11em; height: 11em; margin: -5.5em 0 0 -5.5em; border: none; padding: 0;
       background: transparent; cursor: pointer; z-index: 15; }
     #alarmGuide.hidden { display: none; }
@@ -157,6 +163,7 @@
     <div id="lidTop" class="lid"></div>
     <div id="lidBot" class="lid"></div>
     <div id="fade"></div>
+    <div id="countdown" class="hidden"></div>
     <div id="itemUI" class="hidden">
       <div class="itemBox">
         <div class="itemTitle">もちもの</div>
@@ -318,7 +325,7 @@
     ui.fade.style.transition = 'none'; ui.fade.style.opacity = 0;
     ui.dialog.classList.add('hidden'); hist.length = 0; histPos = -1; labWasHidden = null; $('backMark').classList.add('hidden');
     $('writeBox').classList.add('hidden'); writing = null; roamNoArrow = false; if ($('peekCopy')) $('peekCopy').remove();
-    $('labCut').classList.add('hidden'); $('labCut').classList.remove('off'); $('labVeil').classList.add('hidden'); peeking = false;
+    $('countdown').classList.add('hidden'); $('labCut').classList.add('hidden'); $('labCut').classList.remove('off'); $('labVeil').classList.add('hidden'); peeking = false;
   }
   function resetPlayer() {
     player = { x: STORY.playerStart.x, y: STORY.playerStart.y, moving: false, t: 0, face: 0 };
@@ -687,7 +694,13 @@
     } else await policeWalk(-policeDX, SM.corridorTop - 260 - pyNow, 2200);
     running = false;                                                   // ふりかえって 主人公を 待つ
   };
-  Object.assign(window, { labCut, peekChoose, unpeek, kaitouRunAhead });
+  // 画面に 大きく 3・2・1 を 出す（1の あとで 操作できる）
+  async function countdown(from = 3) {
+    const el = $('countdown'); el.classList.remove('hidden');
+    for (let n = from; n >= 1; n--) { el.innerHTML = `<span>${n}</span>`; await wait(900); }
+    el.classList.add('hidden'); el.innerHTML = '';
+  }
+  Object.assign(window, { labCut, peekChoose, unpeek, kaitouRunAhead, countdown });
   Object.assign(window, { gardenSetup, showItems, getWatch, addStar });
   Object.assign(window, { walked, stopAlarm, policeTurn, runWithKaitou, arriveHouse, place, moonlight, enterHouse, breakWall, repairWall });
   Object.assign(window, { wait, say, choose, fadeOut, fadeIn, blink, show, hide, monster, monsterWalk, captiveWalk,
@@ -862,6 +875,7 @@
     if (k) { keys[k] = true; e.preventDefault(); }
     if (writing) return;                                                   // 書き込み中は 文字を 打つ
     if (!e.repeat && (e.key === 'Enter' || e.key === ' ')) { if (alarmResolve) alarmResolve(); else advance(); e.preventDefault(); }
+    if (!e.repeat && e.key === 'ArrowRight' && !ui.dialog.classList.contains('hidden')) advance();   // → でも セリフを すすめる
     if (!e.repeat && (e.key === 'Backspace' || ((e.key === 'ArrowLeft' || e.key === 'ArrowUp') && mode !== 'play'))) { goBack(); }
     if (chooseResolve && /^[1-9]$/.test(e.key)) chooseResolve(Number(e.key) - 1);
   });

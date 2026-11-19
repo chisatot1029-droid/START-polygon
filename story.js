@@ -336,6 +336,7 @@ const STORY = {
           await labCut('memo');                                             // 研究員が メモを する 仕草
           await wait(1000);
           await labCut(false);
+          await countdown();                                                // 画面に 大きく 3・2・1。1の あとで にげられる
           await policeChase();                                              // 【プレイヤーが 操作】追いつかれるまで にげる
           await say('{警察|けいさつ}', 'にげないでくれよ！');
           show('flowers');                                                  // ピストルでは なく すぐに 花束
