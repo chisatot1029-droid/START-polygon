@@ -1567,6 +1567,27 @@
     if (wbShown) { wb.classList.remove('hidden'); try { $('writeInput').focus(); } catch (err) {} }
     mode = prevMode; watchBusy = false;
   });
+  // 時を 戻せる 場面に なった とき：主人公が 自分に 問いかけて「大丈夫／巻き戻す」を えらぶ
+  //   巻き戻す：戻れる 場面が 1つなら そのまま 光に 包まれる。いくつか あれば 研究員「どこまで巻き戻す？」で えらぶ
+  const askedRewind = new Set();
+  async function askRewind(key) {
+    if (!watchTargets || (key && askedRewind.has(key))) return;
+    if (key) askedRewind.add(key);
+    await say('主人公', '今まで、自分を{殺|ころ}していない？\n大丈夫だったかな…？', { face: 'hero' });
+    const c = await choose(['大丈夫', '{巻|ま}き{戻|もど}す']);
+    if (c === '大丈夫') { await say('主人公', '大丈夫なはず。このまま進もう。', { face: 'hero' }); return; }
+    let t = watchTargets[0];
+    if (watchTargets.length > 1) {
+      const labOff = $('labCut').classList.contains('hidden');
+      if (labOff) await labCut('talk');
+      await say('研究員', 'どこまで{巻|ま}き{戻|もど}す？');
+      const lab = await choose(watchTargets.map(x => x.label));
+      t = watchTargets.find(x => x.label === lab) || t;
+    }
+    await rewindTo(t);
+    await new Promise(() => {});                                       // ページを 読みこみ なおすので ここで 止まる
+  }
+  window.askRewind = askRewind;
   // 時間を 戻す：画面が 白く なって、選んだ 場面から やりなおす（ページを 読みこみなおして はじめる）
   async function rewindTo(t) {
     const code = 'rw' + t.at + (t.cutN || '');
