@@ -315,7 +315,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 /* ---------- 場面選択（セッティングと 同じ 見た目の 白い バー） ---------- */
-#scenes {
+#scenes, #autos {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.78);
@@ -331,7 +331,7 @@ button { font: inherit; cursor: pointer; }
   font-size: 3.6em;
   letter-spacing: 0.1em;
 }
-.sceneBtn {
+.sceneBtn, .routeBtn {
   position: absolute;
   left: 15.6%;
   width: 69.3%;
@@ -344,8 +344,8 @@ button { font: inherit; cursor: pointer; }
   letter-spacing: 0.04em;
   cursor: pointer;
 }
-.sceneBtn:hover { color: #141f0e; }
-#scenesBackBtn {
+.sceneBtn:hover, .routeBtn:hover { color: #141f0e; }
+#scenesBackBtn, #autosBackBtn {
   position: absolute;
   left: 36.5%;
   width: 27.5%;

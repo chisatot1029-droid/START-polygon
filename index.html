@@ -224,6 +224,14 @@
       <button id="scenesBackBtn">back</button>
     </div>
 
+    <!-- オートで みる：どの ルートを 見るか えらぶ -->
+    <div id="autos" class="hidden">
+      <p class="scenesTitle">オートで みる</p>
+      <button class="routeBtn" id="autoRoute1" style="top: 30%">ルート1　リアオに ケーキを 2<ruby>個<rt>こ</rt></ruby> あげる</button>
+      <button class="routeBtn" id="autoRoute2" style="top: 45%">ルート2　リアオを しかる（<ruby>星<rt>ほし</rt></ruby>が くだける）</button>
+      <button id="autosBackBtn">back</button>
+    </div>
+
     <div id="ending" class="overlay hidden">
       <p class="endTitle">つづく</p>
       <p id="endText"></p>
@@ -2920,7 +2928,8 @@
   // ============================================================
   const cursorEl = $('cursor'), ringEl = $('cursorRing'), badgeEl = $('autoBadge');
   const AUTO_DOOR_X = 606;
-  let auto = false, autoMove = null, autoChoiceIdx = 0, autoWriteIdx = 0;
+  let auto = false, autoMove = null, autoChoiceIdx = 0, autoWriteIdx = 0, autoRoute = null;
+  window.autoHurry = false;                                   // リアオが 去って いく あいだは セリフを はやく すすめる（タップに 間に あうように）
   const cur = { x: W / 2, y: H / 2 };
   function placeCursor() { cursorEl.style.left = (cur.x / W * 100) + '%'; cursorEl.style.top = (cur.y / H * 100) + '%'; }
   function cursorTo(x, y) {
@@ -2944,16 +2953,18 @@
     btn.click();
     return true;
   }
-  async function startAuto() {
+  // route：えらぶ 選択肢と 書きこむ ことば（STORY.autoChoices／autoWrites か、STORY.autoScold）
+  async function startAuto(route, fromBtn) {
     if (auto) return;
-    auto = true; timeScale = STORY.autoSpeed || 1; autoChoiceIdx = 0; autoWriteIdx = 0;
+    autoRoute = route || { choices: STORY.autoChoices, writes: STORY.autoWrites };
+    auto = true; timeScale = STORY.autoSpeed || 1; autoChoiceIdx = 0; autoWriteIdx = 0; window.autoHurry = false;
     screenEl.classList.add('auto'); badgeEl.classList.remove('hidden'); cursorEl.classList.remove('hidden');
-    const c = centerOf($('autoBtn')); cur.x = c.x; cur.y = c.y; placeCursor();
+    const c = centerOf(fromBtn || $('autoBtn')); cur.x = c.x; cur.y = c.y; placeCursor();
     await wait(400);
     if (await autoClick($('startBtn'))) autopilot();
   }
   function stopAuto() {
-    auto = false; timeScale = 1; autoMove = null;
+    auto = false; timeScale = 1; autoMove = null; window.autoHurry = false;
     screenEl.classList.remove('auto'); badgeEl.classList.add('hidden');
     cursorEl.classList.add('hidden'); cursorEl.classList.remove('pressed');
   }
@@ -2963,13 +2974,13 @@
       if (peeking) { await wait(100); continue; }
       if (writing) {                                                          // オート：用意した 答えを 書きこむ
         await wait(900); if (!auto || !writing) continue;
-        const list = STORY.autoWrites || [], o = writing.opt;
+        const list = autoRoute.writes || [], o = writing.opt;
         $('writeInput').value = o.number ? (o.autoNumber || 8) : (list[autoWriteIdx++ % Math.max(1, list.length)] || 'いい子');
         await autoClick($('writeBox').querySelector('button'));
         continue;
       }
       if (alarmResolve) {
-        await wait(700);
+        await wait(window.autoHurry ? 60 : 700);
         if (auto && alarmResolve) await autoClick($('alarmGuide'));
         continue;
       }
@@ -2979,10 +2990,16 @@
         if (!auto) break;
         const btns = [...ui.choices.children];
         if (!btns.length) continue;
-        const want = (STORY.autoChoices || [])[autoChoiceIdx];
+        const want = (autoRoute.choices || [])[autoChoiceIdx];
         const b = btns.find(b => want !== undefined && (b.dataset.label || b.textContent).replace(/\n/g, '') === want.replace(/\n/g, ''));
         if (b) autoChoiceIdx++;
         await autoClick(b || btns[0]);
+      } else if (open && window.autoHurry) {                          // 急ぐ ときは 読む 間を とらずに すすめる
+        await wait(120);
+        if (!auto || d.classList.contains('hidden') || d.classList.contains('choosing')) continue;
+        if (typing) { advance(); await wait(60); }
+        advance();
+        await wait(80);
       } else if (open) {
         while (auto && typing) await wait(50);
         await wait(900 + Math.min(1200, fullText.length * 25));
@@ -3037,7 +3054,11 @@
     autoMove = null;
     cursorEl.classList.remove('pressed');
   }
-  $('autoBtn').addEventListener('click', startAuto);
+  $('autoBtn').addEventListener('click', () => $('autos').classList.remove('hidden'));
+  $('autosBackBtn').addEventListener('click', () => $('autos').classList.add('hidden'));
+  // カーソルの 出発点を えらんだ ボタンに するため、startAuto（さいしょの await まで）の あとで 閉じる
+  $('autoRoute1').addEventListener('click', () => { startAuto(null, $('autoRoute1')); $('autos').classList.add('hidden'); });
+  $('autoRoute2').addEventListener('click', () => { startAuto(STORY.autoScold, $('autoRoute2')); $('autos').classList.add('hidden'); });
   addEventListener('keydown', e => { if (auto && e.isTrusted) stopAuto(); }, true);
   addEventListener('pointerdown', e => { if (auto && e.isTrusted) stopAuto(); }, true);
 
